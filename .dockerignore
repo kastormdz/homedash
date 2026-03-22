@@ -1,0 +1,10 @@
+.git
+.gitignore
+bin/
+obj/
+*.log
+*.md
+debug_*.go
+test_*.go
+promiedos_debug.json
+dump_365.html
