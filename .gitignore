@@ -1,10 +1,6 @@
 # Executables
 homedash
-*.exe
-*.exe~
-*.dll
 *.so
-*.dylib
 
 # Test output and temporary files
 *.test
@@ -17,7 +13,6 @@ temp/
 go.work
 go.work.sum
 
-# Gemini AI Context and Plans
 GEMINI.md
 conductor/
 
