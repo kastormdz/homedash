@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full" data-theme="{{.Theme}}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <link rel="icon" type="image/png" href="https://img.icons8.com/fluency/48/home-automation.png">
+    <title>HomeDash</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.10.1/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;400;600;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .fluid-clock { font-size: clamp(2rem, 8vw, 5rem); }
+        .fluid-temp { font-size: clamp(2rem, 8vw, 5rem); }
+        
+        @keyframes glow {
+            0% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.1); }
+            50% { box-shadow: 0 0 40px rgba(245, 158, 11, 0.3); }
+            100% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.1); }
+        }
+        @keyframes borderRotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .holiday-glow { 
+            animation: glow 3s infinite ease-in-out;
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(245, 158, 11, 0.05) 100%);
+            border-color: rgba(245, 158, 11, 0.6) !important;
+            position: relative;
+        }
+        .holiday-glow::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            background: conic-gradient(from 0deg, transparent, rgba(245, 158, 11, 0.8), transparent 50%);
+            animation: borderRotate 4s linear infinite;
+            z-index: -1;
+            border-radius: 2rem;
+        }
+        .custom-modal { display: none; position: fixed; inset: 0; z-index: 100; align-items: center; justify-content: center; background: rgba(0,0,0,0.8); backdrop-filter: blur(4px); }
+        .custom-modal.active { display: flex; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-base-100 text-base-content p-3 md:p-4 transition-all duration-700 select-none">
+
+    <!-- Grid principal -->
+    <div class="dashboard-container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-10 gap-2">
+        
+        <!-- 1. Tarjeta Reloj -->
+        <div id="clock-container" 
+             class="bg-base-200 backdrop-blur-xl rounded-[2.5rem] p-4 md:p-6 shadow-2xl border border-base-300 flex flex-col justify-center h-full min-h-[240px] md:min-h-[280px] lg:col-span-3 relative overflow-hidden {{if .Holiday}}holiday-glow{{end}}">
+            <div id="clock-content" class="contents">
+                {{if .Holiday}}
+                <div class="absolute top-0 left-0 w-full p-2 bg-amber-500/20 border-b border-amber-500/30 flex items-center justify-center space-x-2">
+                    <i data-lucide="party-popper" class="w-3 h-3 text-amber-500"></i>
+                    <span class="text-[10px] font-black uppercase tracking-[0.2em] text-amber-500 italic">{{.Holiday.Name}}</span>
+                    <i data-lucide="party-popper" class="w-3 h-3 text-amber-500"></i>
+                </div>
+                {{end}}
+                <h1 id="clock" class="fluid-clock font-extrabold tracking-tighter text-base-content leading-none">00:00</h1>
+                <p id="date" class="text-primary text-xs md:text-lg font-bold mt-1 capitalize"></p>
+                {{if .UpcomingHolidays}}
+                <div class="mt-3 pt-3 border-t border-base-300/50">
+                    <div class="text-[11px] font-bold text-base-content/70 uppercase tracking-widest mb-2 italic">Próximos Feriados:</div>
+                    <div class="space-y-1.5">
+                        {{range .UpcomingHolidays}}
+                        <div class="flex items-center justify-between text-sm text-amber-500/90 font-bold">
+                            <span>{{.Name}}</span>
+                            <span class="text-base-content/60 text-xs ml-2">{{.DayName}} {{.DateStr}}</span>
+                        </div>
+                        {{end}}
+                    </div>
+                </div>
+                {{end}}
+            </div>
+        </div>
+
+        <!-- 2. Clima y 3. Deportes -->
+        <div id="weather-display" hx-get="/weather" hx-trigger="load, every 60s" hx-swap="innerHTML" class="contents">
+             <div class="lg:col-span-7 flex items-center justify-center bg-base-200/50 rounded-[2.5rem] border border-base-300/20 p-10 h-full">
+                <div class="w-8 h-8 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
+             </div>
+        </div>
+    </div>
+
+    <!-- Footer: Firma a la izquierda, Configuración a la derecha -->
+    <div class="mt-4 mb-2 flex items-center justify-between px-6 opacity-50 hover:opacity-100 transition-opacity duration-500">
+        <div class="text-[9px] font-bold text-base-content/60 uppercase tracking-[0.3em]">
+            Homedash by <span class="text-primary font-black">kastor</span>
+        </div>
+        <button onclick="toggleModal()" class="text-base-content/60 hover:text-base-content transition-colors flex items-center text-[10px] font-black uppercase tracking-widest">
+            <i data-lucide="settings" class="w-3.5 h-3.5 mr-2"></i> Configuración
+        </button>
+    </div>
+
+    <!-- Configuration Modal -->
+    <div id="modal" class="custom-modal">
+        <div class="bg-base-200 border border-base-300 w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-black text-base-content uppercase tracking-tighter italic">Ajustes Personales</h2>
+                <button onclick="toggleModal()" class="text-base-content/60 hover:text-base-content"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+            
+            <form hx-post="/settings" hx-swap="none" class="space-y-6">
+                <div>
+                    <label class="text-[10px] font-black text-base-content/60 uppercase tracking-widest block mb-2">Preferencias de Contenido</label>
+                    <div class="space-y-3 mb-6">
+                        <label class="flex items-center justify-between p-3 bg-base-300/50 rounded-xl border border-base-content/10/50 cursor-pointer hover:bg-base-300 transition-colors">
+                            <span class="text-sm font-bold text-base-content flex items-center"><i data-lucide="trophy" class="w-4 h-4 mr-2 text-primary"></i> Fútbol Argentino</span>
+                            <input type="checkbox" name="showFootball" {{if .ShowFootball}}checked{{end}} class="checkbox checkbox-primary">
+                        </label>
+                        <label class="flex items-center justify-between p-3 bg-base-300/50 rounded-xl border border-base-content/10/50 cursor-pointer hover:bg-base-300 transition-colors">
+                            <span class="text-sm font-bold text-base-content flex items-center"><i data-lucide="flag" class="w-4 h-4 mr-2 text-error"></i> Fórmula 1</span>
+                            <input type="checkbox" name="showF1" {{if .ShowF1}}checked{{end}} class="checkbox checkbox-error">
+                        </label>
+                        <label class="flex items-center justify-between p-3 bg-base-300/50 rounded-xl border border-base-content/10/50 cursor-pointer hover:bg-base-300 transition-colors">
+                            <span class="text-sm font-bold text-base-content flex items-center"><i data-lucide="swords" class="w-4 h-4 mr-2 text-error"></i> UFC</span>
+                            <input type="checkbox" name="showUFC" {{if .ShowUFC}}checked{{end}} class="checkbox checkbox-error">
+                        </label>
+                    </div>
+
+                    <label class="text-[10px] font-black text-base-content/60 uppercase tracking-widest block mb-2 mt-4">Apariencia (Tema)</label>
+                    <select name="theme" class="w-full bg-base-300 border border-base-content/10 rounded-xl px-4 py-3 text-base-content focus:outline-none focus:border-primary transition-colors mb-4 appearance-none">
+                        <option value="dark" {{if eq .Theme "dark"}}selected{{end}}>Oscuro Base (Dark)</option>
+                        <option value="dracula" {{if eq .Theme "dracula"}}selected{{end}}>Dracula (Contraste alto)</option>
+                        <option value="synthwave" {{if eq .Theme "synthwave"}}selected{{end}}>Synthwave (Retro Neon)</option>
+                        <option value="cyberpunk" {{if eq .Theme "cyberpunk"}}selected{{end}}>Cyberpunk (Amarillo)</option>
+                        <option value="retro" {{if eq .Theme "retro"}}selected{{end}}>Retro (Claro cálido)</option>
+                        <option value="dim" {{if eq .Theme "dim"}}selected{{end}}>Dim (Gris oscuro suave)</option>
+                        <option value="coffee" {{if eq .Theme "coffee"}}selected{{end}}>Café (Marrones)</option>
+                        <option value="sunset" {{if eq .Theme "sunset"}}selected{{end}}>Sunset (Atardecer)</option>
+                        <option value="night" {{if eq .Theme "night"}}selected{{end}}>Night (Noche profunda)</option>
+                    </select>
+
+                    <label class="text-[10px] font-black text-base-content/60 uppercase tracking-widest block mb-2">Equipo a mostrar</label>
+                    <input type="text" name="team" list="teams-list" placeholder="Ej: Boca, River, Racing..." 
+                           hx-get="/autocomplete/teams" hx-trigger="keyup changed delay:300ms" hx-target="#teams-list"
+                           class="w-full bg-base-300 border border-base-content/10 rounded-xl px-4 py-3 text-base-content focus:outline-none focus:border-indigo-500 transition-colors mb-4">
+                    <datalist id="teams-list"></datalist>
+                    
+                    <label class="text-[10px] font-black text-base-content/60 uppercase tracking-widest block mb-2">Ciudad del Clima</label>
+                    <input type="text" name="city" list="cities-list" placeholder="Ej: Mendoza, AR..." 
+                           hx-get="/autocomplete/cities" hx-trigger="keyup changed delay:500ms" hx-target="#cities-list"
+                           class="w-full bg-base-300 border border-base-content/10 rounded-xl px-4 py-3 text-base-content focus:outline-none focus:border-indigo-500 transition-colors">
+                    <datalist id="cities-list"></datalist>
+                </div>
+                <button type="submit" class="w-full bg-primary hover:bg-indigo-500 text-base-content font-black uppercase py-4 rounded-xl shadow-lg transition-all tracking-widest" onclick="setTimeout(() => toggleModal(), 100)">
+                    Guardar Cambios
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function updateClock() {
+            const now = new Date();
+            const options = { weekday: 'long', day: 'numeric', month: 'long' };
+            document.getElementById('clock').textContent = now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
+            document.getElementById('date').textContent = now.toLocaleDateString('es-AR', options);
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+        document.body.addEventListener('htmx:afterSwap', function(evt) { lucide.createIcons(); });
+        lucide.createIcons();
+        function toggleModal() { document.getElementById('modal').classList.toggle('active'); }
+    </script>
+</body>
+</html>

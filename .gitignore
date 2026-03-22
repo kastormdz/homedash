@@ -1,0 +1,28 @@
+# Executables
+homedash
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test output and temporary files
+*.test
+*.out
+test_*.go
+tmp/
+temp/
+
+# Go workspace
+go.work
+go.work.sum
+
+# Gemini AI Context and Plans
+GEMINI.md
+conductor/
+
+# IDE and OS specific
+.idea/
+.vscode/
+*.swp
+.DS_Store

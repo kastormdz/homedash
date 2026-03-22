@@ -1,0 +1,20 @@
+services:
+  homedash:
+    build: .
+    container_name: homedash
+    ports:
+      - "8060:8060"
+    environment:
+      - TZ=America/Argentina/Buenos_Aires
+    volumes:
+      # Permite editar plantillas en caliente sin rebuild
+      - ./templates:/app/templates
+      # Persistencia SOLO de la caché de escudos dinámica
+      # No mapeamos todo 'static' para no perder las banderas/circuitos del build
+      - ./static/assets/cache:/app/static/assets/cache
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

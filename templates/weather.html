@@ -1,0 +1,278 @@
+<!-- 2. Clima Actual -->
+<div class="bg-base-200 backdrop-blur-xl rounded-[2.5rem] p-5 md:p-6 shadow-2xl border border-base-300 flex flex-col justify-between h-full min-h-[240px] md:min-h-[280px] lg:col-span-3 overflow-hidden text-base-content">
+    <div class="flex justify-between items-start">
+        <div>
+            <h2 class="text-primary text-[10px] font-black uppercase tracking-[0.3em] mb-1 flex items-center">
+                <i data-lucide="map-pin" class="w-3 h-3 mr-2"></i> {{.City}}
+            </h2>
+            <div class="fluid-temp font-extrabold tracking-tighter text-base-content leading-none">{{.Current.Temperature}}<span class="text-primary">°</span></div>
+            <div class="flex items-center space-x-3 mt-2 text-base-content/60">
+                <div class="flex items-center text-[10px] font-bold uppercase tracking-tighter">
+                    <i data-lucide="sunrise" class="w-3 h-3 mr-1 text-amber-500/70"></i> Amanece: {{.Sunrise}}
+                </div>
+                <div class="flex items-center text-[10px] font-bold uppercase tracking-tighter">
+                    <i data-lucide="sunset" class="w-3 h-3 mr-1 text-orange-500/70"></i> Anochece: {{.Sunset}}
+                </div>
+            </div>
+        </div>
+        <div class="shrink-0">
+            {{$code := .Current.WeatherCode}}
+            {{$icon := "01d"}}
+            {{if eq $code 0}}{{$icon = "01d"}}{{else if le $code 3}}{{$icon = "02d"}}{{else if le $code 48}}{{$icon = "50d"}}{{else if le $code 67}}{{$icon = "10d"}}{{else if le $code 77}}{{$icon = "13d"}}{{else}}{{$icon = "11d"}}{{end}}
+            <img src="https://openweathermap.org/img/wn/{{$icon}}@4x.png" 
+                 class="w-20 h-20 md:w-24 md:h-24 drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] filter brightness-110">
+        </div>
+    </div>
+    
+    <div class="space-y-2">
+        <div class="bg-amber-500/10 p-2 rounded-xl border border-amber-500/20 flex items-center">
+            <i data-lucide="{{if .Alert.Icon}}{{.Alert.Icon}}{{else}}triangle-alert{{end}}" class="w-3.5 h-3.5 mr-2 text-amber-400 shrink-0"></i>
+            <div class="text-[9px] md:text-[10px] font-bold text-base-content leading-tight uppercase tracking-wider">{{if .Alert.Text}}{{.Alert.Text}}{{else}}Sin alertas actuales{{end}}</div>
+        </div>
+
+        {{if .Earthquakes}}
+        <div class="bg-error/10 p-2 rounded-xl border border-error/20 flex flex-col space-y-1">
+            <div class="flex items-center space-x-1.5 mb-1 px-1">
+                <i data-lucide="activity" class="w-3 h-3 text-error"></i>
+                <span class="text-[10px] font-black text-error uppercase tracking-tighter">Últimos Sismos</span>
+            </div>
+            {{range $i, $e := .Earthquakes}}{{if lt $i 4}}
+            <div class="flex items-center justify-between border-b border-error/5 last:border-0 pb-0.5 last:pb-0 {{if and (eq $i 0) .IsNew}}animate-pulse bg-red-500/5 rounded px-1{{end}}">
+                <div class="flex items-center min-w-0">
+                    <i data-lucide="activity" class="w-3 h-3 mr-1.5 {{if and (eq $i 0) .IsNew}}text-red-400{{else}}text-error{{end}} shrink-0"></i>
+                    <div class="text-[9px] font-black text-base-content uppercase truncate">{{.Location}} <span class="text-base-content/60 ml-1 font-bold">[{{.Date}} {{.Time}}]</span></div>
+                </div>
+                <div class="text-[10px] font-black text-error ml-2">{{.Magnitude}}</div>
+            </div>
+            {{end}}{{end}}
+        </div>
+        {{end}}
+    </div>
+</div>
+
+<!-- 3. Tarjeta Deportes (Fútbol + F1) -->
+<div class="bg-base-200 backdrop-blur-xl rounded-[2.5rem] p-4 md:p-5 shadow-2xl border border-base-300 flex flex-col justify-between h-full min-h-[240px] md:min-h-[280px] lg:col-span-4 overflow-hidden group {{if and (not .ShowFootball) (not .ShowF1)}}hidden{{end}} text-base-content">
+    
+    <!-- SOCCER BLOCK -->
+    {{if .ShowFootball}}
+    <div class="bg-white/5 rounded-3xl p-4 border border-white/5 flex flex-col justify-between flex-[1.2] mb-2 last:mb-0 relative overflow-hidden">
+        <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center space-x-2">
+                <div class="text-primary text-[10px] font-black uppercase tracking-[0.2em] flex items-center">
+                    <i data-lucide="trophy" class="w-4 h-4 mr-2"></i> Fútbol
+                </div>
+                {{if eq .NextMatch.Match.Status "LIVE"}}
+                <div class="flex items-center bg-error/20 text-error text-[8px] font-black px-2 py-0.5 rounded-full border border-error/30 animate-pulse">
+                    <span class="w-1.5 h-1.5 bg-red-500 rounded-full mr-1.5 shadow-[0_0_5px_rgba(239,68,68,0.8)]"></span> EN VIVO {{.NextMatch.Match.Clock}}
+                </div>
+                {{end}}
+            </div>
+            <div class="bg-indigo-500/10 text-primary text-[8px] font-black px-2 py-0.5 rounded-full border border-indigo-500/20 uppercase italic max-w-[180px] truncate">
+                {{.NextMatch.Match.Tournament}}
+            </div>
+        </div>
+        
+        <div class="flex flex-col flex-1 justify-center min-w-0">
+            <div class="flex items-center justify-between mb-2">
+                <div class="text-base md:text-lg lg:text-xl font-black text-base-content uppercase italic tracking-tighter leading-none mb-2 pr-4">
+                    {{.NextMatch.Match.Team}} <span class="text-primary text-[10px]">vs</span> {{.NextMatch.Match.Opponent}}
+                </div>
+
+                <!-- MARCADOR EN VIVO -->
+                {{if or (eq .NextMatch.Match.Status "LIVE") (eq .NextMatch.Match.Status "FINAL")}}
+                <div class="flex items-center space-x-2 bg-white/10 px-3 py-1.5 rounded-2xl border border-white/10 shadow-2xl">
+                    <span class="text-xl md:text-2xl font-black text-base-content tabular-nums leading-none">{{.NextMatch.Match.HomeScore}}</span>
+                    <span class="text-primary font-black text-sm">-</span>
+                    <span class="text-xl md:text-2xl font-black text-base-content tabular-nums leading-none">{{.NextMatch.Match.AwayScore}}</span>
+                </div>
+                {{end}}
+            </div>
+
+            <div class="flex items-end justify-between">
+                <div class="flex flex-col space-y-1.5">
+                    <div class="flex items-center space-x-3">
+                        <span class="text-sm md:text-base lg:text-lg text-primary font-black tracking-tight">{{.NextMatch.Match.Date}} • {{.NextMatch.Match.Time}}</span>
+                        {{if .NextMatch.Match.Channel}}
+                        <span class="text-[9px] lg:text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded border border-indigo-500/30 font-black uppercase tracking-widest shadow-sm">
+                            <i data-lucide="tv" class="w-2.5 h-2.5 inline mr-1"></i>{{.NextMatch.Match.Channel}}
+                        </span>
+                        {{end}}
+                    </div>
+                    <div class="flex items-center text-base-content/60">
+                        <i data-lucide="map-pin" class="w-3 h-3 mr-1.5 shrink-0"></i>
+                        <span class="text-[10px] font-bold uppercase leading-tight">{{.NextMatch.Match.Stadium}}</span>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2 translate-y-1">
+                    <img src="{{.NextMatch.Match.TeamCrest}}" class="w-10 h-10 md:w-12 md:h-12 object-contain filter drop-shadow-lg" onerror="this.src='/static/assets/crests/afa.png'">
+                    <img src="{{.NextMatch.Match.OpponentCrest}}" class="w-10 h-10 md:w-12 md:h-12 object-contain filter drop-shadow-lg" onerror="this.src='/static/assets/crests/afa.png'">
+                </div>
+            </div>
+        </div>
+    </div>
+    {{end}}
+
+    <!-- F1 BLOCK -->
+    {{if .ShowF1}}
+    <div class="bg-error/5 rounded-3xl p-4 border border-red-600/10 flex flex-col justify-between flex-1 overflow-hidden">
+        <div class="flex items-center justify-between mb-2">
+            <img src="/static/assets/logos/f1.svg" class="h-8 md:h-12 w-auto brightness-150 filter drop-shadow-[0_0_10px_rgba(225,6,0,0.6)]">
+            <div class="flex items-center space-x-3">
+                <img src="{{.NextMatch.F1.PosterURL}}" class="h-10 md:h-14 object-contain opacity-90 filter brightness-125 drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]" onerror="this.style.display='none'">
+                <div class="text-base-content text-xs md:text-base font-black uppercase tracking-tight italic leading-tight text-right max-w-[120px]">{{.NextMatch.F1.GrandPrix}}</div>
+            </div>
+        </div>
+        <div class="grid grid-cols-5 gap-1.5">
+            {{range .NextMatch.F1.Sessions}}
+            <div class="bg-base-300/40 rounded-xl p-1.5 border border-white/5 flex flex-col items-center justify-center hover:bg-error/10 transition-all relative">
+                {{if .WeatherIcon}}<i data-lucide="{{.WeatherIcon}}" class="w-3 h-3 text-base-content/50 absolute top-1.5 right-1.5"></i>{{end}}
+                <div class="text-[10px] lg:text-[11px] font-black text-error uppercase mb-0.5">{{.Name}}</div>
+                <div class="text-[11px] md:text-sm font-black text-base-content leading-none">{{.Time}}</div>
+                <div class="text-[9px] lg:text-[10px] text-base-content/60 font-bold uppercase mt-1">{{.Date}}</div>
+            </div>
+            {{end}}
+        </div>
+    </div>
+    {{end}}
+</div>
+
+<!-- FILA INFERIOR: Pronóstico + Stats, UFC, Bitcoin + Dólar -->
+<div class="md:col-span-full grid grid-cols-1 lg:grid-cols-12 gap-2 mt-2">
+    
+    <!-- 1. Pronóstico Semanal + Stats (Izquierda - 5 cols) -->
+    <div class="lg:col-span-5 bg-base-200 backdrop-blur-xl rounded-[2.5rem] p-6 shadow-2xl border border-base-300 flex flex-col min-h-[240px] text-base-content">
+        <div class="flex flex-col md:flex-row md:items-center justify-between mb-5 space-y-4 md:space-y-0">
+            <h3 class="text-base-content/60 text-[10px] font-black uppercase tracking-[0.3em] flex items-center">
+                <i data-lucide="calendar-days" class="w-4 h-4 mr-2"></i> Pronóstico
+            </h3>
+            
+            <div class="flex flex-wrap items-center justify-center md:justify-start gap-3 md:gap-4 bg-indigo-500/10 px-4 py-2.5 rounded-2xl border border-indigo-500/20 transition-all duration-500 {{if or (gt .RainProb 50) (gt .AQI 100) (gt .Current.UVIndex 8.0)}}bg-indigo-500/20 border-indigo-400/50{{end}} max-w-full">
+                <div class="flex items-center space-x-2 {{if or (gt .Current.Humidity 85) (lt .Current.Humidity 20)}}animate-pulse text-blue-400{{end}}">
+                    <i data-lucide="droplets" class="w-4 h-4 text-blue-400 shrink-0"></i>
+                    <div class="flex flex-col">
+                        <span class="text-[8px] text-base-content/60 font-bold uppercase leading-none">Hum.</span>
+                        <span class="text-xs font-black text-base-content">{{.Current.Humidity}}%</span>
+                    </div>
+                </div>
+                <div class="hidden md:block w-px h-6 bg-white/10"></div>
+                <div class="flex items-center space-x-2">
+                    <i data-lucide="cloud-rain" class="w-4 h-4 {{if gt .RainProb 50}}text-blue-400 animate-bounce{{else}}text-primary{{end}} shrink-0"></i>
+                    <div class="flex flex-col">
+                        <span class="text-[8px] text-base-content/60 font-bold uppercase leading-none">Lluvia</span>
+                        <span class="text-xs font-black {{if gt .RainProb 50}}text-blue-400{{else}}text-base-content{{end}}">{{.RainProb}}%</span>
+                    </div>
+                </div>
+                <div class="hidden md:block w-px h-6 bg-white/10"></div>
+                <div class="flex items-center space-x-2 {{if gt .Current.UVIndex 8.0}}animate-pulse text-error{{end}}">
+                    <i data-lucide="sun" class="w-4 h-4 {{if gt .Current.UVIndex 8.0}}text-error{{else}}text-amber-400{{end}} shrink-0"></i>
+                    <div class="flex flex-col">
+                        <span class="text-[8px] text-base-content/60 font-bold uppercase leading-none">UV</span>
+                        <span class="text-xs font-black {{if gt .Current.UVIndex 8.0}}text-error{{else}}text-base-content{{end}}">{{.Current.UVIndex}}</span>
+                    </div>
+                </div>
+                <div class="hidden md:block w-px h-6 bg-white/10"></div>
+                <div class="flex items-center space-x-2 {{if gt .AQI 100}}animate-pulse bg-red-500/10 rounded-lg p-1{{end}}" title="{{.AQIDesc}}">
+                    <i data-lucide="leaf" class="w-4 h-4 {{if le .AQI 50}}text-green-400{{else if le .AQI 100}}text-yellow-400{{else}}text-red-400{{end}} shrink-0"></i>
+                    <div class="flex flex-col">
+                        <span class="text-[8px] text-base-content/60 font-bold uppercase leading-none">Aire</span>
+                        <span class="text-xs font-black {{if gt .AQI 100}}text-red-400{{else}}text-base-content{{end}}">{{.AQI}}</span>
+                    </div>
+                </div>
+                <div class="hidden md:block w-px h-6 bg-white/10"></div>
+                <div class="flex items-center space-x-2">
+                    <i data-lucide="{{.MoonIcon}}" class="w-4 h-4 text-indigo-300 shrink-0"></i>
+                    <div class="flex flex-col">
+                        <span class="text-[8px] text-base-content/60 font-bold uppercase leading-none">Luna</span>
+                        <span class="text-xs font-black text-base-content">{{.MoonPhaseName}}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="flex-1 grid grid-cols-4 md:grid-cols-7 gap-2">
+            {{range .Forecast}}
+            <div class="bg-base-300/20 rounded-2xl p-2 flex flex-col items-center justify-center border border-white/5 hover:bg-white/5 transition-all">
+                <span class="text-base-content/60 font-black text-[9px] uppercase mb-1">{{.Date}}</span>
+                {{$code := .Code}}
+                {{$icon := "01d"}}
+                {{if eq $code 0}}{{$icon = "01d"}}{{else if le $code 3}}{{$icon = "02d"}}{{else if le $code 48}}{{$icon = "50d"}}{{else if le $code 67}}{{$icon = "10d"}}{{else if le $code 77}}{{$icon = "13d"}}{{else}}{{$icon = "11d"}}{{end}}
+                <img src="https://openweathermap.org/img/wn/{{$icon}}@2x.png" class="w-10 h-10 filter brightness-110">
+                <div class="flex flex-col items-center mt-1">
+                    <span class="text-base-content font-black text-sm leading-none">{{.Max}}°</span>
+                    <span class="text-slate-600 font-bold text-[9px]">{{.Min}}°</span>
+                </div>
+            </div>
+            {{end}}
+        </div>
+    </div>
+
+    <!-- 2. UFC (Centro - 3 cols) -->
+    {{if .ShowUFC}}
+    <div class="lg:col-span-3 bg-base-200 backdrop-blur-xl rounded-[2.5rem] p-4 md:p-5 shadow-2xl border border-base-300 flex flex-col min-h-[240px] overflow-hidden text-base-content">
+        <div class="flex items-center justify-between mb-3 shrink-0">
+            <img src="/static/assets/logos/ufc.svg" class="h-8 md:h-12 w-auto brightness-150 filter drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">
+            <div class="text-base-content text-[11px] lg:text-xs font-black uppercase italic">{{.NextMatch.UFC.Date}}</div>
+        </div>
+
+        <div class="text-base-content text-[11px] lg:text-xs font-black uppercase italic truncate mb-2 leading-tight">{{.NextMatch.UFC.EventName}}</div>
+        <div class="flex-1 space-y-1.5 overflow-hidden">
+            {{range $i, $fight := .NextMatch.UFC.MainCard}}{{if lt $i 3}}
+            <div class="bg-base-300/30 rounded-xl p-2 border border-white/5 flex items-center justify-between border-l-2 border-l-red-600/40 hover:bg-white/5 transition-all">
+                <div class="text-[9px] lg:text-[10px] font-bold text-base-content italic truncate pr-2">{{$fight}}</div>
+                <i data-lucide="zap" class="w-3 h-3 text-error shrink-0"></i>
+            </div>
+            {{end}}{{end}}
+        </div>
+        <div class="mt-2 text-center border-t border-white/5 pt-2">
+            <span class="text-[10px] font-black text-base-content/60 uppercase tracking-[0.2em]">{{.NextMatch.UFC.Time}} <span class="text-error">ART</span></span>
+        </div>
+    </div>
+    {{end}}
+
+    <!-- 3. Finanzas: Bitcoin + Dólar (Derecha) -->
+    <div class="{{if .ShowUFC}}lg:col-span-4{{else}}lg:col-span-7{{end}} bg-base-200 backdrop-blur-xl rounded-[2.5rem] p-6 shadow-2xl border border-base-300 flex flex-col justify-between min-h-[240px] text-base-content">
+        <!-- Bitcoin Horizontal -->
+        <div class="bg-orange-500/5 rounded-[2rem] p-4 border border-orange-500/10 flex items-center justify-between mb-2">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-[#f7931a] rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/20">
+                    <span class="text-base-content font-black text-xl">₿</span>
+                </div>
+                <div>
+                    <div class="text-[9px] font-black uppercase text-orange-500/70 tracking-widest flex items-center">
+                        Bitcoin USD 
+                    </div>
+                    <div class="text-2xl font-black text-base-content leading-none">${{printf "%.0f" .BTCPrice}}</div>
+                </div>
+            </div>
+            <div class="text-right">
+                <div class="flex flex-col items-end">
+                    {{if ge .BTCChange 0.0}}
+                    <span class="text-[10px] font-black text-green-500 flex items-center">
+                        <i data-lucide="trending-up" class="w-3 h-3 mr-1"></i> +{{printf "%.2f" .BTCChange}}%
+                    </span>
+                    {{else}}
+                    <span class="text-[10px] font-black text-error flex items-center">
+                        <i data-lucide="trending-down" class="w-3 h-3 mr-1"></i> {{printf "%.2f" .BTCChange}}%
+                    </span>
+                    {{end}}
+                    <span class="text-[8px] font-bold text-base-content/60 uppercase">24h</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+            <!-- Dólar Blue -->
+            <div class="bg-green-600/5 rounded-2xl p-3 border border-green-500/10 flex flex-col justify-center">
+                <div class="text-[8px] font-black uppercase text-green-500/70 tracking-widest mb-1">Dólar Blue</div>
+                <div class="text-xl font-black text-base-content leading-none">${{if .Dolar.Blue}}{{.Dolar.Blue.Venta}}{{else}}---{{end}}</div>
+                <div class="text-[7px] font-bold text-base-content/60 uppercase mt-1">Compra: ${{if .Dolar.Blue}}{{.Dolar.Blue.Compra}}{{else}}---{{end}}</div>
+            </div>
+            <!-- Dólar Cripto -->
+            <div class="bg-primary/5 rounded-2xl p-3 border border-indigo-500/10 flex flex-col justify-center">
+                <div class="text-[8px] font-black uppercase text-primary/70 tracking-widest mb-1">Dólar Cripto</div>
+                <div class="text-xl font-black text-base-content leading-none">${{if .Dolar.Cripto}}{{.Dolar.Cripto.Venta}}{{else}}---{{end}}</div>
+                <div class="text-[7px] font-bold text-base-content/60 uppercase mt-1">Compra: ${{if .Dolar.Cripto}}{{.Dolar.Cripto.Compra}}{{else}}---{{end}}</div>
+            </div>
+        </div>
+    </div>
+</div>
