@@ -57,7 +57,7 @@ func GetUpcomingHolidays(t time.Time) []UpcomingHoliday {
 		"Thursday": "Jue", "Friday": "Vie", "Saturday": "Sáb", "Sunday": "Dom",
 	}
 
-	for i := 1; i <= 7; i++ {
+	for i := 1; i <= 30; i++ {
 		nextDay := t.AddDate(0, 0, i)
 		if h := GetHolidayToday(nextDay); h != nil {
 			upcoming = append(upcoming, UpcomingHoliday{

@@ -37,6 +37,7 @@ type AppSettings struct {
 	ShowFootball bool   `json:"showFootball"`
 	ShowF1       bool   `json:"showF1"`
 	ShowUFC      bool   `json:"showUFC"`
+	ShowFinance  bool   `json:"showFinance"`
 	Theme        string `json:"theme"`
 }
 
@@ -50,6 +51,7 @@ func getDefaultSettings() AppSettings {
 		ShowFootball: true,
 		ShowF1:       true,
 		ShowUFC:      true,
+		ShowFinance:  true,
 		Theme:        "dark",
 	}
 }
@@ -58,7 +60,7 @@ func getSettings(r *http.Request) AppSettings {
 	cookie, err := r.Cookie("settings")
 	if err == nil {
 		val, _ := url.QueryUnescape(cookie.Value)
-		var s AppSettings
+		s := getDefaultSettings()
 		if err := json.Unmarshal([]byte(val), &s); err == nil {
 			// Si falta la provincia (ej. cookies viejas), intentamos recuperarla
 			if s.Province == "" && s.City != "" {
@@ -67,10 +69,6 @@ func getSettings(r *http.Request) AppSettings {
 				if err == nil {
 					s.Province = province
 				}
-			}
-			// Si falta el tema (usuarios viejos), asignamos por defecto
-			if s.Theme == "" {
-				s.Theme = "dark"
 			}
 			return s
 		}
@@ -124,6 +122,7 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 		ShowF1           bool
 		ShowFootball     bool
 		ShowUFC          bool
+		ShowFinance      bool
 		Theme            string
 	}{
 		Holiday:          holidays.GetHolidayToday(now),
@@ -131,6 +130,7 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 		ShowF1:           settings.ShowF1,
 		ShowFootball:     settings.ShowFootball,
 		ShowUFC:          settings.ShowUFC,
+		ShowFinance:      settings.ShowFinance,
 		Theme:            settings.Theme,
 	}
 	err := tmpls.ExecuteTemplate(w, "index.html", data)
@@ -196,6 +196,7 @@ func handleWeather(w http.ResponseWriter, r *http.Request) {
 			ShowF1:        settings.ShowF1,
 			ShowFootball:  settings.ShowFootball,
 			ShowUFC:       settings.ShowUFC,
+			ShowFinance:   settings.ShowFinance,
 			Dolar:         finData,
 			BTCChange:     crypto.GetCachedBTCChange(),
 			AQI:           aqi,
@@ -226,6 +227,7 @@ func handleSettings(w http.ResponseWriter, r *http.Request) {
 		s.ShowF1 = r.FormValue("showF1") == "on"
 		s.ShowFootball = r.FormValue("showFootball") == "on"
 		s.ShowUFC = r.FormValue("showUFC") == "on"
+		s.ShowFinance = r.FormValue("showFinance") == "on"
 
 		theme := r.FormValue("theme")
 		if theme != "" { s.Theme = theme }
