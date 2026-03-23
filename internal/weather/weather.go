@@ -85,6 +85,7 @@ type WeatherViewModel struct {
 	ShowF1        bool
 	ShowFootball  bool
 	ShowUFC       bool
+	ShowFinance   bool
 	Dolar         finance.FinanceData
 	BTCChange     float64
 	AQI           int
