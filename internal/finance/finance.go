@@ -23,7 +23,9 @@ var (
 	financeMutex  sync.RWMutex
 )
 
-func init() {
+func init() {}
+
+func StartUpdateLoop() {
 	go func() {
 		for {
 			UpdateDollar()
@@ -32,7 +34,7 @@ func init() {
 	}()
 }
 
-func UpdateDollar() {
+func UpdateDollar() error {
 	var newData FinanceData
 
 	// Usamos DolarApi.com para el Blue
@@ -55,10 +57,15 @@ func UpdateDollar() {
 		}
 	}
 
+	if newData.Blue.Venta == 0 && newData.Cripto.Venta == 0 {
+		return http.ErrHandlerTimeout // O cualquier error para indicar fallo
+	}
+
 	financeMutex.Lock()
 	if newData.Blue.Venta > 0 { cachedFinance.Blue = newData.Blue }
 	if newData.Cripto.Venta > 0 { cachedFinance.Cripto = newData.Cripto }
 	financeMutex.Unlock()
+	return nil
 }
 
 func GetCachedFinance() FinanceData {

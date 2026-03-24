@@ -2,6 +2,7 @@ package crypto
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"sync"
@@ -14,7 +15,9 @@ var (
 	btcMutex        sync.RWMutex
 )
 
-func init() {
+func init() {}
+
+func StartUpdateLoop() {
 	go func() {
 		for {
 			UpdateBTC()
@@ -23,14 +26,17 @@ func init() {
 	}()
 }
 
-func UpdateBTC() {
+func UpdateBTC() error {
 	price, change, err := GetBTCData()
-	if err == nil && price > 0 {
-		btcMutex.Lock()
-		cachedBTC = price
-		cachedBTCChange = change
-		btcMutex.Unlock()
+	if err != nil || price == 0 {
+		return fmt.Errorf("error obteniendo BTC")
 	}
+
+	btcMutex.Lock()
+	cachedBTC = price
+	cachedBTCChange = change
+	btcMutex.Unlock()
+	return nil
 }
 
 func GetCachedBTC() float64 {

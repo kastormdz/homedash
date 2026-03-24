@@ -87,10 +87,35 @@ func init() {
 func main() {
 	log.Println("Iniciando Homedash...")
 	
-	// Pre-update de caches compartidas al arrancar (deportes síncrono para asegurar datos al inicio)
-	sports.ForceUpdate()
-	go crypto.UpdateBTC()
-	go finance.UpdateDollar()
+	// Sincronización inicial con reintentos (Previene arranque vacío en Docker)
+	maxRetries := 5
+	retryDelay := 5 * time.Second
+
+	log.Println("[INIT] Cargando datos iniciales...")
+
+	// 1. Deportes (Bloqueante hasta éxito o max retries)
+	for i := 0; i < maxRetries; i++ {
+		err := sports.ForceUpdate()
+		if err == nil {
+			log.Println("[INIT] Deportes cargados con éxito.")
+			break
+		}
+		log.Printf("[INIT] Error cargando deportes (intento %d/%d): %v. Reintentando en %v...\n", i+1, maxRetries, err, retryDelay)
+		time.Sleep(retryDelay)
+	}
+
+	// 2. Crypto y Finanzas (Intentar una vez rápido, si fallan no bloqueamos el inicio pero los lanzamos)
+	if err := crypto.UpdateBTC(); err != nil {
+		log.Printf("[INIT] Aviso: BTC no se pudo cargar inicialmente: %v\n", err)
+	}
+	if err := finance.UpdateDollar(); err != nil {
+		log.Printf("[INIT] Aviso: Finanzas no se pudieron cargar inicialmente: %v\n", err)
+	}
+
+	// Iniciar bucles de actualización en segundo plano
+	sports.StartUpdateLoop()
+	crypto.StartUpdateLoop()
+	finance.StartUpdateLoop()
 
 	fs := http.FileServer(http.Dir("static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
@@ -208,7 +233,7 @@ func handleWeather(w http.ResponseWriter, r *http.Request) {
 		BTCTrend:    trend,
 		RainProb:    rainProb,
 		Earthquakes: earthquake.GetLatestEarthquakes(),
-		Alert:       weather.GetSMNAlert(settings.Province),
+		Alert:       weather.GetSMNAlert(settings.Province, settings.City),
 	}
 
 	err := tmpls.ExecuteTemplate(w, "weather.html", viewModel)
