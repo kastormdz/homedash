@@ -141,55 +141,11 @@
     
     <!-- 1. Pronóstico Semanal + Stats (Izquierda - 5 cols) -->
     <div class="{{if and (not .ShowUFC) (not .ShowFinance)}}lg:col-span-12{{else if or (not .ShowUFC) (not .ShowFinance)}}lg:col-span-6{{else}}lg:col-span-5{{end}} bg-base-200 backdrop-blur-xl rounded-[2.5rem] p-6 shadow-2xl border border-base-300 flex flex-col min-h-[240px] text-base-content">
-        <div class="flex flex-col md:flex-row md:items-center justify-between mb-5 space-y-4 md:space-y-0">
-            <h3 class="text-base-content/60 text-[10px] font-black uppercase tracking-[0.3em] flex items-center">
-                <i data-lucide="calendar-days" class="w-4 h-4 mr-2"></i> Pronóstico
-            </h3>
-            
-            <div class="flex flex-wrap items-center justify-center md:justify-start gap-3 md:gap-4 bg-indigo-500/10 px-4 py-2.5 rounded-2xl border border-indigo-500/20 transition-all duration-500 {{if or (gt .RainProb 50) (gt .AQI 100) (gt .Current.UVIndex 8.0)}}bg-indigo-500/20 border-indigo-400/50{{end}} max-w-full">
-                <div class="flex items-center space-x-2 {{if or (gt .Current.Humidity 85) (lt .Current.Humidity 20)}}animate-pulse text-blue-400{{end}}">
-                    <i data-lucide="droplets" class="w-4 h-4 text-blue-400 shrink-0"></i>
-                    <div class="flex flex-col">
-                        <span class="text-[8px] text-base-content/60 font-bold uppercase leading-none">Hum.</span>
-                        <span class="text-xs font-black text-base-content">{{.Current.Humidity}}%</span>
-                    </div>
-                </div>
-                <div class="hidden md:block w-px h-6 bg-white/10"></div>
-                <div class="flex items-center space-x-2">
-                    <i data-lucide="cloud-rain" class="w-4 h-4 {{if gt .RainProb 50}}text-blue-400 animate-bounce{{else}}text-primary{{end}} shrink-0"></i>
-                    <div class="flex flex-col">
-                        <span class="text-[8px] text-base-content/60 font-bold uppercase leading-none">Lluvia</span>
-                        <span class="text-xs font-black {{if gt .RainProb 50}}text-blue-400{{else}}text-base-content{{end}}">{{.RainProb}}%</span>
-                    </div>
-                </div>
-                <div class="hidden md:block w-px h-6 bg-white/10"></div>
-                <div class="flex items-center space-x-2 {{if gt .Current.UVIndex 8.0}}animate-pulse text-error{{end}}">
-                    <i data-lucide="sun" class="w-4 h-4 {{if gt .Current.UVIndex 8.0}}text-error{{else}}text-amber-400{{end}} shrink-0"></i>
-                    <div class="flex flex-col">
-                        <span class="text-[8px] text-base-content/60 font-bold uppercase leading-none">UV</span>
-                        <span class="text-xs font-black {{if gt .Current.UVIndex 8.0}}text-error{{else}}text-base-content{{end}}">{{.Current.UVIndex}}</span>
-                    </div>
-                </div>
-                <div class="hidden md:block w-px h-6 bg-white/10"></div>
-                <div class="flex items-center space-x-2 {{if gt .AQI 100}}animate-pulse bg-red-500/10 rounded-lg p-1{{end}}" title="{{.AQIDesc}}">
-                    <i data-lucide="leaf" class="w-4 h-4 {{if le .AQI 50}}text-green-400{{else if le .AQI 100}}text-yellow-400{{else}}text-red-400{{end}} shrink-0"></i>
-                    <div class="flex flex-col">
-                        <span class="text-[8px] text-base-content/60 font-bold uppercase leading-none">Aire</span>
-                        <span class="text-xs font-black {{if gt .AQI 100}}text-red-400{{else}}text-base-content{{end}}">{{.AQI}}</span>
-                    </div>
-                </div>
-                <div class="hidden md:block w-px h-6 bg-white/10"></div>
-                <div class="flex items-center space-x-2">
-                    <i data-lucide="{{.MoonIcon}}" class="w-4 h-4 text-indigo-300 shrink-0"></i>
-                    <div class="flex flex-col">
-                        <span class="text-[8px] text-base-content/60 font-bold uppercase leading-none">Luna</span>
-                        <span class="text-xs font-black text-base-content">{{.MoonPhaseName}}</span>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <h3 class="text-base-content/60 text-[10px] font-black uppercase tracking-[0.3em] flex items-center mb-4">
+            <i data-lucide="calendar-days" class="w-4 h-4 mr-2"></i> Pronóstico
+        </h3>
         
-        <div class="flex-1 grid grid-cols-4 md:grid-cols-7 gap-2">
+        <div class="flex-1 grid grid-cols-4 md:grid-cols-7 gap-2 mb-4">
             {{range .Forecast}}
             <div class="bg-base-300/20 rounded-2xl p-2 flex flex-col items-center justify-center border border-white/5 hover:bg-white/5 transition-all">
                 <span class="text-base-content/60 font-black text-[9px] uppercase mb-1">{{.Date}}</span>
@@ -203,6 +159,56 @@
                 </div>
             </div>
             {{end}}
+        </div>
+
+        <div class="flex flex-wrap items-center justify-center md:justify-start gap-3 md:gap-4 bg-indigo-500/10 px-4 py-2.5 rounded-2xl border border-indigo-500/20 transition-all duration-500 {{if or (gt .RainProb 50) (gt .AQI 100) (gt .Current.UVIndex 8.0)}}bg-indigo-500/20 border-indigo-400/50{{end}} max-w-full">
+            <div class="flex items-center space-x-2 {{if or (gt .Current.Humidity 85) (lt .Current.Humidity 20)}}animate-pulse text-blue-400{{end}}">
+                <i data-lucide="droplets" class="w-4 h-4 text-blue-400 shrink-0"></i>
+                <div class="flex flex-col">
+                    <span class="text-[8px] text-base-content/60 font-bold uppercase leading-none">Hum.</span>
+                    <span class="text-xs font-black text-base-content">{{.Current.Humidity}}%</span>
+                </div>
+            </div>
+            <div class="hidden md:block w-px h-6 bg-white/10"></div>
+            <div class="flex items-center space-x-2">
+                <i data-lucide="wind" class="w-4 h-4 text-primary shrink-0"></i>
+                <div class="flex flex-col">
+                    <span class="text-[8px] text-base-content/60 font-bold uppercase leading-none">Viento</span>
+                    <span class="text-xs font-black text-base-content">{{.Current.WindSpeed}} <span class="text-[8px] font-bold">km/h</span></span>
+                </div>
+            </div>
+            <div class="hidden md:block w-px h-6 bg-white/10"></div>
+            <div class="flex items-center space-x-2">
+                <i data-lucide="cloud-rain" class="w-4 h-4 {{if gt .RainProb 50}}text-blue-400 animate-bounce{{else}}text-primary{{end}} shrink-0"></i>
+                <div class="flex flex-col">
+                    <span class="text-[8px] text-base-content/60 font-bold uppercase leading-none">Lluvia</span>
+                    <span class="text-xs font-black {{if gt .RainProb 50}}text-blue-400{{else}}text-base-content{{end}}">{{.RainProb}}%</span>
+                </div>
+            </div>
+            <div class="hidden md:block w-px h-6 bg-white/10"></div>
+            <div class="flex items-center space-x-2 {{if gt .Current.UVIndex 8.0}}animate-pulse text-error{{end}}">
+                <i data-lucide="sun" class="w-4 h-4 {{if gt .Current.UVIndex 8.0}}text-error{{else}}text-amber-400{{end}} shrink-0"></i>
+                <div class="flex flex-col">
+                    <span class="text-[8px] text-base-content/60 font-bold uppercase leading-none">UV</span>
+                    <span class="text-xs font-black {{if gt .Current.UVIndex 8.0}}text-error{{else}}text-base-content{{end}}">{{.Current.UVIndex}}</span>
+                </div>
+            </div>
+            <div class="hidden md:block w-px h-6 bg-white/10"></div>
+            <div class="flex items-center space-x-2 {{if gt .AQI 100}}animate-pulse bg-red-500/10 rounded-lg p-1{{end}}" title="{{.AQIDesc}}">
+                <i data-lucide="leaf" class="w-4 h-4 {{if le .AQI 50}}text-green-400{{else if le .AQI 100}}text-yellow-400{{else}}text-red-400{{end}} shrink-0"></i>
+                <div class="flex flex-col">
+                    <span class="text-[8px] text-base-content/60 font-bold uppercase leading-none">Aire</span>
+                    <span class="text-xs font-black {{if gt .AQI 100}}text-red-400{{else}}text-base-content{{end}}">{{.AQI}}</span>
+                </div>
+            </div>
+            <div class="hidden md:block w-px h-6 bg-white/10"></div>
+            <div class="flex items-center space-x-2">
+                <i data-lucide="{{.MoonIcon}}" class="w-4 h-4 text-indigo-300 shrink-0"></i>
+                <div class="flex flex-col">
+                    <span class="text-[8px] text-base-content/60 font-bold uppercase leading-none">Luna</span>
+                    <span class="text-xs font-black text-base-content">{{.MoonPhaseName}}</span>
+                </div>
+            </div>
         </div>
     </div>
 

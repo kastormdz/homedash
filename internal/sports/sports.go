@@ -22,7 +22,9 @@ func init() {
 		F1:         F1Race{GrandPrix: "Cargando..."},
 		UFC:        UFCMatch{EventName: "Cargando..."},
 	}
-	
+}
+
+func StartUpdateLoop() {
 	go func() {
 		for {
 			ForceUpdate()
@@ -50,13 +52,20 @@ func init() {
 	}()
 }
 
-func ForceUpdate() {
+func ForceUpdate() error {
 	start := time.Now()
 	newData := fetchFreshSportsData()
+	
+	// Si no obtuvimos nada de nada (ni F1, ni UFC, ni partidos), podrías ser un error de red
+	if len(newData.AllMatches) == 0 && (newData.F1.GrandPrix == "Sin carreras" || newData.F1.GrandPrix == "Cargando...") && (newData.UFC.EventName == "Sin eventos" || newData.UFC.EventName == "Cargando...") {
+		return fmt.Errorf("no se pudo obtener ningún dato de deportes (posible error de red)")
+	}
+
 	cacheMutex.Lock()
 	cachedData = newData
 	cacheMutex.Unlock()
 	fmt.Printf("[SPORTS] Update completado en %v. Partidos: %d\n", time.Since(start), len(newData.AllMatches))
+	return nil
 }
 
 type MatchData struct {
