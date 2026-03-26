@@ -2,6 +2,7 @@ package finance
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"sync"
 	"time"
@@ -58,12 +59,16 @@ func UpdateDollar() error {
 	}
 
 	if newData.Blue.Venta == 0 && newData.Cripto.Venta == 0 {
-		return http.ErrHandlerTimeout // O cualquier error para indicar fallo
+		return fmt.Errorf("no se pudieron obtener datos financieros")
 	}
 
 	financeMutex.Lock()
-	if newData.Blue.Venta > 0 { cachedFinance.Blue = newData.Blue }
-	if newData.Cripto.Venta > 0 { cachedFinance.Cripto = newData.Cripto }
+	if newData.Blue.Venta > 0 {
+		cachedFinance.Blue = newData.Blue
+	}
+	if newData.Cripto.Venta > 0 {
+		cachedFinance.Cripto = newData.Cripto
+	}
 	financeMutex.Unlock()
 	return nil
 }

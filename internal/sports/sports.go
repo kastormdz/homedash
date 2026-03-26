@@ -511,6 +511,8 @@ func GetSportsData() SportsData {
 }
 
 type PromiedosMatch struct {
+	Home    string
+	Away    string
 	Channel string
 	HScore  string
 	AScore  string
@@ -518,7 +520,7 @@ type PromiedosMatch struct {
 	Clock   string
 }
 
-func fetchPromiedosChannels() map[string]PromiedosMatch {
+func fetchPromiedosChannels() []PromiedosMatch {
 	client := &http.Client{Timeout: 7 * time.Second}
 	req, _ := http.NewRequest("GET", "https://www.promiedos.com.ar/", nil)
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
@@ -572,7 +574,7 @@ func fetchPromiedosChannels() map[string]PromiedosMatch {
 		return nil
 	}
 
-	matches := make(map[string]PromiedosMatch)
+	var matches []PromiedosMatch
 	for _, league := range data.Props.PageProps.Data.Leagues {
 		for _, game := range league.Games {
 			if len(game.Teams) >= 2 {
@@ -589,17 +591,15 @@ func fetchPromiedosChannels() map[string]PromiedosMatch {
 				if game.Status.Enum == 2 { status = "LIVE" } else if game.Status.Enum == 3 { status = "FINAL" }
 				
 				pm := PromiedosMatch{
+					Home:    normalizeName(game.Teams[0].Name),
+					Away:    normalizeName(game.Teams[1].Name),
 					Channel: ch,
 					HScore:  hScore,
 					AScore:  aScore,
 					Status:  status,
 					Clock:   fmt.Sprintf("%d'", game.GameTime),
 				}
-				
-				hName := normalizeName(game.Teams[0].Name)
-				aName := normalizeName(game.Teams[1].Name)
-				matches[hName] = pm
-				matches[aName] = pm
+				matches = append(matches, pm)
 			}
 		}
 	}
@@ -612,10 +612,11 @@ func fetchFreshSportsData() SportsData {
 	ufcData := fetchLiveUFC()
 	
 	// Fuente de verdad para Argentina: Promiedos
-	promiedosMap := fetchPromiedosChannels()
+	promiedosList := fetchPromiedosChannels()
 	
 	var allMatches []MatchData
 	now := time.Now()
+	todayStr := now.Format("02/01")
 	later := now.AddDate(0, 0, 15)
 	dateRange := now.Format("20060102") + "-" + later.Format("20060102")
 	urls := []string{
@@ -628,14 +629,28 @@ func fetchFreshSportsData() SportsData {
 	for _, url := range urls {
 		if m := fetchLiveMatches(url); m != nil { 
 			for i := range m {
+				// Solo aplicar Promiedos si el partido es hoy
+				if !strings.Contains(m[i].Date, todayStr) {
+					continue
+				}
+
 				pTeam := normalizeName(m[i].Team)
 				pOpp := normalizeName(m[i].Opponent)
 				
-				// Sobrescribir TODO con Promiedos si hay coincidencia
+				// Sobrescribir TODO con Promiedos si hay coincidencia EXACTA de ambos equipos
 				found := false
-				for key, val := range promiedosMap {
-					if (len(key) > 3 && (strings.Contains(pTeam, key) || strings.Contains(key, pTeam))) ||
-					   (len(key) > 3 && (strings.Contains(pOpp, key) || strings.Contains(key, pOpp))) {
+				for _, val := range promiedosList {
+					// Comprobar coincidencia en ambos equipos (orden normal)
+					matchHome := (len(val.Home) > 3 && (strings.Contains(pTeam, val.Home) || strings.Contains(val.Home, pTeam)))
+					matchAway := (len(val.Away) > 3 && (strings.Contains(pOpp, val.Away) || strings.Contains(val.Away, pOpp)))
+					
+					// Comprobar coincidencia cruzada (por si ESPN tiene localía invertida)
+					if !matchHome || !matchAway {
+						matchHome = (len(val.Away) > 3 && (strings.Contains(pTeam, val.Away) || strings.Contains(val.Away, pTeam)))
+						matchAway = (len(val.Home) > 3 && (strings.Contains(pOpp, val.Home) || strings.Contains(val.Home, pOpp)))
+					}
+
+					if matchHome && matchAway {
 						if val.Channel != "" { m[i].Channel = val.Channel }
 						if val.HScore != "" { m[i].HomeScore = val.HScore }
 						if val.AScore != "" { m[i].AwayScore = val.AScore }

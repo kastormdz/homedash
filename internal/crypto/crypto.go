@@ -99,5 +99,5 @@ func GetBTCData() (float64, float64, error) {
 		return price, change, nil
 	}
 
-	return 0, 0, nil
+	return 0, 0, fmt.Errorf("no se pudo obtener precio de BTC de ninguna fuente")
 }
