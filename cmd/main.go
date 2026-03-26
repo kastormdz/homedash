@@ -23,9 +23,9 @@ import (
 )
 
 var (
-	tmpls         *template.Template
-	lastBTCPrice  float64
-	btcPriceLock  sync.Mutex
+	tmpls        *template.Template
+	lastBTCPrice float64
+	btcPriceLock sync.Mutex
 )
 
 type AppSettings struct {
@@ -86,7 +86,7 @@ func init() {
 
 func main() {
 	log.Println("Iniciando Homedash...")
-	
+
 	// Sincronización inicial con reintentos (Previene arranque vacío en Docker)
 	maxRetries := 5
 	retryDelay := 5 * time.Second
@@ -166,17 +166,23 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 
 func handleWeather(w http.ResponseWriter, r *http.Request) {
 	settings := getSettings(r)
-	
+
 	weatherData, _ := weather.GetWeather(settings.Lat, settings.Lon)
 	btcPrice := crypto.GetCachedBTC()
-	
+
 	btcPriceLock.Lock()
+	defer btcPriceLock.Unlock()
 	trend := 0
 	if lastBTCPrice > 0 && btcPrice > 0 {
-		if btcPrice > lastBTCPrice { trend = 1 } else if btcPrice < lastBTCPrice { trend = -1 }
+		if btcPrice > lastBTCPrice {
+			trend = 1
+		} else if btcPrice < lastBTCPrice {
+			trend = -1
+		}
 	}
-	if btcPrice > 0 { lastBTCPrice = btcPrice }
-	btcPriceLock.Unlock()
+	if btcPrice > 0 {
+		lastBTCPrice = btcPrice
+	}
 
 	rainProb := 0
 	var current weather.CurrentWeather
@@ -245,17 +251,21 @@ func handleWeather(w http.ResponseWriter, r *http.Request) {
 func handleSettings(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 		s := getSettings(r)
-		
+
 		team := r.FormValue("team")
-		if team != "" { s.Team = team }
-		
+		if team != "" {
+			s.Team = team
+		}
+
 		s.ShowF1 = r.FormValue("showF1") == "on"
 		s.ShowFootball = r.FormValue("showFootball") == "on"
 		s.ShowUFC = r.FormValue("showUFC") == "on"
 		s.ShowFinance = r.FormValue("showFinance") == "on"
 
 		theme := r.FormValue("theme")
-		if theme != "" { s.Theme = theme }
+		if theme != "" {
+			s.Theme = theme
+		}
 
 		city := r.FormValue("city")
 		if city != "" {
@@ -267,7 +277,7 @@ func handleSettings(w http.ResponseWriter, r *http.Request) {
 				s.Province = province
 			}
 		}
-		
+
 		// Guardar en Cookie (1 año)
 		val, _ := json.Marshal(s)
 		http.SetCookie(w, &http.Cookie{
