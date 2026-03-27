@@ -3,7 +3,7 @@ package finance
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
+	"homedash/internal/network"
 	"sync"
 	"time"
 )
@@ -14,9 +14,16 @@ type DolarPrice struct {
 	Nombre string  `json:"nombre"`
 }
 
+type AssetData struct {
+	Price  float64
+	Change float64
+}
+
 type FinanceData struct {
 	Blue   DolarPrice
 	Cripto DolarPrice
+	SPY    AssetData
+	QQQ    AssetData
 }
 
 var (
@@ -24,41 +31,108 @@ var (
 	financeMutex  sync.RWMutex
 )
 
-func init() {}
-
 func StartUpdateLoop() {
 	go func() {
 		for {
-			UpdateDollar()
-			time.Sleep(15 * time.Minute)
+			UpdateFinance()
+			time.Sleep(5 * time.Minute)
 		}
 	}()
 }
 
-func UpdateDollar() error {
+type YahooChartResponse struct {
+	Chart struct {
+		Result []struct {
+			Meta struct {
+				RegularMarketPrice float64 `json:"regularMarketPrice"`
+				ChartPreviousClose float64 `json:"chartPreviousClose"`
+			} `json:"meta"`
+		} `json:"result"`
+	} `json:"chart"`
+}
+
+func getYahooFinanceData(symbol string) (AssetData, error) {
+	resp, err := network.FetchSecure("https://query1.finance.yahoo.com/v8/finance/chart/" + symbol)
+	if err != nil {
+		return AssetData{}, err
+	}
+	defer resp.Body.Close()
+
+	var data YahooChartResponse
+	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+		return AssetData{}, err
+	}
+
+	if len(data.Chart.Result) > 0 {
+		meta := data.Chart.Result[0].Meta
+		var change float64
+		if meta.ChartPreviousClose > 0 {
+			change = ((meta.RegularMarketPrice - meta.ChartPreviousClose) / meta.ChartPreviousClose) * 100
+		}
+		return AssetData{
+			Price:  meta.RegularMarketPrice,
+			Change: change,
+		}, nil
+	}
+	return AssetData{}, fmt.Errorf("no data for symbol")
+}
+
+func UpdateFinance() error {
 	var newData FinanceData
+	var wg sync.WaitGroup
+	wg.Add(4)
 
-	// Usamos DolarApi.com para el Blue
-	respB, errB := http.Get("https://dolarapi.com/v1/dolares/blue")
-	if errB == nil {
-		defer respB.Body.Close()
-		var d DolarPrice
-		if err := json.NewDecoder(respB.Body).Decode(&d); err == nil && d.Venta > 0 {
-			newData.Blue = d
+	// P-D. Paralelizar Blue y Cripto
+	go func() {
+		defer wg.Done()
+		respB, errB := network.FetchSecure("https://dolarapi.com/v1/dolares/blue")
+		if errB == nil {
+			defer respB.Body.Close()
+			var d DolarPrice
+			if err := json.NewDecoder(respB.Body).Decode(&d); err == nil && d.Venta > 0 {
+				financeMutex.Lock()
+				newData.Blue = d
+				financeMutex.Unlock()
+			}
 		}
-	}
+	}()
 
-	// Usamos DolarApi.com para el Cripto
-	respC, errC := http.Get("https://dolarapi.com/v1/dolares/cripto")
-	if errC == nil {
-		defer respC.Body.Close()
-		var d DolarPrice
-		if err := json.NewDecoder(respC.Body).Decode(&d); err == nil && d.Venta > 0 {
-			newData.Cripto = d
+	go func() {
+		defer wg.Done()
+		respC, errC := network.FetchSecure("https://dolarapi.com/v1/dolares/cripto")
+		if errC == nil {
+			defer respC.Body.Close()
+			var d DolarPrice
+			if err := json.NewDecoder(respC.Body).Decode(&d); err == nil && d.Venta > 0 {
+				financeMutex.Lock()
+				newData.Cripto = d
+				financeMutex.Unlock()
+			}
 		}
-	}
+	}()
 
-	if newData.Blue.Venta == 0 && newData.Cripto.Venta == 0 {
+	// P-E. Paralelizar SPY y QQQ
+	go func() {
+		defer wg.Done()
+		if spyData, err := getYahooFinanceData("SPY.BA"); err == nil && spyData.Price > 0 {
+			financeMutex.Lock()
+			newData.SPY = spyData
+			financeMutex.Unlock()
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		if qqqData, err := getYahooFinanceData("QQQ.BA"); err == nil && qqqData.Price > 0 {
+			financeMutex.Lock()
+			newData.QQQ = qqqData
+			financeMutex.Unlock()
+		}
+	}()
+
+	wg.Wait()
+
+	if newData.Blue.Venta == 0 && newData.Cripto.Venta == 0 && newData.SPY.Price == 0 && newData.QQQ.Price == 0 {
 		return fmt.Errorf("no se pudieron obtener datos financieros")
 	}
 
@@ -68,6 +142,12 @@ func UpdateDollar() error {
 	}
 	if newData.Cripto.Venta > 0 {
 		cachedFinance.Cripto = newData.Cripto
+	}
+	if newData.SPY.Price > 0 {
+		cachedFinance.SPY = newData.SPY
+	}
+	if newData.QQQ.Price > 0 {
+		cachedFinance.QQQ = newData.QQQ
 	}
 	financeMutex.Unlock()
 	return nil

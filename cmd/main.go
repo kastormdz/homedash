@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -9,15 +10,18 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"homedash/internal/crypto"
 	"homedash/internal/earthquake"
 	"homedash/internal/finance"
 	"homedash/internal/holidays"
+	"homedash/internal/network"
 	"homedash/internal/sports"
 	"homedash/internal/weather"
 )
@@ -26,6 +30,14 @@ var (
 	tmpls        *template.Template
 	lastBTCPrice float64
 	btcPriceLock sync.Mutex
+	lastETHPrice float64
+	ethPriceLock sync.Mutex
+
+	// 7. Temas válidos como var de paquete (no recrear en cada request)
+	validThemes = map[string]bool{
+		"dark": true, "dracula": true, "synthwave": true, "cyberpunk": true,
+		"retro": true, "dim": true, "coffee": true, "sunset": true, "night": true,
+	}
 )
 
 type AppSettings struct {
@@ -105,10 +117,10 @@ func main() {
 	}
 
 	// 2. Crypto y Finanzas (Intentar una vez rápido, si fallan no bloqueamos el inicio pero los lanzamos)
-	if err := crypto.UpdateBTC(); err != nil {
-		log.Printf("[INIT] Aviso: BTC no se pudo cargar inicialmente: %v\n", err)
+	if err := crypto.UpdateCrypto(); err != nil {
+		log.Printf("[INIT] Aviso: Cripto no se pudo cargar inicialmente: %v\n", err)
 	}
-	if err := finance.UpdateDollar(); err != nil {
+	if err := finance.UpdateFinance(); err != nil {
 		log.Printf("[INIT] Aviso: Finanzas no se pudieron cargar inicialmente: %v\n", err)
 	}
 
@@ -128,8 +140,32 @@ func main() {
 	http.HandleFunc("/autocomplete/cities", handleAutocompleteCities)
 
 	port := ":8060"
+	if p := os.Getenv("PORT"); p != "" {
+		port = ":" + p
+	}
+
+	server := &http.Server{
+		Addr:         port,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+
+	// Graceful shutdown
+	go func() {
+		sigChan := make(chan os.Signal, 1)
+		signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+		<-sigChan
+		log.Println("[SERVER] Apagando servidor...")
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		if err := server.Shutdown(ctx); err != nil {
+			log.Printf("[SERVER] Error durante apagado: %v", err)
+		}
+	}()
+
 	log.Printf("Servidor corriendo en http://localhost%s\n", port)
-	if err := http.ListenAndServe(port, nil); err != nil {
+	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatal(err)
 	}
 }
@@ -169,9 +205,9 @@ func handleWeather(w http.ResponseWriter, r *http.Request) {
 
 	weatherData, _ := weather.GetWeather(settings.Lat, settings.Lon)
 	btcPrice := crypto.GetCachedBTC()
+	ethPrice := crypto.GetCachedETH()
 
 	btcPriceLock.Lock()
-	defer btcPriceLock.Unlock()
 	trend := 0
 	if lastBTCPrice > 0 && btcPrice > 0 {
 		if btcPrice > lastBTCPrice {
@@ -183,6 +219,21 @@ func handleWeather(w http.ResponseWriter, r *http.Request) {
 	if btcPrice > 0 {
 		lastBTCPrice = btcPrice
 	}
+	btcPriceLock.Unlock()
+
+	ethPriceLock.Lock()
+	ethTrend := 0
+	if lastETHPrice > 0 && ethPrice > 0 {
+		if ethPrice > lastETHPrice {
+			ethTrend = 1
+		} else if ethPrice < lastETHPrice {
+			ethTrend = -1
+		}
+	}
+	if ethPrice > 0 {
+		lastETHPrice = ethPrice
+	}
+	ethPriceLock.Unlock()
 
 	rainProb := 0
 	var current weather.CurrentWeather
@@ -196,8 +247,13 @@ func handleWeather(w http.ResponseWriter, r *http.Request) {
 	if weatherData != nil {
 		current = weatherData.Current
 		forecast = weatherData.GetForecastList()
-		sunrise = weather.FormatTime(weatherData.Daily.Sunrise[0])
-		sunset = weather.FormatTime(weatherData.Daily.Sunset[0])
+		// 1. Fix: Verificar que Sunrise/Sunset no estén vacíos antes de acceder [0]
+		if len(weatherData.Daily.Sunrise) > 0 {
+			sunrise = weather.FormatTime(weatherData.Daily.Sunrise[0])
+		}
+		if len(weatherData.Daily.Sunset) > 0 {
+			sunset = weather.FormatTime(weatherData.Daily.Sunset[0])
+		}
 		if len(weatherData.Daily.RainProb) > 0 {
 			rainProb = weatherData.Daily.RainProb[0]
 		}
@@ -205,6 +261,9 @@ func handleWeather(w http.ResponseWriter, r *http.Request) {
 		aqiDesc = weatherData.AQIDesc
 		moonIcon = weatherData.MoonIcon
 		moonPhase = weatherData.MoonPhaseName
+	} else {
+		// 3. Loggear error de weather en vez de ignorar silenciosamente
+		log.Printf("[WEATHER] No se pudieron obtener datos para %s,%s", settings.Lat, settings.Lon)
 	}
 
 	finData := finance.GetCachedFinance()
@@ -213,6 +272,8 @@ func handleWeather(w http.ResponseWriter, r *http.Request) {
 		weather.WeatherViewModel
 		BTCPrice    float64
 		BTCTrend    int
+		ETHPrice    float64
+		ETHTrend    int
 		RainProb    int
 		Earthquakes []earthquake.EarthquakeData
 		Alert       weather.WeatherAlert
@@ -230,6 +291,7 @@ func handleWeather(w http.ResponseWriter, r *http.Request) {
 			ShowFinance:   settings.ShowFinance,
 			Dolar:         finData,
 			BTCChange:     crypto.GetCachedBTCChange(),
+			ETHChange:     crypto.GetCachedETHChange(),
 			AQI:           aqi,
 			AQIDesc:       aqiDesc,
 			MoonIcon:      moonIcon,
@@ -237,6 +299,8 @@ func handleWeather(w http.ResponseWriter, r *http.Request) {
 		},
 		BTCPrice:    btcPrice,
 		BTCTrend:    trend,
+		ETHPrice:    ethPrice,
+		ETHTrend:    ethTrend,
 		RainProb:    rainProb,
 		Earthquakes: earthquake.GetLatestEarthquakes(),
 		Alert:       weather.GetSMNAlert(settings.Province, settings.City),
@@ -254,7 +318,11 @@ func handleSettings(w http.ResponseWriter, r *http.Request) {
 
 		team := r.FormValue("team")
 		if team != "" {
-			s.Team = team
+			// Solo permitir un equipo. Si el usuario ingresa una lista separada por comas o similar, tomamos el primero.
+			team = strings.Split(team, ",")[0]
+			team = strings.Split(team, ";")[0]
+			team = strings.Split(team, "-")[0]
+			s.Team = strings.TrimSpace(team)
 		}
 
 		s.ShowF1 = r.FormValue("showF1") == "on"
@@ -264,28 +332,43 @@ func handleSettings(w http.ResponseWriter, r *http.Request) {
 
 		theme := r.FormValue("theme")
 		if theme != "" {
-			s.Theme = theme
+			if validThemes[theme] {
+				s.Theme = theme
+			}
 		}
 
 		city := r.FormValue("city")
 		if city != "" {
 			name, lat, lon, province, err := weather.SearchCity(city)
 			if err == nil {
-				s.City = name
-				s.Lat = lat
-				s.Lon = lon
-				s.Province = province
+				// S4. Validación de Coordenadas
+				var fLat, fLon float64
+				if _, err := fmt.Sscanf(lat, "%f", &fLat); err != nil {
+					return
+				}
+				if _, err := fmt.Sscanf(lon, "%f", &fLon); err != nil {
+					return
+				}
+				if fLat >= -90 && fLat <= 90 && fLon >= -180 && fLon <= 180 {
+					s.City = name
+					s.Lat = lat
+					s.Lon = lon
+					s.Province = province
+				}
 			}
 		}
 
 		// Guardar en Cookie (1 año)
 		val, _ := json.Marshal(s)
+		// S3. Cookie con flags de seguridad
 		http.SetCookie(w, &http.Cookie{
 			Name:     "settings",
 			Value:    url.QueryEscape(string(val)),
 			Path:     "/",
 			Expires:  time.Now().AddDate(1, 0, 0),
 			HttpOnly: true,
+			Secure:   r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https",
+			SameSite: http.SameSiteLaxMode,
 		})
 
 		w.Header().Set("HX-Refresh", "true")
@@ -302,6 +385,21 @@ func handleCrestProxy(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 2. Path traversal: Sanitizar nombre para evitar ../
+	if name != "" && (strings.Contains(name, "..") || strings.ContainsAny(name, "/\\") || strings.Contains(name, "%")) {
+		log.Printf("[SECURITY] Intento de path traversal en crest cache: %s", name)
+		http.Error(w, "Nombre inválido", http.StatusBadRequest)
+		return
+	}
+
+	// S1. Protección SSRF: Validar contra lista blanca
+	allowed, err := network.IsDomainAllowed(targetURL)
+	if err != nil || !allowed {
+		log.Printf("[SECURITY] Intento de proxy a dominio no permitido: %s", targetURL)
+		http.Error(w, "Acceso denegado", http.StatusForbidden)
+		return
+	}
+
 	ext := ".png"
 	if strings.Contains(targetURL, ".svg") {
 		ext = ".svg"
@@ -315,13 +413,10 @@ func handleCrestProxy(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	client := &http.Client{Timeout: 30 * time.Second}
-	req, _ := http.NewRequest("GET", targetURL, nil)
-	req.Header.Set("User-Agent", "Mozilla/5.0")
-
-	resp, err := client.Do(req)
-	if err != nil || resp.StatusCode != http.StatusOK {
-		http.Error(w, "Error", http.StatusBadGateway)
+	// B1. Protección contra Panic: Verificar error antes de StatusCode (FetchSecure encapsula esto)
+	resp, err := network.FetchSecure(targetURL)
+	if err != nil {
+		http.Error(w, "Error al obtener escudo", http.StatusBadGateway)
 		return
 	}
 	defer resp.Body.Close()
@@ -332,8 +427,8 @@ func handleCrestProxy(w http.ResponseWriter, r *http.Request) {
 	if name != "" {
 		localPath := filepath.Join("static", "assets", "cache", name+ext)
 		_ = os.MkdirAll(filepath.Dir(localPath), 0755)
-		out, _ := os.Create(localPath)
-		if out != nil {
+		out, err := os.Create(localPath)
+		if err == nil {
 			multi := io.MultiWriter(w, out)
 			_, _ = io.Copy(multi, resp.Body)
 			out.Close()
@@ -354,7 +449,8 @@ func handleAutocompleteTeams(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "text/html")
 	for _, m := range matches {
-		fmt.Fprintf(w, "<option value=\"%s\">\n", m)
+		// S2. Prevención XSS: Escapar contenido dinámico
+		fmt.Fprintf(w, "<option value=\"%s\">\n", template.HTMLEscapeString(m))
 	}
 }
 
@@ -366,6 +462,7 @@ func handleAutocompleteCities(w http.ResponseWriter, r *http.Request) {
 	name, _, _, _, err := weather.SearchCity(q)
 	if err == nil {
 		w.Header().Set("Content-Type", "text/html")
-		fmt.Fprintf(w, "<option value=\"%s\">\n", name)
+		// S2. Prevención XSS: Escapar contenido dinámico
+		fmt.Fprintf(w, "<option value=\"%s\">\n", template.HTMLEscapeString(name))
 	}
 }
