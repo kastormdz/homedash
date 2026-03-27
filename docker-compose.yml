@@ -1,7 +1,10 @@
 services:
   homedash:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: homedash
+    # D-A. Bind a todas las interfaces (NPM reverse proxy necesita acceso)
     ports:
       - "8060:8060"
     environment:
@@ -10,9 +13,17 @@ services:
       # Permite editar plantillas en caliente sin rebuild
       - ./templates:/app/templates
       # Persistencia SOLO de la caché de escudos dinámica
-      # No mapeamos todo 'static' para no perder las banderas/circuitos del build
       - ./static/assets/cache:/app/static/assets/cache
     restart: unless-stopped
+    # D-C. Drop all capabilities
+    cap_drop:
+      - ALL
+    # D-B. Límites de recursos
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.5'
     logging:
       driver: "json-file"
       options:

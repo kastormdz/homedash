@@ -3,11 +3,12 @@ package weather
 import (
 	"encoding/json"
 	"fmt"
+	"homedash/internal/common"
 	"homedash/internal/finance"
 	"homedash/internal/holidays"
+	"homedash/internal/network"
 	"homedash/internal/sports"
 	"math"
-	"net/http"
 	"net/url"
 	"sync"
 	"time"
@@ -19,6 +20,8 @@ var (
 	cityCache    = make(map[string]cityResult) // Nueva caché para ciudades
 	weatherMutex sync.RWMutex
 )
+
+const maxCacheEntries = 100
 
 type cityResult struct {
 	Name     string
@@ -57,21 +60,21 @@ type CurrentWeather struct {
 }
 
 type DailyForecast struct {
-	Time             []string  `json:"time"`
-	WeatherCode      []int     `json:"weather_code"`
-	TemperatureMax   []float64 `json:"temperature_2m_max"`
-	TemperatureMin   []float64 `json:"temperature_2m_min"`
-	UVMax            []float64 `json:"uv_index_max"`
-	RainProb         []int     `json:"precipitation_probability_max"`
-	Sunrise          []string  `json:"sunrise"`
-	Sunset           []string  `json:"sunset"`
+	Time           []string  `json:"time"`
+	WeatherCode    []int     `json:"weather_code"`
+	TemperatureMax []float64 `json:"temperature_2m_max"`
+	TemperatureMin []float64 `json:"temperature_2m_min"`
+	UVMax          []float64 `json:"uv_index_max"`
+	RainProb       []int     `json:"precipitation_probability_max"`
+	Sunrise        []string  `json:"sunrise"`
+	Sunset         []string  `json:"sunset"`
 }
 
 type ForecastItem struct {
-	Date     string
-	Code     int
-	Max      float64
-	Min      float64
+	Date string
+	Code int
+	Max  float64
+	Min  float64
 }
 
 type WeatherViewModel struct {
@@ -88,78 +91,144 @@ type WeatherViewModel struct {
 	ShowFinance   bool
 	Dolar         finance.FinanceData
 	BTCChange     float64
+	ETHChange     float64
 	AQI           int
 	AQIDesc       string
 	MoonIcon      string
 	MoonPhaseName string
 }
 
-
 func GetWeather(lat, lon string) (*WeatherResponse, error) {
-	if lat == "" { lat = "-32.89" }
-	if lon == "" { lon = "-68.82" }
+	if lat == "" {
+		lat = "-32.89"
+	}
+	if lon == "" {
+		lon = "-68.82"
+	}
 	key := lat + "," + lon
 
 	weatherMutex.RLock()
 	item, ok := weatherCache[key]
 	weatherMutex.RUnlock()
 
-	if ok && time.Since(item.Timestamp) < 15*time.Minute {
+	if ok && time.Since(item.Timestamp) < 5*time.Minute {
 		return item.Data, nil
 	}
 
-	data, err := GetWeatherWithClient(http.DefaultClient, lat, lon)
-	if err == nil {
-		weatherMutex.Lock()
-		weatherCache[key] = &cachedWeatherItem{Data: data, Timestamp: time.Now()}
-		weatherMutex.Unlock()
+	// 4. Fetch FUERA del write lock para no bloquear otros requests
+	data, err := GetWeatherWithClient(lat, lon)
+	if err != nil {
+		return nil, err
 	}
-	return data, err
+
+	weatherMutex.Lock()
+	defer weatherMutex.Unlock()
+
+	// Double check: otra goroutine pudo haber cacheado mientras hacíamos fetch
+	if item, ok := weatherCache[key]; ok && time.Since(item.Timestamp) < 5*time.Minute {
+		return item.Data, nil
+	}
+
+	// P-A. Eviction LRU: eliminar la entrada más antigua en vez de vaciar todo
+	if len(weatherCache) >= maxCacheEntries {
+		evictOldestWeather()
+	}
+	weatherCache[key] = &cachedWeatherItem{Data: data, Timestamp: time.Now()}
+	return data, nil
 }
 
-func GetWeatherWithClient(client *http.Client, lat, lon string) (*WeatherResponse, error) {
-	// 1. Clima y Pronóstico
-	fullURL := fmt.Sprintf("%s?latitude=%s&longitude=%s&current=temperature_2m,relative_humidity_2m,apparent_temperature,wind_speed_10m,weather_code,uv_index&daily=weather_code,temperature_2m_max,temperature_2m_min,uv_index_max,precipitation_probability_max,sunrise,sunset&timezone=auto", BaseURL, lat, lon)
-	
-	resp, err := client.Get(fullURL)
-	if err != nil {
-		return nil, fmt.Errorf("error al pedir el clima: %w", err)
-	}
-	defer resp.Body.Close()
+func GetWeatherWithClient(lat, lon string) (*WeatherResponse, error) {
+	var wg sync.WaitGroup
+	wg.Add(2)
 
-	var data WeatherResponse
-	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return nil, fmt.Errorf("error al decodificar JSON: %w", err)
-	}
+	var data *WeatherResponse
+	var errW error
+	var aqi int
+	var aqiDesc string
 
-	// 2. Calidad del Aire (AQI)
-	aqiURL := fmt.Sprintf("%s?latitude=%s&longitude=%s&current=us_aqi", AQIURL, lat, lon)
-	respA, errA := client.Get(aqiURL)
-	if errA == nil {
+	go func() {
+		defer wg.Done()
+		fullURL := fmt.Sprintf("%s?latitude=%s&longitude=%s&current=temperature_2m,relative_humidity_2m,apparent_temperature,wind_speed_10m,weather_code,uv_index&daily=weather_code,temperature_2m_max,temperature_2m_min,uv_index_max,precipitation_probability_max,sunrise,sunset&timezone=auto", BaseURL, lat, lon)
+		resp, err := network.FetchSecure(fullURL)
+		if err != nil {
+			errW = err
+			return
+		}
+		defer resp.Body.Close()
+		data = &WeatherResponse{}
+		errW = json.NewDecoder(resp.Body).Decode(data)
+	}()
+
+	go func() {
+		defer wg.Done()
+		aqiURL := fmt.Sprintf("%s?latitude=%s&longitude=%s&current=us_aqi", AQIURL, lat, lon)
+		respA, err := network.FetchSecure(aqiURL)
+		if err != nil {
+			return
+		}
 		defer respA.Body.Close()
 		var aqiResult struct {
 			Current struct {
 				USAQI int `json:"us_aqi"`
 			} `json:"current"`
 		}
-		if err := json.NewDecoder(respA.Body).Decode(&aqiResult); err == nil {
-			data.AQI = aqiResult.Current.USAQI
-			data.AQIDesc = getAQIDescription(data.AQI)
+		if err = json.NewDecoder(respA.Body).Decode(&aqiResult); err == nil {
+			aqi = aqiResult.Current.USAQI
+			aqiDesc = getAQIDescription(aqi)
 		}
+	}()
+
+	wg.Wait()
+
+	if errW != nil {
+		return nil, fmt.Errorf("error al pedir el clima: %w", errW)
 	}
 
-	// 3. Fase Lunar (Cálculo local)
+	data.AQI = aqi
+	data.AQIDesc = aqiDesc
 	data.MoonIcon, data.MoonPhaseName = getMoonPhaseInfo()
 
-	return &data, nil
+	return data, nil
+}
+
+func evictOldestWeather() {
+	var oldestKey string
+	var oldestTime time.Time
+	for k, v := range weatherCache {
+		if oldestKey == "" || v.Timestamp.Before(oldestTime) {
+			oldestKey = k
+			oldestTime = v.Timestamp
+		}
+	}
+	if oldestKey != "" {
+		delete(weatherCache, oldestKey)
+	}
+}
+
+func evictOldestCity() {
+	// cityCache no tiene timestamp, eliminar la primera entrada encontrada
+	for k := range cityCache {
+		delete(cityCache, k)
+		return
+	}
 }
 
 func getAQIDescription(aqi int) string {
-	if aqi <= 50 { return "Bueno" }
-	if aqi <= 100 { return "Moderado" }
-	if aqi <= 150 { return "No saludable (Sensibles)" }
-	if aqi <= 200 { return "No saludable" }
-	if aqi <= 300 { return "Muy poco saludable" }
+	if aqi <= 50 {
+		return "Bueno"
+	}
+	if aqi <= 100 {
+		return "Moderado"
+	}
+	if aqi <= 150 {
+		return "No saludable (Sensibles)"
+	}
+	if aqi <= 200 {
+		return "No saludable"
+	}
+	if aqi <= 300 {
+		return "Muy poco saludable"
+	}
 	return "Peligroso"
 }
 
@@ -167,17 +236,31 @@ func getMoonPhaseInfo() (string, string) {
 	now := time.Now()
 	refDate := time.Date(2000, 1, 6, 18, 14, 0, 0, time.UTC)
 	lunation := 29.530588853
-	
+
 	diff := now.Sub(refDate).Hours() / 24.0
 	phase := math.Mod(diff, lunation) / lunation
-	
-	if phase < 0.06 || phase > 0.94 { return "moon", "Nueva" }
-	if phase < 0.19 { return "moon", "Creciente" }
-	if phase < 0.31 { return "moon", "C. Creciente" }
-	if phase < 0.44 { return "moon", "Gibosa Cr." }
-	if phase < 0.56 { return "circle", "Llena" }
-	if phase < 0.69 { return "moon", "Gibosa Meng." }
-	if phase < 0.81 { return "moon", "C. Menguante" }
+
+	if phase < 0.06 || phase > 0.94 {
+		return "moon", "Nueva"
+	}
+	if phase < 0.19 {
+		return "moon", "Creciente"
+	}
+	if phase < 0.31 {
+		return "moon", "C. Creciente"
+	}
+	if phase < 0.44 {
+		return "moon", "Gibosa Cr."
+	}
+	if phase < 0.56 {
+		return "circle", "Llena"
+	}
+	if phase < 0.69 {
+		return "moon", "Gibosa Meng."
+	}
+	if phase < 0.81 {
+		return "moon", "C. Menguante"
+	}
 	return "moon", "Menguante"
 }
 
@@ -195,7 +278,7 @@ func SearchCity(cityName string) (name, lat, lon, province string, err error) {
 	query.Set("language", "es")
 	query.Set("format", "json")
 
-	resp, err := http.Get(GeocodingURL + "?" + query.Encode())
+	resp, err := network.FetchSecure(GeocodingURL + "?" + query.Encode())
 	if err != nil {
 		return "", "", "", "", err
 	}
@@ -225,9 +308,14 @@ func SearchCity(cityName string) (name, lat, lon, province string, err error) {
 	lon = fmt.Sprintf("%.2f", res.Longitude)
 	province = res.Admin1
 
+	// 4. Cache fuera del lock de lectura inicial
 	weatherMutex.Lock()
+	defer weatherMutex.Unlock()
+	// P-B. Eviction LRU para city cache
+	if len(cityCache) >= maxCacheEntries {
+		evictOldestCity()
+	}
 	cityCache[cityName] = cityResult{name, lat, lon, province}
-	weatherMutex.Unlock()
 
 	return name, lat, lon, province, nil
 }
@@ -236,12 +324,8 @@ func (w *WeatherResponse) GetForecastList() []ForecastItem {
 	var list []ForecastItem
 	for i := 0; i < len(w.Daily.Time); i++ {
 		date, _ := time.Parse("2006-01-02", w.Daily.Time[i])
-		days := map[string]string{
-			"Monday": "Lun", "Tuesday": "Mar", "Wednesday": "Mié",
-			"Thursday": "Jue", "Friday": "Vie", "Saturday": "Sáb", "Sunday": "Dom",
-		}
 		list = append(list, ForecastItem{
-			Date: days[date.Weekday().String()],
+			Date: common.DaysAbbr[date.Weekday()],
 			Code: w.Daily.WeatherCode[i],
 			Max:  w.Daily.TemperatureMax[i],
 			Min:  w.Daily.TemperatureMin[i],

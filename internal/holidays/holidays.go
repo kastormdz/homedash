@@ -1,6 +1,9 @@
 package holidays
 
 import (
+	"fmt"
+	"homedash/internal/common"
+	"sync"
 	"time"
 )
 
@@ -16,33 +19,128 @@ type UpcomingHoliday struct {
 	DateStr string
 }
 
-func GetArgentinaHolidays2026() []Holiday {
-	return []Holiday{
-		{Name: "Año Nuevo", Date: "2026-01-01"},
-		{Name: "Carnaval", Date: "2026-02-16"},
-		{Name: "Carnaval", Date: "2026-02-17"},
-		{Name: "Feriado Turístico", Date: "2026-03-23"},
-		{Name: "Día de la Memoria", Date: "2026-03-24"},
-		{Name: "Viernes Santo", Date: "2026-04-03"},
-		{Name: "Día del Veterano", Date: "2026-04-02"},
-		{Name: "Día del Trabajador", Date: "2026-05-01"},
-		{Name: "Revolución de Mayo", Date: "2026-05-25"},
-		{Name: "Gral. Güemes", Date: "2026-06-15"},
-		{Name: "Gral. Belgrano", Date: "2026-06-20"},
-		{Name: "Día de la Independencia", Date: "2026-07-09"},
-		{Name: "Feriado Turístico", Date: "2026-07-10"},
-		{Name: "Gral. San Martín", Date: "2026-08-17"},
-		{Name: "Diversidad Cultural", Date: "2026-10-12"},
-		{Name: "Soberanía Nacional", Date: "2026-11-23"},
-		{Name: "Feriado Turístico", Date: "2026-12-07"},
-		{Name: "Inmaculada Concepción", Date: "2026-12-08"},
-		{Name: "Navidad", Date: "2026-12-25"},
+// 5. Cache de feriados por año para evitar recálculo en cada request
+var (
+	cachedHolidays    []Holiday
+	cachedHolidayYear int
+	holidayCacheMutex sync.RWMutex
+)
+
+// R-A. Calcular Domingo de Pascuas (algoritmo de Computus de Meeus/Jones/Butcher)
+func easterSunday(year int) time.Time {
+	a := year % 19
+	b := year / 100
+	c := year % 100
+	d := b / 4
+	e := b % 4
+	f := (b + 8) / 25
+	g := (b - f + 1) / 3
+	h := (19*a + b - d - g + 15) % 30
+	i := c / 4
+	k := c % 4
+	l := (32 + 2*e + 2*i - h - k) % 7
+	m := (a + 11*h + 22*l) / 451
+	month := (h + l - 7*m + 114) / 31
+	day := ((h + l - 7*m + 114) % 31) + 1
+	return time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.Local)
+}
+
+// nextMonday devuelve el próximo lunes a partir de la fecha dada (inclusive)
+func nextMonday(t time.Time) time.Time {
+	if t.Weekday() == time.Monday {
+		return t
 	}
+	daysUntilMonday := (int(time.Monday) - int(t.Weekday()) + 7) % 7
+	if daysUntilMonday == 0 {
+		daysUntilMonday = 7
+	}
+	return t.AddDate(0, 0, daysUntilMonday)
+}
+
+func GetArgentinaHolidays() []Holiday {
+	year := time.Now().Year()
+
+	// 5. Cache: devolver si ya calculamos para este año
+	holidayCacheMutex.RLock()
+	if cachedHolidayYear == year && cachedHolidays != nil {
+		result := cachedHolidays
+		holidayCacheMutex.RUnlock()
+		return result
+	}
+	holidayCacheMutex.RUnlock()
+
+	yStr := fmt.Sprintf("%d", year)
+
+	// Feriados inamovibles (Día/Mes)
+	fixed := []struct{ Name, Date string }{
+		{"Año Nuevo", "01-01"},
+		{"Día del Veterano", "04-02"},
+		{"Día del Trabajador", "05-01"},
+		{"Revolución de Mayo", "05-25"},
+		{"Día de la Independencia", "07-09"},
+		{"Inmaculada Concepción", "12-08"},
+		{"Navidad", "12-25"},
+	}
+
+	var list []Holiday
+	for _, h := range fixed {
+		list = append(list, Holiday{Name: h.Name, Date: yStr + "-" + h.Date})
+	}
+
+	// R-A. Feriados móviles calculados algorítmicamente
+	easter := easterSunday(year)
+
+	// Carnaval: 48 y 47 días antes de Pascuas
+	carnaval1 := easter.AddDate(0, 0, -48)
+	carnaval2 := easter.AddDate(0, 0, -47)
+	list = append(list,
+		Holiday{Name: "Carnaval", Date: carnaval1.Format("2006-01-02")},
+		Holiday{Name: "Carnaval", Date: carnaval2.Format("2006-01-02")},
+	)
+
+	// Viernes Santo: 2 días antes de Pascuas
+	viernesSanto := easter.AddDate(0, 0, -2)
+	list = append(list, Holiday{Name: "Viernes Santo", Date: viernesSanto.Format("2006-01-02")})
+
+	// Feriados trasladables (se mueven al lunes más cercano)
+	trasladables := []struct{ Name, Date string }{
+		{"Gral. Güemes", fmt.Sprintf("%04d-06-17", year)},
+		{"Gral. Belgrano", fmt.Sprintf("%04d-06-20", year)},
+		{"Gral. San Martín", fmt.Sprintf("%04d-08-17", year)},
+		{"Diversidad Cultural", fmt.Sprintf("%04d-10-12", year)},
+	}
+	for _, h := range trasladables {
+		t, err := time.Parse("2006-01-02", h.Date)
+		if err == nil {
+			moved := nextMonday(t)
+			list = append(list, Holiday{Name: h.Name, Date: moved.Format("2006-01-02")})
+		}
+	}
+
+	// Feriados turísticos inamovibles
+	turisticos := []struct{ Name, Date string }{
+		{"Feriado Turístico", fmt.Sprintf("%04d-03-24", year)},
+		{"Día de la Memoria", fmt.Sprintf("%04d-03-24", year)},
+		{"Feriado Turístico", fmt.Sprintf("%04d-07-09", year)},
+		{"Soberanía Nacional", fmt.Sprintf("%04d-11-20", year)},
+		{"Feriado Turístico", fmt.Sprintf("%04d-12-08", year)},
+	}
+	for _, h := range turisticos {
+		list = append(list, Holiday{Name: h.Name, Date: h.Date})
+	}
+
+	// 5. Guardar en cache
+	holidayCacheMutex.Lock()
+	cachedHolidays = list
+	cachedHolidayYear = year
+	holidayCacheMutex.Unlock()
+
+	return list
 }
 
 func GetHolidayToday(t time.Time) *Holiday {
 	todayStr := t.Format("2006-01-02")
-	for _, h := range GetArgentinaHolidays2026() {
+	for _, h := range GetArgentinaHolidays() {
 		if h.Date == todayStr {
 			return &h
 		}
@@ -52,17 +150,13 @@ func GetHolidayToday(t time.Time) *Holiday {
 
 func GetUpcomingHolidays(t time.Time) []UpcomingHoliday {
 	var upcoming []UpcomingHoliday
-	days := map[string]string{
-		"Monday": "Lun", "Tuesday": "Mar", "Wednesday": "Mié",
-		"Thursday": "Jue", "Friday": "Vie", "Saturday": "Sáb", "Sunday": "Dom",
-	}
 
 	for i := 1; i <= 30; i++ {
 		nextDay := t.AddDate(0, 0, i)
 		if h := GetHolidayToday(nextDay); h != nil {
 			upcoming = append(upcoming, UpcomingHoliday{
 				Name:    h.Name,
-				DayName: days[nextDay.Weekday().String()],
+				DayName: common.DaysAbbr[nextDay.Weekday()],
 				DateStr: nextDay.Format("02/01"),
 			})
 		}

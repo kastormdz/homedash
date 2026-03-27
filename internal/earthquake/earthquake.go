@@ -4,10 +4,14 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
-	"net/http"
+	"homedash/internal/network"
 	"sort"
 	"strings"
+	"sync"
 	"time"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 type EarthquakeData struct {
@@ -21,13 +25,24 @@ type EarthquakeData struct {
 
 func GetLatestEarthquakes() []EarthquakeData {
 	var allQuakes []EarthquakeData
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	var usgs, inpres []EarthquakeData
 	
-	// Fetch from USGS
-	usgs := fetchUSGS()
+	go func() {
+		defer wg.Done()
+		usgs = fetchUSGS()
+	}()
+	
+	go func() {
+		defer wg.Done()
+		inpres = fetchINPRES()
+	}()
+	
+	wg.Wait()
+	
 	allQuakes = append(allQuakes, usgs...)
-	
-	// Fetch from INPRES
-	inpres := fetchINPRES()
 	allQuakes = append(allQuakes, inpres...)
 	
 	// Eliminar duplicados aproximados (por tiempo y magnitud)
@@ -46,13 +61,10 @@ func GetLatestEarthquakes() []EarthquakeData {
 }
 
 func fetchUSGS() []EarthquakeData {
-	client := &http.Client{Timeout: 5 * time.Second}
 	url := "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&limit=10&minlatitude=-55&maxlatitude=-21&minlongitude=-74&maxlongitude=-53"
-	
-	req, _ := http.NewRequest("GET", url, nil)
-	req.Header.Set("User-Agent", "Mozilla/5.0")
-	resp, err := client.Do(req)
-	if err != nil || resp.StatusCode != 200 { return nil }
+
+	resp, err := network.FetchSecure(url)
+	if err != nil { return nil }
 	defer resp.Body.Close()
 
 	var result struct {
@@ -106,9 +118,8 @@ type INPRESItem struct {
 }
 
 func fetchINPRES() []EarthquakeData {
-	client := &http.Client{Timeout: 5 * time.Second}
-	resp, err := client.Get("https://www.inpres.gob.ar/mapa/sismos.xml")
-	if err != nil || resp.StatusCode != 200 { return nil }
+	resp, err := network.FetchSecure("https://www.inpres.gob.ar/mapa/sismos.xml")
+	if err != nil { return nil }
 	defer resp.Body.Close()
 
 	var list INPRESList
@@ -118,6 +129,8 @@ func fetchINPRES() []EarthquakeData {
 	now := time.Now()
 	locART, _ := time.LoadLocation("America/Argentina/Buenos_Aires")
 	if locART == nil { locART = time.FixedZone("ART", -3*60*60) }
+
+	caser := cases.Title(language.Spanish)
 
 	for _, item := range list.Items {
 		// INPRES fecha es "DD/MM", año lo inferimos del ID (primeros 4 chars) o actual
@@ -135,7 +148,7 @@ func fetchINPRES() []EarthquakeData {
 
 		quakes = append(quakes, EarthquakeData{
 			Magnitude: item.Mg,
-			Location:  strings.Title(strings.ToLower(item.Prov)),
+			Location:  caser.String(strings.ToLower(item.Prov)),
 			Time:      t.Format("15:04"),
 			Date:      t.Format("02/01"),
 			IsNew:     now.Sub(t).Hours() < 24,

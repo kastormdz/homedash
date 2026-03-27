@@ -3,7 +3,7 @@ package crypto
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
+	"homedash/internal/network"
 	"strconv"
 	"sync"
 	"time"
@@ -12,43 +12,79 @@ import (
 var (
 	cachedBTC       float64
 	cachedBTCChange float64
-	btcMutex        sync.RWMutex
+	cachedETH       float64
+	cachedETHChange float64
+	cryptoMutex     sync.RWMutex
 )
-
-func init() {}
 
 func StartUpdateLoop() {
 	go func() {
 		for {
-			UpdateBTC()
+			UpdateCrypto()
 			time.Sleep(2 * time.Minute)
 		}
 	}()
 }
 
-func UpdateBTC() error {
-	price, change, err := GetBTCData()
-	if err != nil || price == 0 {
-		return fmt.Errorf("error obteniendo BTC")
+func UpdateCrypto() error {
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	var btcPrice, btcChange float64
+	var ethPrice, ethChange float64
+	var err1, err2 error
+
+	go func() {
+		defer wg.Done()
+		btcPrice, btcChange, err1 = GetCryptoData("bitcoin", "BTCUSDT")
+	}()
+
+	go func() {
+		defer wg.Done()
+		ethPrice, ethChange, err2 = GetCryptoData("ethereum", "ETHUSDT")
+	}()
+
+	wg.Wait()
+
+	if err1 != nil && err2 != nil {
+		return fmt.Errorf("error obteniendo criptos: %v, %v", err1, err2)
 	}
 
-	btcMutex.Lock()
-	cachedBTC = price
-	cachedBTCChange = change
-	btcMutex.Unlock()
+	cryptoMutex.Lock()
+	if err1 == nil && btcPrice > 0 {
+		cachedBTC = btcPrice
+		cachedBTCChange = btcChange
+	}
+	if err2 == nil && ethPrice > 0 {
+		cachedETH = ethPrice
+		cachedETHChange = ethChange
+	}
+	cryptoMutex.Unlock()
 	return nil
 }
 
 func GetCachedBTC() float64 {
-	btcMutex.RLock()
-	defer btcMutex.RUnlock()
+	cryptoMutex.RLock()
+	defer cryptoMutex.RUnlock()
 	return cachedBTC
 }
 
 func GetCachedBTCChange() float64 {
-	btcMutex.RLock()
-	defer btcMutex.RUnlock()
+	cryptoMutex.RLock()
+	defer cryptoMutex.RUnlock()
 	return cachedBTCChange
+}
+
+func GetCachedETH() float64 {
+	cryptoMutex.RLock()
+	defer cryptoMutex.RUnlock()
+	return cachedETH
+}
+
+func GetCachedETHChange() float64 {
+	cryptoMutex.RLock()
+	defer cryptoMutex.RUnlock()
+	return cachedETHChange
 }
 
 type CoinGeckoResponse map[string]struct {
@@ -64,40 +100,54 @@ type Binance24hResponse struct {
 	PriceChangePercent string `json:"priceChangePercent"`
 }
 
-func GetBTCData() (float64, float64, error) {
+func GetCryptoData(cgID, binanceSymbol string) (float64, float64, error) {
 	// Fuente 1: CoinGecko (incluye % 24h)
-	resp, err := http.Get("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd&include_24hr_change=true")
+	urlCG := fmt.Sprintf("https://api.coingecko.com/api/v3/simple/price?ids=%s&vs_currencies=usd&include_24hr_change=true", cgID)
+	resp, err := network.FetchSecure(urlCG)
 	if err == nil {
 		defer resp.Body.Close()
 		var result CoinGeckoResponse
-		if err := json.NewDecoder(resp.Body).Decode(&result); err == nil && result["bitcoin"].USD > 0 {
-			return result["bitcoin"].USD, result["bitcoin"].USDChange, nil
+		if err := json.NewDecoder(resp.Body).Decode(&result); err == nil && result[cgID].USD > 0 {
+			return result[cgID].USD, result[cgID].USDChange, nil
 		}
 	}
 
-	// Fuente 2: Binance (Respaldo)
+	// Fuente 2: Binance (Respaldo) — P-C. Paralelizar precio + stats 24h
 	var price, change float64
-	resp2, err := http.Get("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT")
-	if err == nil {
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		resp2, err := network.FetchSecure("https://api.binance.com/api/v3/ticker/price?symbol=" + binanceSymbol)
+		if err != nil {
+			return
+		}
 		defer resp2.Body.Close()
 		var result BinanceResponse
 		if err := json.NewDecoder(resp2.Body).Decode(&result); err == nil {
 			price, _ = strconv.ParseFloat(result.Price, 64)
 		}
-	}
+	}()
 
-	resp3, err := http.Get("https://api.binance.com/api/v3/ticker/24hr?symbol=BTCUSDT")
-	if err == nil {
+	go func() {
+		defer wg.Done()
+		resp3, err := network.FetchSecure("https://api.binance.com/api/v3/ticker/24hr?symbol=" + binanceSymbol)
+		if err != nil {
+			return
+		}
 		defer resp3.Body.Close()
 		var result Binance24hResponse
 		if err := json.NewDecoder(resp3.Body).Decode(&result); err == nil {
 			change, _ = strconv.ParseFloat(result.PriceChangePercent, 64)
 		}
-	}
+	}()
+
+	wg.Wait()
 
 	if price > 0 {
 		return price, change, nil
 	}
 
-	return 0, 0, fmt.Errorf("no se pudo obtener precio de BTC de ninguna fuente")
+	return 0, 0, fmt.Errorf("no se pudo obtener precio de %s", binanceSymbol)
 }

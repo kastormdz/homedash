@@ -3,16 +3,22 @@ package weather
 import (
 	"encoding/xml"
 	"fmt"
-	"net/http"
+	"homedash/internal/common"
+	"homedash/internal/network"
+	"io"
 	"strings"
 	"sync"
 	"time"
 )
 
 var (
-	alertCache      string
-	alertCacheTime  time.Time
-	alertMutex      sync.RWMutex
+	alertCache     string
+	alertCacheTime time.Time
+	alertMutex     sync.RWMutex
+
+	// 8. Cache para alerta de Mendoza
+	mendozaAlertCache     WeatherAlert
+	mendozaAlertCacheTime time.Time
 )
 
 type RSS struct {
@@ -52,7 +58,7 @@ func GetSMNAlert(province string, city string) WeatherAlert {
 
 	// 2. Fallback: SMN
 	alertMutex.RLock()
-	if time.Since(alertCacheTime) < 30*time.Minute && alertCache != "" {
+	if time.Since(alertCacheTime) < 5*time.Minute && alertCache != "" {
 		cached := findAlertInCache(province)
 		alertMutex.RUnlock()
 		return cached
@@ -60,7 +66,7 @@ func GetSMNAlert(province string, city string) WeatherAlert {
 	alertMutex.RUnlock()
 
 	// Fetch new alerts from SMN
-	resp, err := http.Get("https://ssl.smn.gob.ar/CAP/AR.php")
+	resp, err := network.FetchSecure("https://ssl.smn.gob.ar/CAP/AR.php")
 	if err != nil {
 		return WeatherAlert{Text: "Error SMN", Icon: "cloud-off"}
 	}
@@ -72,44 +78,59 @@ func GetSMNAlert(province string, city string) WeatherAlert {
 	}
 
 	alertMutex.Lock()
-	alertCache = ""
+	var sb strings.Builder
 	items := rss.Channel.Items
 	for i := len(items) - 1; i >= 0; i-- {
 		item := items[i]
-		alertCache += fmt.Sprintf("[%s] %s {%s}|", item.Title, item.Description, item.Link)
+		sb.WriteString(fmt.Sprintf("[%s] %s {%s}|", item.Title, item.Description, item.Link))
 	}
+	alertCache = sb.String()
 	alertCacheTime = time.Now()
+	// RC2 Fix: Evaluar antes de liberar el lock para consistencia
+	cached := findAlertInCache(province)
 	alertMutex.Unlock()
 
-	return findAlertInCache(province)
+	return cached
 }
 
 func getMendozaLocalAlert() WeatherAlert {
-	// Scrapping simple de Contingencias Mendoza
-	client := &http.Client{Timeout: 5 * time.Second}
-	resp, err := client.Get("https://www.contingencias.mendoza.gov.ar/web/pronostico.php")
+	// 8. Cache de 30 min para no golpear DACC en cada request
+	alertMutex.RLock()
+	if time.Since(mendozaAlertCacheTime) < 5*time.Minute && !mendozaAlertCacheTime.IsZero() {
+		result := mendozaAlertCache
+		alertMutex.RUnlock()
+		return result
+	}
+	alertMutex.RUnlock()
+
+	resp, err := network.FetchSecure("https://www.contingencias.mendoza.gov.ar/web/pronostico.php")
 	if err != nil {
 		return WeatherAlert{Text: "Sin alertas actuales", Icon: "triangle-alert"}
 	}
 	defer resp.Body.Close()
 
 	// Leemos el contenido (es pequeño)
-	buf := make([]byte, 10240) // 10KB es suficiente
-	n, _ := resp.Body.Read(buf)
-	content := strings.ToLower(string(buf[:n]))
+	body, _ := io.ReadAll(resp.Body)
+	content := strings.ToLower(string(body))
 
+	var alert WeatherAlert
 	// Buscamos patrones de alerta comunes en Mendoza
 	if strings.Contains(content, "alerta de granizo") || strings.Contains(content, "tormentas fuertes") {
-		return WeatherAlert{Text: "Alerta de Granizo (DACC)", Icon: "cloud-lightning"}
-	}
-	if strings.Contains(content, "viento zonda") || strings.Contains(content, "zonda en precordillera") {
-		return WeatherAlert{Text: "Alerta Viento Zonda (DACC)", Icon: "wind"}
-	}
-	if strings.Contains(content, "heladas parciales") || strings.Contains(content, "heladas generales") {
-		return WeatherAlert{Text: "Alerta de Heladas (DACC)", Icon: "thermometer-snowflake"}
+		alert = WeatherAlert{Text: "Alerta de Granizo (DACC)", Icon: "cloud-lightning"}
+	} else if strings.Contains(content, "viento zonda") || strings.Contains(content, "zonda en precordillera") {
+		alert = WeatherAlert{Text: "Alerta Viento Zonda (DACC)", Icon: "wind"}
+	} else if strings.Contains(content, "heladas parciales") || strings.Contains(content, "heladas generales") {
+		alert = WeatherAlert{Text: "Alerta de Heladas (DACC)", Icon: "thermometer-snowflake"}
+	} else {
+		alert = WeatherAlert{Text: "Sin alertas actuales", Icon: "triangle-alert"}
 	}
 
-	return WeatherAlert{Text: "Sin alertas actuales", Icon: "triangle-alert"}
+	alertMutex.Lock()
+	mendozaAlertCache = alert
+	mendozaAlertCacheTime = time.Now()
+	alertMutex.Unlock()
+
+	return alert
 }
 
 func findAlertInCache(province string) WeatherAlert {
@@ -119,24 +140,26 @@ func findAlertInCache(province string) WeatherAlert {
 
 	pNorm := normalizeProvince(province)
 	alerts := strings.Split(alertCache, "|")
-	
+
 	for _, a := range alerts {
-		if a == "" { continue }
+		if a == "" {
+			continue
+		}
 		if strings.Contains(normalizeProvince(a), pNorm) {
 			title := ""
 			desc := a
 			link := ""
-			
+
 			if start := strings.Index(a, "["); start != -1 {
 				if end := strings.Index(a, "]"); end != -1 {
-					title = a[start+1:end]
+					title = a[start+1 : end]
 					desc = a[end+1:]
 				}
 			}
-			
+
 			if start := strings.Index(desc, "{"); start != -1 {
 				if end := strings.Index(desc, "}"); end != -1 {
-					link = desc[start+1:end]
+					link = desc[start+1 : end]
 					desc = desc[:start]
 				}
 			}
@@ -152,17 +175,17 @@ func findAlertInCache(province string) WeatherAlert {
 							continue
 						}
 					}
-					
-					timeStr := link[idx+12 : idx+14] + ":" + link[idx+14 : idx+16]
+
+					timeStr := link[idx+12:idx+14] + ":" + link[idx+14:idx+16]
 					dayStr := link[idx+10 : idx+12]
 					today := time.Now().Format("02")
-					
+
 					alert := summarizeAlert(title, desc)
 					if dayStr == today {
 						alert.Text = fmt.Sprintf("%s (%s)", alert.Text, timeStr)
 					} else {
 						// Aún si es de ayer, si pasó el filtro de 24h (ej: alerta nocturna), mostramos fecha
-						alert.Text = fmt.Sprintf("%s (%s/%s)", alert.Text, dayStr, link[idx+8 : idx+10])
+						alert.Text = fmt.Sprintf("%s (%s/%s)", alert.Text, dayStr, link[idx+8:idx+10])
 					}
 					return alert
 				}
@@ -176,7 +199,7 @@ func findAlertInCache(province string) WeatherAlert {
 func summarizeAlert(title, desc string) WeatherAlert {
 	t := strings.ToLower(title)
 	d := strings.ToLower(desc)
-	
+
 	alert := WeatherAlert{Text: title, Icon: "triangle-alert"}
 
 	// Detectar fenómeno e icono
@@ -188,7 +211,7 @@ func summarizeAlert(title, desc string) WeatherAlert {
 			for start > 0 && ((d[start] >= '0' && d[start] <= '9') || d[start] == ' ' || d[start] == 'y' || d[start] == '-') {
 				start--
 			}
-			speed := strings.TrimSpace(desc[start+1:idx+4])
+			speed := strings.TrimSpace(desc[start+1 : idx+4])
 			if len(speed) > 4 {
 				alert.Text = "Viento " + speed
 			}
@@ -214,13 +237,8 @@ func summarizeAlert(title, desc string) WeatherAlert {
 }
 
 func normalizeProvince(p string) string {
-	p = strings.ToLower(p)
-	p = strings.ReplaceAll(p, "á", "a")
-	p = strings.ReplaceAll(p, "é", "e")
-	p = strings.ReplaceAll(p, "í", "i")
-	p = strings.ReplaceAll(p, "ó", "o")
-	p = strings.ReplaceAll(p, "ú", "u")
-	p = strings.ReplaceAll(p, "provincia de ", "")
-	p = strings.ReplaceAll(p, "ciudad autonoma de ", "")
+	p = common.NormalizeName(p)
+	p = strings.ReplaceAll(p, "provinciade", "")
+	p = strings.ReplaceAll(p, "ciudadautonomade", "")
 	return strings.TrimSpace(p)
 }

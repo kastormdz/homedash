@@ -110,19 +110,19 @@
                 <div>
                     <label class="text-[10px] font-black text-base-content/60 uppercase tracking-widest block mb-2">Preferencias de Contenido</label>
                     <div class="space-y-3 mb-6">
-                        <label class="flex items-center justify-between p-3 bg-base-300/50 rounded-xl border border-base-content/10/50 cursor-pointer hover:bg-base-300 transition-colors">
+                        <label class="flex items-center justify-between p-3 bg-base-300/50 rounded-xl border border-base-content/10 cursor-pointer hover:bg-base-300 transition-colors">
                             <span class="text-sm font-bold text-base-content flex items-center"><i data-lucide="trophy" class="w-4 h-4 mr-2 text-primary"></i> Fútbol Argentino</span>
                             <input type="checkbox" name="showFootball" {{if .ShowFootball}}checked{{end}} class="checkbox checkbox-primary">
                         </label>
-                        <label class="flex items-center justify-between p-3 bg-base-300/50 rounded-xl border border-base-content/10/50 cursor-pointer hover:bg-base-300 transition-colors">
+                        <label class="flex items-center justify-between p-3 bg-base-300/50 rounded-xl border border-base-content/10 cursor-pointer hover:bg-base-300 transition-colors">
                             <span class="text-sm font-bold text-base-content flex items-center"><i data-lucide="flag" class="w-4 h-4 mr-2 text-error"></i> Fórmula 1</span>
                             <input type="checkbox" name="showF1" {{if .ShowF1}}checked{{end}} class="checkbox checkbox-error">
                         </label>
-                        <label class="flex items-center justify-between p-3 bg-base-300/50 rounded-xl border border-base-content/10/50 cursor-pointer hover:bg-base-300 transition-colors">
+                        <label class="flex items-center justify-between p-3 bg-base-300/50 rounded-xl border border-base-content/10 cursor-pointer hover:bg-base-300 transition-colors">
                             <span class="text-sm font-bold text-base-content flex items-center"><i data-lucide="swords" class="w-4 h-4 mr-2 text-error"></i> UFC</span>
                             <input type="checkbox" name="showUFC" {{if .ShowUFC}}checked{{end}} class="checkbox checkbox-error">
                         </label>
-                        <label class="flex items-center justify-between p-3 bg-base-300/50 rounded-xl border border-base-content/10/50 cursor-pointer hover:bg-base-300 transition-colors">
+                        <label class="flex items-center justify-between p-3 bg-base-300/50 rounded-xl border border-base-content/10 cursor-pointer hover:bg-base-300 transition-colors">
                             <span class="text-sm font-bold text-base-content flex items-center"><i data-lucide="bitcoin" class="w-4 h-4 mr-2 text-orange-500"></i> Finanzas (Cripto/Dólar)</span>
                             <input type="checkbox" name="showFinance" {{if .ShowFinance}}checked{{end}} class="checkbox checkbox-warning">
                         </label>
@@ -142,9 +142,8 @@
                     </select>
 
                     <label class="text-[10px] font-black text-base-content/60 uppercase tracking-widest block mb-2">Equipo a mostrar</label>
-                    <input type="text" name="team" list="teams-list" placeholder="Ej: Boca, River, Racing..." 
-                           hx-get="/autocomplete/teams" hx-trigger="keyup changed delay:300ms" hx-target="#teams-list"
-                           class="w-full bg-base-300 border border-base-content/10 rounded-xl px-4 py-3 text-base-content focus:outline-none focus:border-indigo-500 transition-colors mb-4">
+                    <input type="text" name="team" list="teams-list" placeholder="Ej: Boca"
+                          hx-get="/autocomplete/teams" hx-trigger="keyup changed delay:300ms" hx-target="#teams-list"                           class="w-full bg-base-300 border border-base-content/10 rounded-xl px-4 py-3 text-base-content focus:outline-none focus:border-indigo-500 transition-colors mb-4">
                     <datalist id="teams-list"></datalist>
                     
                     <label class="text-[10px] font-black text-base-content/60 uppercase tracking-widest block mb-2">Ciudad del Clima</label>
