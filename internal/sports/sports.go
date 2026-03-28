@@ -484,7 +484,7 @@ func fetchLiveF1() F1Race {
 	// --- FETCH WEATHER FOR CIRCUIT ---
 	weatherMap := make(map[string]string)
 	if race.Circuit.Location.Lat != "" && race.Circuit.Location.Long != "" {
-		wUrl := fmt.Sprintf("https://api.open-meteo.com/v1/forecast?latitude=%s&longitude=%s&daily=weather_code&timezone=auto", race.Circuit.Location.Lat, race.Circuit.Location.Long)
+		wUrl := fmt.Sprintf("https://api.open-meteo.com/v1/forecast?latitude=%s&longitude=%s&daily=weather_code&timezone=auto&past_days=2", race.Circuit.Location.Lat, race.Circuit.Location.Long)
 		if wResp, wErr := network.FetchSecure(wUrl); wErr == nil {
 			defer wResp.Body.Close()
 			var wData struct {
