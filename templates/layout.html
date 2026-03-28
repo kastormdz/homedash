@@ -1,0 +1,74 @@
+{{define "layout"}}
+<!DOCTYPE html>
+<html lang="es" class="h-full" data-theme="{{.Theme}}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <link rel="icon" type="image/png" href="https://img.icons8.com/fluency/48/home-automation.png">
+    <title>HomeDash</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.10.1/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;400;600;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .fluid-clock { font-size: clamp(2rem, 8vw, 5rem); }
+        .fluid-temp { font-size: clamp(2rem, 8vw, 5rem); }
+        
+        @keyframes glow {
+            0% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.1); }
+            50% { box-shadow: 0 0 40px rgba(245, 158, 11, 0.3); }
+            100% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.1); }
+        }
+        @keyframes borderRotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .holiday-glow { 
+            animation: glow 3s infinite ease-in-out;
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.15) 0%, rgba(245, 158, 11, 0.05) 100%);
+            border-color: rgba(245, 158, 11, 0.6) !important;
+            position: relative;
+        }
+        .holiday-glow::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            background: conic-gradient(from 0deg, transparent, rgba(245, 158, 11, 0.8), transparent 50%);
+            animation: borderRotate 4s linear infinite;
+            z-index: -1;
+            border-radius: 2rem;
+        }
+        .custom-modal { display: none; position: fixed; inset: 0; z-index: 100; align-items: center; justify-content: center; background: rgba(0,0,0,0.8); backdrop-filter: blur(4px); }
+        .custom-modal.active { display: flex; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-base-100 text-base-content p-3 md:p-4 transition-all duration-700 select-none">
+
+    {{template "content" .}}
+
+    <script>
+        function updateClock() {
+            const now = new Date();
+            const options = { weekday: 'long', day: 'numeric', month: 'long' };
+            const clockEl = document.getElementById('clock');
+            const dateEl = document.getElementById('date');
+            if (clockEl) clockEl.textContent = now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
+            if (dateEl) dateEl.textContent = now.toLocaleDateString('es-AR', options);
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+        document.body.addEventListener('htmx:afterSwap', function(evt) { lucide.createIcons(); });
+        lucide.createIcons();
+        function toggleModal() { 
+            const modal = document.getElementById('modal');
+            if (modal) modal.classList.toggle('active'); 
+        }
+    </script>
+</body>
+</html>
+{{end}}

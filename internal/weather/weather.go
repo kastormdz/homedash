@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"homedash/internal/common"
+	"homedash/internal/earthquake"
 	"homedash/internal/finance"
 	"homedash/internal/holidays"
 	"homedash/internal/network"
@@ -90,8 +91,15 @@ type WeatherViewModel struct {
 	ShowUFC       bool
 	ShowFinance   bool
 	Dolar         finance.FinanceData
+	BTCPrice      float64
+	BTCTrend      int
 	BTCChange     float64
+	ETHPrice      float64
+	ETHTrend      int
 	ETHChange     float64
+	RainProb      int
+	Earthquakes   []earthquake.EarthquakeData
+	Alert         WeatherAlert
 	AQI           int
 	AQIDesc       string
 	MoonIcon      string
@@ -241,7 +249,7 @@ func getMoonPhaseInfo() (string, string) {
 	phase := math.Mod(diff, lunation) / lunation
 
 	if phase < 0.06 || phase > 0.94 {
-		return "moon", "Nueva"
+		return "moon-star", "Nueva"
 	}
 	if phase < 0.19 {
 		return "moon", "Creciente"
@@ -256,7 +264,7 @@ func getMoonPhaseInfo() (string, string) {
 		return "circle", "Llena"
 	}
 	if phase < 0.69 {
-		return "moon", "Gibosa Meng."
+		return "sun-moon", "Gibosa Meng."
 	}
 	if phase < 0.81 {
 		return "moon", "C. Menguante"

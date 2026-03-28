@@ -49,11 +49,11 @@ func validateRedirect(req *http.Request, via []*http.Request) error {
 	if len(via) >= 3 {
 		return fmt.Errorf("demasiados redirects")
 	}
-	// S-B. Re-validar dominio del redirect contra allowlist
-	if !isInternalRequest(req.URL) {
-		return nil
+	// S-1. Bloquear redirects a IPs internas
+	if isInternalRequest(req.URL) {
+		return fmt.Errorf("redirect a destino interno bloqueado: %s", req.URL.Hostname())
 	}
-	return fmt.Errorf("redirect a destino no permitido: %s", req.URL.Hostname())
+	return nil
 }
 
 // isInternalRequest verifica si una URL apunta a IPs internas (SSRF protection)
@@ -66,7 +66,9 @@ func isInternalRequest(u *url.URL) bool {
 	// Intentar resolver DNS y verificar que no sea IP interna
 	ips, err := net.LookupIP(hostname)
 	if err != nil {
-		return true // Si no se puede resolver, bloquear por seguridad
+		// Si es un dominio sin IP o error de resolución, no lo consideramos interno per se,
+		// pero net.LookupIP suele fallar para hostnames inválidos.
+		return false
 	}
 	for _, ip := range ips {
 		if ip.IsLoopback() || ip.IsPrivate() || ip.IsUnspecified() || ip.IsLinkLocalUnicast() {
@@ -99,6 +101,16 @@ func IsDomainAllowed(rawURL string) (bool, error) {
 
 // FetchSecure realiza una petición GET validando errores y status
 func FetchSecure(targetURL string) (*http.Response, error) {
+	u, err := url.Parse(targetURL)
+	if err != nil {
+		return nil, err
+	}
+
+	// S-1. Bloquear peticiones a IPs internas
+	if isInternalRequest(u) {
+		return nil, fmt.Errorf("destino bloqueado por ser una dirección interna: %s", u.Hostname())
+	}
+
 	req, err := http.NewRequest("GET", targetURL, nil)
 	if err != nil {
 		return nil, err
