@@ -1,5 +1,6 @@
 # Executables
 homedash
+main
 *.so
 
 # Test output and temporary files
