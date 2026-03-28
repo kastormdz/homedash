@@ -161,16 +161,16 @@ func GetSportsDataForUser(teamName string) UserSportsData {
 		}
 
 		if matchTeam {
-			// Calculamos un score de prioridad
-			// 1. Prioridad por Estado (LIVE = 0, FINAL/SCHEDULED TODAY = 10, OTHERS = 20)
-			statusScore := 20
+			// Calculamos un score de prioridad (MENOR es MEJOR)
+			// 1. Prioridad por Tiempo (VIVO = 0, HOY = 10, FUTURO = 1000)
+			statusScore := 1000
 			if f.Status == "LIVE" {
 				statusScore = 0
 			} else if strings.Contains(f.Date, time.Now().Format("02/01")) {
 				statusScore = 10
 			}
 
-			// 2. Prioridad por Torneo (Primera = 0, Otros = 100)
+			// 2. Prioridad por Torneo (Primera = 0, Copa Arg/Lib = 50, Otros = 100)
 			tournScore := 100
 			if strings.Contains(tourn, "liga profesional") || strings.Contains(tourn, "primera division") {
 				tournScore = 0
@@ -809,7 +809,6 @@ func fetchFreshSportsData() SportsData {
 		"https://site.api.espn.com/apis/site/v2/sports/soccer/arg.copa/scoreboard?lang=es&region=ar&limit=50&dates=" + dateRange,
 		"https://site.api.espn.com/apis/site/v2/sports/soccer/lib/scoreboard?lang=es&region=ar&limit=50&dates=" + dateRange,
 		"https://site.api.espn.com/apis/site/v2/sports/soccer/sud.copa/scoreboard?lang=es&region=ar&limit=50&dates=" + dateRange,
-		"https://site.api.espn.com/apis/site/v2/sports/soccer/arg.copa_argentina/scoreboard?lang=es&region=ar&limit=50&dates=" + dateRange,
 	}
 
 	var mu sync.Mutex
