@@ -4,9 +4,9 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: homedash
-    # D-A. Bind a localhost por seguridad (usar reverse proxy externo)
+    # D-A. Bind a todas las interfaces (NPM reverse proxy necesita acceso)
     ports:
-      - "127.0.0.1:8060:8060"
+      - "8060:8060"
     environment:
       - TZ=America/Argentina/Buenos_Aires
     volumes:

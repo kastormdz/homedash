@@ -27,11 +27,19 @@ func fetchLiveUFC() UFCMatch {
 
 	mainEvent := sb.Events[0]
 	var mainCard []string
-	for _, comp := range mainEvent.Competitions {
+	var p1Headshot, p2Headshot string
+
+	for i, comp := range mainEvent.Competitions {
 		p1, p2 := "TBD", "TBD"
 		if len(comp.Competitors) >= 2 {
 			p1 = comp.Competitors[0].Athlete.DisplayName
 			p2 = comp.Competitors[1].Athlete.DisplayName
+
+			// Extraer fotos del evento principal (primera competición de la lista)
+			if i == 0 {
+				p1Headshot = comp.Competitors[0].Athlete.Headshot
+				p2Headshot = comp.Competitors[1].Athlete.Headshot
+			}
 
 			fightStatus := ""
 			if comp.Status.Type.State == "in" {
@@ -62,5 +70,5 @@ func fetchLiveUFC() UFCMatch {
 	if name == "" {
 		name = mainEvent.ShortName
 	}
-	return UFCMatch{EventName: name, Date: dateStr, Time: timeStr, Status: status, MainCard: mainCard}
+	return UFCMatch{EventName: name, Date: dateStr, Time: timeStr, Status: status, MainCard: mainCard, P1Headshot: p1Headshot, P2Headshot: p2Headshot}
 }

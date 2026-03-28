@@ -222,11 +222,20 @@
             <div class="text-base-content text-[11px] lg:text-xs font-black uppercase italic">{{.NextMatch.UFC.Date}}</div>
         </div>
 
-        <div class="text-base-content text-[11px] lg:text-xs font-black uppercase italic truncate mb-2 leading-tight">{{.NextMatch.UFC.EventName}}</div>
+        <div class="flex items-center space-x-3 mb-2 shrink-0">
+            <div class="text-base-content text-[11px] lg:text-xs font-black uppercase italic truncate leading-tight flex-1 select-text">{{.NextMatch.UFC.EventName}}</div>
+            {{if .NextMatch.UFC.P1Headshot}}
+            <div class="flex -space-x-3 hover:space-x-1 transition-all duration-500">
+                <img src="{{.NextMatch.UFC.P1Headshot}}" class="w-8 h-8 rounded-full border-2 border-red-600/50 object-cover bg-base-300" onerror="this.style.display='none'">
+                <img src="{{.NextMatch.UFC.P2Headshot}}" class="w-8 h-8 rounded-full border-2 border-red-600/50 object-cover bg-base-300" onerror="this.style.display='none'">
+            </div>
+            {{end}}
+        </div>
+
         <div class="flex-1 space-y-1.5 overflow-hidden">
             {{range $i, $fight := .NextMatch.UFC.MainCard}}{{if lt $i 3}}
             <div class="bg-base-300/30 rounded-xl p-2 border border-white/5 flex items-center justify-between border-l-2 border-l-red-600/40 hover:bg-white/5 transition-all">
-                <div class="text-[9px] lg:text-[10px] font-bold text-base-content italic truncate pr-2">{{$fight}}</div>
+                <div class="text-[9px] lg:text-[10px] font-bold text-base-content italic truncate pr-2 select-text">{{$fight}}</div>
                 <i data-lucide="zap" class="w-3 h-3 text-error shrink-0"></i>
             </div>
             {{end}}{{end}}
@@ -269,32 +278,32 @@
                 <div class="absolute -right-1 -bottom-2 opacity-10 text-blue-500 text-4xl font-black pointer-events-none italic">ETH</div>
             </div>
 
-            <!-- SPY -->
+            <!-- S&P 500 -->
             <div class="bg-emerald-500/5 rounded-2xl p-3 border border-emerald-500/10 flex flex-col justify-center relative overflow-hidden">
                 <div class="flex justify-between items-start mb-1 relative z-10">
-                    <div class="text-[8px] font-black uppercase text-emerald-500/70 tracking-widest">SPY (Cedear)</div>
-                    {{if ne .Dolar.SPY.Change 0.0}}
-                    <span class="text-[8px] font-black {{if ge .Dolar.SPY.Change 0.0}}text-green-500{{else}}text-error{{end}}">
-                        {{if ge .Dolar.SPY.Change 0.0}}+{{end}}{{printf "%.1f" .Dolar.SPY.Change}}%
+                    <div class="text-[8px] font-black uppercase text-emerald-500/70 tracking-widest">S&P 500</div>
+                    {{if ne .Dolar.SP500.Change 0.0}}
+                    <span class="text-[8px] font-black {{if ge .Dolar.SP500.Change 0.0}}text-green-500{{else}}text-error{{end}}">
+                        {{if ge .Dolar.SP500.Change 0.0}}+{{end}}{{printf "%.1f" .Dolar.SP500.Change}}%
                     </span>
                     {{end}}
                 </div>
-                <div class="text-xl font-black text-base-content leading-none relative z-10">${{printf "%.0f" .Dolar.SPY.Price}}</div>
-                <div class="absolute -right-1 -bottom-2 opacity-10 text-emerald-500 text-4xl font-black pointer-events-none italic">SPY</div>
+                <div class="text-xl font-black text-base-content leading-none relative z-10">${{printf "%.0f" .Dolar.SP500.Price}}</div>
+                <div class="absolute -right-1 -bottom-2 opacity-10 text-emerald-500 text-4xl font-black pointer-events-none italic">S&P</div>
             </div>
 
-            <!-- QQQ -->
+            <!-- NASDAQ -->
             <div class="bg-purple-500/5 rounded-2xl p-3 border border-purple-500/10 flex flex-col justify-center relative overflow-hidden">
                 <div class="flex justify-between items-start mb-1 relative z-10">
-                    <div class="text-[8px] font-black uppercase text-purple-500/70 tracking-widest">QQQ (Cedear)</div>
-                    {{if ne .Dolar.QQQ.Change 0.0}}
-                    <span class="text-[8px] font-black {{if ge .Dolar.QQQ.Change 0.0}}text-green-500{{else}}text-error{{end}}">
-                        {{if ge .Dolar.QQQ.Change 0.0}}+{{end}}{{printf "%.1f" .Dolar.QQQ.Change}}%
+                    <div class="text-[8px] font-black uppercase text-purple-500/70 tracking-widest">NASDAQ</div>
+                    {{if ne .Dolar.Nasdaq.Change 0.0}}
+                    <span class="text-[8px] font-black {{if ge .Dolar.Nasdaq.Change 0.0}}text-green-500{{else}}text-error{{end}}">
+                        {{if ge .Dolar.Nasdaq.Change 0.0}}+{{end}}{{printf "%.1f" .Dolar.Nasdaq.Change}}%
                     </span>
                     {{end}}
                 </div>
-                <div class="text-xl font-black text-base-content leading-none relative z-10">${{printf "%.0f" .Dolar.QQQ.Price}}</div>
-                <div class="absolute -right-1 -bottom-2 opacity-10 text-purple-500 text-4xl font-black pointer-events-none italic">QQQ</div>
+                <div class="text-xl font-black text-base-content leading-none relative z-10">${{printf "%.0f" .Dolar.Nasdaq.Price}}</div>
+                <div class="absolute -right-1 -bottom-2 opacity-10 text-purple-500 text-4xl font-black pointer-events-none italic">NAS</div>
             </div>
 
             <!-- Dólar Blue -->
