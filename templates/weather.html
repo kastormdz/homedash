@@ -51,11 +51,11 @@
 </div>
 
 <!-- 3. Tarjeta Deportes (Fútbol + F1) -->
-<div class="bg-base-200 backdrop-blur-xl rounded-[2.5rem] p-4 md:p-5 shadow-2xl border border-base-300 flex flex-col justify-between h-full min-h-[240px] md:min-h-[280px] lg:col-span-4 overflow-hidden group {{if and (not .ShowFootball) (not .ShowF1)}}hidden{{end}} text-base-content">
+<div class="bg-base-200 backdrop-blur-xl rounded-[2.5rem] p-4 md:p-5 shadow-2xl border border-base-300 flex flex-col justify-start md:justify-between md:h-full min-h-[340px] md:min-h-[280px] lg:col-span-4 overflow-visible md:overflow-hidden group {{if and (not .ShowFootball) (not .ShowF1)}}hidden{{end}} text-base-content">
     
     <!-- SOCCER BLOCK -->
     {{if .ShowFootball}}
-    <div class="bg-white/5 rounded-3xl p-4 border border-white/5 flex flex-col justify-between flex-[1.2] mb-2 last:mb-0 relative overflow-hidden">
+    <div class="bg-white/5 rounded-3xl p-4 border border-white/5 flex flex-col justify-between flex-[1.2] mb-3 last:mb-0 relative overflow-hidden shrink-0">
         <div class="flex items-center justify-between mb-2">
             <div class="flex items-center space-x-2">
                 <div class="text-primary text-[10px] font-black uppercase tracking-[0.2em] flex items-center">
@@ -114,7 +114,7 @@
 
     <!-- F1 BLOCK -->
     {{if .ShowF1}}
-    <div class="bg-error/5 rounded-3xl p-3 md:p-4 border border-red-600/10 flex flex-col justify-between flex-1 overflow-hidden">
+    <div class="bg-error/5 rounded-3xl p-3 md:p-4 border border-red-600/10 flex flex-col justify-start flex-1 overflow-visible">
         <div class="flex items-center justify-between mb-2 min-w-0">
             <img src="/static/assets/logos/f1.svg" class="h-6 md:h-12 w-auto brightness-150 filter drop-shadow-[0_0_10px_rgba(225,6,0,0.6)] shrink-0">
             <div class="flex items-center space-x-2 md:space-x-3 min-w-0">
@@ -125,8 +125,10 @@
         <div class="grid grid-cols-3 md:grid-cols-6 gap-1.5">
             {{range .NextMatch.F1.Sessions}}
             <div class="bg-base-300/40 rounded-xl p-2 md:p-1.5 border border-white/5 flex flex-col items-center justify-center hover:bg-error/10 transition-all relative {{if .Passed}}grayscale opacity-40{{end}}">
-                {{if .WeatherIcon}}<i data-lucide="{{.WeatherIcon}}" class="w-3 h-3 md:w-4 md:h-4 text-base-content/70 absolute top-0.5 right-0.5 md:top-1 md:right-1"></i>{{end}}
-                <div class="text-[9px] md:text-[10px] lg:text-[11px] font-black text-error uppercase mb-0.5">{{.Name}}</div>
+                <div class="flex items-center space-x-1 mb-0.5">
+                    <div class="text-[9px] md:text-[10px] lg:text-[11px] font-black text-error uppercase">{{.Name}}</div>
+                    {{if .WeatherIcon}}<i data-lucide="{{.WeatherIcon}}" class="w-3.5 h-3.5 md:w-4 md:h-4 text-base-content/70"></i>{{end}}
+                </div>
                 <div class="text-[11px] md:text-xs lg:text-sm font-black text-base-content leading-none">{{.Time}}</div>
                 <div class="text-[9px] md:text-[9px] lg:text-[10px] text-base-content/60 font-bold uppercase mt-1">{{.Date}}</div>
             </div>
