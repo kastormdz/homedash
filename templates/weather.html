@@ -122,9 +122,9 @@
                 <div class="text-base-content text-[9px] md:text-base font-black uppercase tracking-tight italic leading-tight text-right truncate pr-1">{{.NextMatch.F1.GrandPrix}}</div>
             </div>
         </div>
-        <div class="grid grid-cols-3 md:grid-cols-6 gap-1.5">
+        <div class="grid grid-cols-3 md:flex md:flex-wrap md:justify-center gap-1.5">
             {{range .NextMatch.F1.Sessions}}
-            <div class="bg-base-300/40 rounded-xl p-2 md:p-1.5 border border-white/5 flex flex-col items-center justify-center hover:bg-error/10 transition-all relative {{if .Passed}}grayscale opacity-40{{end}}">
+            <div class="bg-base-300/40 rounded-xl p-2 md:p-1.5 border border-white/5 flex flex-col items-center justify-center hover:bg-error/10 transition-all relative {{if .Passed}}grayscale opacity-40{{end}} md:min-w-[100px] md:flex-1 md:max-w-[150px]">
                 <div class="flex items-center space-x-1 mb-0.5">
                     <div class="text-[9px] md:text-[10px] lg:text-[11px] font-black text-error uppercase">{{.Name}}</div>
                     {{if .WeatherIcon}}<i data-lucide="{{.WeatherIcon}}" class="w-3.5 h-3.5 md:w-4 md:h-4 text-base-content/70"></i>{{end}}
@@ -216,7 +216,7 @@
 
     <!-- 2. UFC (Centro - 3 cols) -->
     {{if .ShowUFC}}
-    <div class="{{if not .ShowFinance}}lg:col-span-6{{else}}lg:col-span-3{{end}} bg-base-200 backdrop-blur-xl rounded-[2.5rem] p-4 md:p-5 shadow-2xl border border-base-300 flex flex-col md:h-full md:min-h-[240px] overflow-hidden text-base-content mb-2 md:mb-0">
+    <div class="{{if not .ShowFinance}}lg:col-span-6{{else}}lg:col-span-3{{end}} bg-base-200 backdrop-blur-xl rounded-[2.5rem] p-4 md:p-5 shadow-2xl border border-base-300 flex flex-col min-h-[240px] overflow-hidden text-base-content">
         <div class="flex items-center justify-between mb-3 shrink-0">
             <img src="/static/assets/logos/ufc.svg" class="h-8 md:h-12 w-auto brightness-150 filter drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">
             <div class="text-base-content text-[11px] lg:text-xs font-black uppercase italic">{{.NextMatch.UFC.Date}}</div>
@@ -248,7 +248,7 @@
 
     <!-- 3. Finanzas: Cripto, CEDEARs y Dólar (Derecha) -->
     {{if .ShowFinance}}
-    <div class="{{if .ShowUFC}}lg:col-span-4{{else}}lg:col-span-7{{end}} bg-base-200 backdrop-blur-xl rounded-[2.5rem] p-6 shadow-2xl border border-base-300 flex flex-col justify-between md:h-full md:min-h-[240px] text-base-content">
+    <div class="{{if .ShowUFC}}lg:col-span-4{{else}}lg:col-span-7{{end}} bg-base-200 backdrop-blur-xl rounded-[2.5rem] p-6 shadow-2xl border border-base-300 flex flex-col justify-between min-h-[240px] text-base-content">
         <div class="grid grid-cols-2 gap-2 flex-1">
             <!-- Bitcoin -->
             <div class="bg-orange-500/5 rounded-2xl p-3 border border-orange-500/10 flex flex-col justify-center relative overflow-hidden">
@@ -260,7 +260,7 @@
                     </span>
                     {{end}}
                 </div>
-                <div class="text-xl font-black text-base-content leading-none relative z-10">${{printf "%.0f" .BTCPrice}}</div>
+                <div class="text-xl font-black text-base-content leading-none relative z-10">U$S {{printf "%.0f" .BTCPrice}}</div>
                 <div class="absolute -right-1 -bottom-2 opacity-10 text-orange-500 text-4xl font-black pointer-events-none italic">BTC</div>
             </div>
 
@@ -274,7 +274,7 @@
                     </span>
                     {{end}}
                 </div>
-                <div class="text-xl font-black text-base-content leading-none relative z-10">${{printf "%.0f" .ETHPrice}}</div>
+                <div class="text-xl font-black text-base-content leading-none relative z-10">U$S {{printf "%.0f" .ETHPrice}}</div>
                 <div class="absolute -right-1 -bottom-2 opacity-10 text-blue-500 text-4xl font-black pointer-events-none italic">ETH</div>
             </div>
 
@@ -288,7 +288,7 @@
                     </span>
                     {{end}}
                 </div>
-                <div class="text-xl font-black text-base-content leading-none relative z-10">${{printf "%.0f" .Dolar.SP500.Price}}</div>
+                <div class="text-xl font-black text-base-content leading-none relative z-10">U$S {{printf "%.0f" .Dolar.SP500.Price}}</div>
                 <div class="absolute -right-1 -bottom-2 opacity-10 text-emerald-500 text-4xl font-black pointer-events-none italic">S&P</div>
             </div>
 
@@ -302,7 +302,7 @@
                     </span>
                     {{end}}
                 </div>
-                <div class="text-xl font-black text-base-content leading-none relative z-10">${{printf "%.0f" .Dolar.Nasdaq.Price}}</div>
+                <div class="text-xl font-black text-base-content leading-none relative z-10">U$S {{printf "%.0f" .Dolar.Nasdaq.Price}}</div>
                 <div class="absolute -right-1 -bottom-2 opacity-10 text-purple-500 text-4xl font-black pointer-events-none italic">NAS</div>
             </div>
 
