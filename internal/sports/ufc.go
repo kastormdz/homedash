@@ -38,7 +38,13 @@ func fetchLiveUFC() UFCMatch {
 			// Extraer fotos del evento principal (primera competición de la lista)
 			if i == 0 {
 				p1Headshot = comp.Competitors[0].Athlete.Headshot
+				if p1Headshot == "" && comp.Competitors[0].ID != "" {
+					p1Headshot = fmt.Sprintf("https://a.espncdn.com/i/headshots/mma/players/full/%s.png", comp.Competitors[0].ID)
+				}
 				p2Headshot = comp.Competitors[1].Athlete.Headshot
+				if p2Headshot == "" && comp.Competitors[1].ID != "" {
+					p2Headshot = fmt.Sprintf("https://a.espncdn.com/i/headshots/mma/players/full/%s.png", comp.Competitors[1].ID)
+				}
 			}
 
 			fightStatus := ""
