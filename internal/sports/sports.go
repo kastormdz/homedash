@@ -809,6 +809,7 @@ func fetchFreshSportsData() SportsData {
 		"https://site.api.espn.com/apis/site/v2/sports/soccer/arg.copa/scoreboard?lang=es&region=ar&limit=50&dates=" + dateRange,
 		"https://site.api.espn.com/apis/site/v2/sports/soccer/lib/scoreboard?lang=es&region=ar&limit=50&dates=" + dateRange,
 		"https://site.api.espn.com/apis/site/v2/sports/soccer/sud.copa/scoreboard?lang=es&region=ar&limit=50&dates=" + dateRange,
+		"https://site.api.espn.com/apis/site/v2/sports/soccer/arg.copa_argentina/scoreboard?lang=es&region=ar&limit=50&dates=" + dateRange,
 	}
 
 	var mu sync.Mutex
