@@ -87,8 +87,9 @@ type ESPNScoreboard struct {
 				} `json:"type"`
 			} `json:"status"`
 			Competitors []struct {
-				HomeAway string `json:"homeAway"`
-				Score    string `json:"score"`
+				ID       string   `json:"id"`
+				HomeAway string   `json:"homeAway"`
+				Score    string   `json:"score"`
 				Team     struct {
 					DisplayName string `json:"displayName"`
 				} `json:"team"`
