@@ -39,11 +39,13 @@ type F1Race struct {
 }
 
 type UFCMatch struct {
-	EventName string
-	Date      string
-	Time      string
-	Status    string
-	MainCard  []string
+	EventName   string
+	Date        string
+	Time        string
+	Status      string
+	MainCard    []string
+	P1Headshot  string
+	P2Headshot  string
 }
 
 type SportsData struct {
@@ -92,6 +94,7 @@ type ESPNScoreboard struct {
 				} `json:"team"`
 				Athlete struct {
 					DisplayName string `json:"displayName"`
+					Headshot    string `json:"headshot"`
 				} `json:"athlete"`
 			} `json:"competitors"`
 			Broadcasts []struct {
@@ -149,15 +152,30 @@ func parseToArgentina(utcStr string) (time.Time, error) {
 	if utcStr == "" {
 		return time.Time{}, fmt.Errorf("empty date")
 	}
-	// ESPN usa "2024-03-28T23:30Z" o similar
-	t, err := time.Parse(time.RFC3339, utcStr)
-	if err != nil {
-		// Reintento con formato Ergast "2024-03-28T12:00:00Z"
-		t, err = time.Parse("2006-01-02T15:04:05Z", utcStr)
-		if err != nil {
-			return time.Time{}, err
+
+	// Lista de formatos posibles que envían las APIs (ESPN, Ergast)
+	formats := []string{
+		time.RFC3339,
+		"2006-01-02T15:04:05Z",
+		"2006-01-02T15:04Z", // Común en ESPN UFC
+	}
+
+	var t time.Time
+	var err error
+	for _, f := range formats {
+		t, err = time.Parse(f, utcStr)
+		if err == nil {
+			break
 		}
 	}
+
+	if err != nil {
+		return time.Time{}, err
+	}
+
 	loc, _ := time.LoadLocation("America/Argentina/Buenos_Aires")
+	if loc == nil {
+		return t, nil // Fallback a UTC si no se puede cargar la loc
+	}
 	return t.In(loc), nil
 }

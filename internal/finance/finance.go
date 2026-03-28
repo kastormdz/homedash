@@ -23,8 +23,8 @@ type AssetData struct {
 type FinanceData struct {
 	Blue   DolarPrice
 	Cripto DolarPrice
-	SPY    AssetData
-	QQQ    AssetData
+	SP500  AssetData
+	Nasdaq AssetData
 }
 
 var (
@@ -110,24 +110,24 @@ func UpdateFinance() error {
 		}
 	}()
 
-	// P-E. Paralelizar SPY y QQQ
+	// P-E. Paralelizar S&P500 y Nasdaq
 	go func() {
 		defer wg.Done()
-		if spyData, err := getYahooFinanceData("SPY.BA"); err == nil && spyData.Price > 0 {
-			newData.SPY = spyData
+		if spyData, err := getYahooFinanceData("^GSPC"); err == nil && spyData.Price > 0 {
+			newData.SP500 = spyData
 		}
 	}()
 
 	go func() {
 		defer wg.Done()
-		if qqqData, err := getYahooFinanceData("QQQ.BA"); err == nil && qqqData.Price > 0 {
-			newData.QQQ = qqqData
+		if qqqData, err := getYahooFinanceData("^IXIC"); err == nil && qqqData.Price > 0 {
+			newData.Nasdaq = qqqData
 		}
 	}()
 
 	wg.Wait()
 
-	if newData.Blue.Venta == 0 && newData.Cripto.Venta == 0 && newData.SPY.Price == 0 && newData.QQQ.Price == 0 {
+	if newData.Blue.Venta == 0 && newData.Cripto.Venta == 0 && newData.SP500.Price == 0 && newData.Nasdaq.Price == 0 {
 		return fmt.Errorf("no se pudieron obtener datos financieros")
 	}
 
@@ -138,11 +138,11 @@ func UpdateFinance() error {
 	if newData.Cripto.Venta > 0 {
 		cachedFinance.Cripto = newData.Cripto
 	}
-	if newData.SPY.Price > 0 {
-		cachedFinance.SPY = newData.SPY
+	if newData.SP500.Price > 0 {
+		cachedFinance.SP500 = newData.SP500
 	}
-	if newData.QQQ.Price > 0 {
-		cachedFinance.QQQ = newData.QQQ
+	if newData.Nasdaq.Price > 0 {
+		cachedFinance.Nasdaq = newData.Nasdaq
 	}
 	financeMutex.Unlock()
 	return nil
