@@ -74,7 +74,7 @@
         
         <div class="flex flex-col flex-1 justify-center min-w-0">
             <div class="flex items-center justify-between mb-2">
-                <div class="text-base md:text-lg lg:text-xl font-black text-base-content uppercase italic tracking-tighter leading-none mb-2 pr-4 truncate">
+                <div class="text-sm md:text-lg lg:text-xl font-black text-base-content uppercase italic tracking-tighter leading-none mb-2 pr-4 truncate">
                     {{.NextMatch.Match.Team}} <span class="text-primary text-[10px]">vs</span> {{.NextMatch.Match.Opponent}}
                 </div>
 
@@ -114,21 +114,21 @@
 
     <!-- F1 BLOCK -->
     {{if .ShowF1}}
-    <div class="bg-error/5 rounded-3xl p-4 border border-red-600/10 flex flex-col justify-between flex-1 overflow-hidden">
-        <div class="flex items-center justify-between mb-2">
-            <img src="/static/assets/logos/f1.svg" class="h-8 md:h-12 w-auto brightness-150 filter drop-shadow-[0_0_10px_rgba(225,6,0,0.6)]">
-            <div class="flex items-center space-x-3">
-                <img src="{{.NextMatch.F1.PosterURL}}" class="h-10 md:h-14 object-contain opacity-90 filter brightness-125 drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]" onerror="this.style.display='none'">
-                <div class="text-base-content text-xs md:text-base font-black uppercase tracking-tight italic leading-tight text-right max-w-[120px]">{{.NextMatch.F1.GrandPrix}}</div>
+    <div class="bg-error/5 rounded-3xl p-3 md:p-4 border border-red-600/10 flex flex-col justify-between flex-1 overflow-hidden">
+        <div class="flex items-center justify-between mb-2 min-w-0">
+            <img src="/static/assets/logos/f1.svg" class="h-6 md:h-12 w-auto brightness-150 filter drop-shadow-[0_0_10px_rgba(225,6,0,0.6)] shrink-0">
+            <div class="flex items-center space-x-2 md:space-x-3 min-w-0">
+                <img src="{{.NextMatch.F1.PosterURL}}" class="hidden md:block h-10 md:h-14 object-contain opacity-90 filter brightness-125 drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]" onerror="this.style.display='none'">
+                <div class="text-base-content text-[10px] md:text-base font-black uppercase tracking-tight italic leading-tight text-right truncate">{{.NextMatch.F1.GrandPrix}}</div>
             </div>
         </div>
-        <div class="flex flex-wrap justify-center gap-1.5">
+        <div class="grid grid-cols-3 md:grid-cols-6 gap-1.5">
             {{range .NextMatch.F1.Sessions}}
-            <div class="bg-base-300/40 rounded-xl p-1.5 border border-white/5 flex flex-col items-center justify-center hover:bg-error/10 transition-all relative {{if .Passed}}grayscale opacity-40{{end}} flex-1 min-w-[60px] max-w-[100px]">
-                {{if .WeatherIcon}}<i data-lucide="{{.WeatherIcon}}" class="w-4 h-4 text-base-content/70 absolute top-1 right-1"></i>{{end}}
-                <div class="text-[10px] lg:text-[11px] font-black text-error uppercase mb-0.5">{{.Name}}</div>
-                <div class="text-[11px] md:text-sm font-black text-base-content leading-none">{{.Time}}</div>
-                <div class="text-[9px] lg:text-[10px] text-base-content/60 font-bold uppercase mt-1">{{.Date}}</div>
+            <div class="bg-base-300/40 rounded-xl p-2 md:p-1.5 border border-white/5 flex flex-col items-center justify-center hover:bg-error/10 transition-all relative {{if .Passed}}grayscale opacity-40{{end}}">
+                {{if .WeatherIcon}}<i data-lucide="{{.WeatherIcon}}" class="w-3 h-3 md:w-4 md:h-4 text-base-content/70 absolute top-0.5 right-0.5 md:top-1 md:right-1"></i>{{end}}
+                <div class="text-[9px] md:text-[10px] lg:text-[11px] font-black text-error uppercase mb-0.5">{{.Name}}</div>
+                <div class="text-[11px] md:text-xs lg:text-sm font-black text-base-content leading-none">{{.Time}}</div>
+                <div class="text-[9px] md:text-[9px] lg:text-[10px] text-base-content/60 font-bold uppercase mt-1">{{.Date}}</div>
             </div>
             {{end}}
         </div>
