@@ -118,11 +118,11 @@
         <div class="flex items-center justify-between mb-2 min-w-0">
             <img src="/static/assets/logos/f1.svg" class="h-6 md:h-12 w-auto brightness-150 filter drop-shadow-[0_0_10px_rgba(225,6,0,0.6)] shrink-0">
             <div class="flex items-center space-x-2 md:space-x-3 min-w-0">
-                <img src="{{.NextMatch.F1.PosterURL}}" class="hidden md:block h-10 md:h-14 object-contain opacity-90 filter brightness-125 drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]" onerror="this.style.display='none'">
+                <img src="{{.NextMatch.F1.FlagURL}}" class="h-4 md:h-6 w-auto rounded-sm shadow-sm" onerror="this.style.display='none'">
                 <div class="text-base-content text-[9px] md:text-base font-black uppercase tracking-tight italic leading-tight text-right truncate pr-1">{{.NextMatch.F1.GrandPrix}}</div>
             </div>
         </div>
-        <div class="grid grid-cols-3 md:flex md:flex-wrap md:justify-center gap-1.5">
+        <div class="grid grid-cols-3 md:flex md:flex-nowrap md:justify-center gap-1.5">
             {{range .NextMatch.F1.Sessions}}
             <div class="bg-base-300/40 rounded-xl p-2 md:p-1.5 border border-white/5 flex flex-col items-center justify-center hover:bg-error/10 transition-all relative {{if .Passed}}grayscale opacity-40{{end}} md:min-w-[100px] md:flex-1 md:max-w-[150px]">
                 <div class="flex items-center space-x-1 mb-0.5">
@@ -309,16 +309,16 @@
             <!-- Dólar Blue -->
             <div class="bg-green-600/5 rounded-2xl p-3 border border-green-500/10 flex flex-col justify-center relative overflow-hidden">
                 <div class="text-[8px] font-black uppercase text-green-500/70 tracking-widest mb-1 relative z-10">Dólar Blue</div>
-                <div class="text-xl font-black text-base-content leading-none relative z-10">${{if .Dolar.Blue}}{{printf "%.0f" .Dolar.Blue.Venta}}{{else}}---{{end}}</div>
-                <div class="text-[7px] font-bold text-base-content/60 uppercase mt-1 relative z-10">Compra: ${{if .Dolar.Blue}}{{printf "%.0f" .Dolar.Blue.Compra}}{{else}}---{{end}}</div>
+                <div class="text-xl font-black text-base-content leading-none relative z-10">$ {{if .Dolar.Blue}}{{printf "%.0f" .Dolar.Blue.Venta}}{{else}}---{{end}}</div>
+                <div class="text-[7px] font-bold text-base-content/60 uppercase mt-1 relative z-10">Compra: $ {{if .Dolar.Blue}}{{printf "%.0f" .Dolar.Blue.Compra}}{{else}}---{{end}}</div>
                 <div class="absolute -right-1 -bottom-2 opacity-10 text-green-500 text-4xl font-black pointer-events-none italic">USD</div>
             </div>
 
             <!-- Dólar Cripto -->
             <div class="bg-primary/5 rounded-2xl p-3 border border-indigo-500/10 flex flex-col justify-center relative overflow-hidden">
                 <div class="text-[8px] font-black uppercase text-primary/70 tracking-widest mb-1 relative z-10">Dólar Cripto</div>
-                <div class="text-xl font-black text-base-content leading-none relative z-10">${{if .Dolar.Cripto}}{{printf "%.0f" .Dolar.Cripto.Venta}}{{else}}---{{end}}</div>
-                <div class="text-[7px] font-bold text-base-content/60 uppercase mt-1 relative z-10">Compra: ${{if .Dolar.Cripto}}{{printf "%.0f" .Dolar.Cripto.Compra}}{{else}}---{{end}}</div>
+                <div class="text-xl font-black text-base-content leading-none relative z-10">$ {{if .Dolar.Cripto}}{{printf "%.0f" .Dolar.Cripto.Venta}}{{else}}---{{end}}</div>
+                <div class="text-[7px] font-bold text-base-content/60 uppercase mt-1 relative z-10">Compra: $ {{if .Dolar.Cripto}}{{printf "%.0f" .Dolar.Cripto.Compra}}{{else}}---{{end}}</div>
                 <div class="absolute -right-1 -bottom-2 opacity-10 text-primary text-4xl font-black pointer-events-none italic">USDT</div>
             </div>
         </div>
