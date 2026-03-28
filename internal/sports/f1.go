@@ -5,13 +5,30 @@ import (
 	"fmt"
 	"homedash/internal/common"
 	"homedash/internal/network"
+	"strings"
 	"time"
 )
 
 func GetCircuitData(circuitName string) string {
 	return "/static/assets/circuits/" + circuitName + ".svg"
 }
-func GetFlagURL(iso string) string { return "/static/assets/flags/" + iso + ".svg" }
+
+func GetFlagURL(country string) string {
+	country = strings.ToLower(strings.TrimSpace(country))
+	iso := "un" // Unknown
+	mapping := map[string]string{
+		"australia": "au", "austria": "at", "azerbaijan": "az", "belgium": "be",
+		"brazil": "br", "canada": "ca", "china": "cn", "hungary": "hu",
+		"italy": "it", "japan": "jp", "monaco": "mc", "mexico": "mx",
+		"netherlands": "nl", "qatar": "qa", "saudi arabia": "sa", "singapore": "sg",
+		"spain": "es", "uae": "ae", "uk": "gb", "usa": "us", "bahrain": "bh",
+		"united kingdom": "gb", "united states": "us",
+	}
+	if code, ok := mapping[country]; ok {
+		iso = code
+	}
+	return "/static/assets/flags/" + iso + ".svg"
+}
 
 func fetchLiveF1() F1Race {
 	resp, err := network.FetchSecure("https://api.jolpi.ca/ergast/f1/current/next.json")
@@ -91,5 +108,11 @@ func fetchLiveF1() F1Race {
 	addSess("Sprint", race.Sprint.Date, race.Sprint.Time)
 	addSess("Race", race.Date, race.Time)
 
-	return F1Race{GrandPrix: race.RaceName, Circuit: race.Circuit.CircuitId, FlagURL: GetFlagURL("un"), PosterURL: GetCircuitData(race.Circuit.CircuitId), Sessions: sessions}
+	return F1Race{
+		GrandPrix: race.RaceName,
+		Circuit:   race.Circuit.CircuitId,
+		FlagURL:   GetFlagURL(race.Circuit.Location.Country),
+		PosterURL: GetCircuitData(race.Circuit.CircuitId),
+		Sessions:  sessions,
+	}
 }

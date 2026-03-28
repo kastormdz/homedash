@@ -120,8 +120,9 @@ type ergastResponse struct {
 				Circuit  struct {
 					CircuitId string `json:"circuitId"`
 					Location  struct {
-						Lat  string `json:"lat"`
-						Long string `json:"long"`
+						Lat     string `json:"lat"`
+						Long    string `json:"long"`
+						Country string `json:"country"`
 					} `json:"location"`
 				} `json:"circuit"`
 				FirstPractice  ergastSession `json:"FirstPractice"`
@@ -135,8 +136,9 @@ type ergastResponse struct {
 }
 
 type ergastCircuitLocation struct {
-	Lat  string `json:"lat"`
-	Long string `json:"long"`
+	Lat     string `json:"lat"`
+	Long    string `json:"long"`
+	Country string `json:"country"`
 }
 
 type ergastCircuit struct {
