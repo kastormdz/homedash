@@ -4,11 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"homedash/internal/common"
-	"homedash/internal/earthquake"
-	"homedash/internal/finance"
-	"homedash/internal/holidays"
 	"homedash/internal/network"
-	"homedash/internal/sports"
 	"math"
 	"net/url"
 	"sync"
@@ -76,34 +72,6 @@ type ForecastItem struct {
 	Code int
 	Max  float64
 	Min  float64
-}
-
-type WeatherViewModel struct {
-	Current       CurrentWeather
-	Forecast      []ForecastItem
-	Sunrise       string
-	Sunset        string
-	NextMatch     sports.UserSportsData
-	TodayHoliday  *holidays.Holiday
-	City          string
-	ShowF1        bool
-	ShowFootball  bool
-	ShowUFC       bool
-	ShowFinance   bool
-	Dolar         finance.FinanceData
-	BTCPrice      float64
-	BTCTrend      int
-	BTCChange     float64
-	ETHPrice      float64
-	ETHTrend      int
-	ETHChange     float64
-	RainProb      int
-	Earthquakes   []earthquake.EarthquakeData
-	Alert         WeatherAlert
-	AQI           int
-	AQIDesc       string
-	MoonIcon      string
-	MoonPhaseName string
 }
 
 func GetWeather(lat, lon string) (*WeatherResponse, error) {

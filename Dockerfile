@@ -25,6 +25,10 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 ### STAGE 2: Producción (Imagen final)
 FROM alpine:3.20
 
+LABEL org.opencontainers.image.title="homedash" \
+      org.opencontainers.image.version="1.3" \
+      org.opencontainers.image.description="Homelab Dashboard"
+
 # Ajustes de seguridad y entorno
 RUN apk add --no-cache ca-certificates tzdata \
     && addgroup -S appgroup && adduser -S appuser -G appgroup

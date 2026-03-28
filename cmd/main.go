@@ -1,12 +1,15 @@
 package main
 
 import (
+	"compress/gzip"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"html/template"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -96,8 +99,60 @@ func init() {
 	}
 }
 
+func cacheMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "public, max-age=86400") // 24h
+		next.ServeHTTP(w, r)
+	})
+}
+
+type gzipResponseWriter struct {
+	io.Writer
+	http.ResponseWriter
+}
+
+func (w gzipResponseWriter) Write(b []byte) (int, error) {
+	return w.Writer.Write(b)
+}
+
+func gzipMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+			next.ServeHTTP(w, r)
+			return
+		}
+		w.Header().Set("Content-Encoding", "gzip")
+		gz := gzip.NewWriter(w)
+		defer gz.Close()
+		gzw := gzipResponseWriter{Writer: gz, ResponseWriter: w}
+		next.ServeHTTP(gzw, r)
+	})
+}
+
+func isTrustedProxy(ip string) bool {
+	parsedIP := net.ParseIP(ip)
+	if parsedIP == nil {
+		return false
+	}
+	return parsedIP.IsLoopback() || parsedIP.IsPrivate() || parsedIP.IsUnspecified()
+}
+
 func securityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Verificar proxy de confianza
+		host, _, err := net.SplitHostPort(r.RemoteAddr)
+		if err != nil {
+			host = r.RemoteAddr
+		}
+		if isTrustedProxy(host) {
+			if forwardedFor := r.Header.Get("X-Forwarded-For"); forwardedFor != "" {
+				r.RemoteAddr = strings.Split(forwardedFor, ",")[0]
+			}
+			if r.Header.Get("X-Forwarded-Proto") == "https" {
+				r.TLS = &tls.ConnectionState{}
+			}
+		}
+
 		// S-2. Headers de seguridad básicos
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("X-Frame-Options", "DENY")
@@ -130,10 +185,10 @@ func main() {
 	}
 
 	// 2. Crypto y Finanzas (Intentar una vez rápido, si fallan no bloqueamos el inicio pero los lanzamos)
-	if err := crypto.UpdateCrypto(); err != nil {
+	if err := crypto.UpdateCrypto(context.Background()); err != nil {
 		log.Printf("[INIT] Aviso: Cripto no se pudo cargar inicialmente: %v\n", err)
 	}
-	if err := finance.UpdateFinance(); err != nil {
+	if err := finance.UpdateFinance(context.Background()); err != nil {
 		log.Printf("[INIT] Aviso: Finanzas no se pudieron cargar inicialmente: %v\n", err)
 	}
 
@@ -144,7 +199,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	fs := http.FileServer(http.Dir("static"))
-	mux.Handle("/static/", http.StripPrefix("/static/", fs))
+	mux.Handle("/static/", http.StripPrefix("/static/", cacheMiddleware(fs)))
 
 	mux.HandleFunc("/", handleIndex)
 	mux.HandleFunc("/weather", handleWeather)
@@ -154,8 +209,8 @@ func main() {
 	mux.HandleFunc("/autocomplete/cities", rateLimit(handleAutocompleteCities))
 	mux.HandleFunc("/health", handleHealth)
 
-	// Aplicar middleware de seguridad
-	secureMux := securityHeaders(mux)
+	// Aplicar middleware de seguridad y gzip
+	secureMux := gzipMiddleware(securityHeaders(mux))
 
 	port := ":8060"
 	if p := os.Getenv("PORT"); p != "" {
@@ -217,6 +272,34 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+}
+
+type WeatherViewModel struct {
+	Current       weather.CurrentWeather
+	Forecast      []weather.ForecastItem
+	Sunrise       string
+	Sunset        string
+	NextMatch     sports.UserSportsData
+	TodayHoliday  *holidays.Holiday
+	City          string
+	ShowF1        bool
+	ShowFootball  bool
+	ShowUFC       bool
+	ShowFinance   bool
+	Dolar         finance.FinanceData
+	BTCPrice      float64
+	BTCTrend      int
+	BTCChange     float64
+	ETHPrice      float64
+	ETHTrend      int
+	ETHChange     float64
+	RainProb      int
+	Earthquakes   []earthquake.EarthquakeData
+	Alert         weather.WeatherAlert
+	AQI           int
+	AQIDesc       string
+	MoonIcon      string
+	MoonPhaseName string
 }
 
 func handleWeather(w http.ResponseWriter, r *http.Request) {
@@ -287,7 +370,7 @@ func handleWeather(w http.ResponseWriter, r *http.Request) {
 
 	finData := finance.GetCachedFinance()
 
-	viewModel := weather.WeatherViewModel{
+	viewModel := WeatherViewModel{
 		Current:       current,
 		Forecast:      forecast,
 		Sunrise:       sunrise,
@@ -462,8 +545,8 @@ func handleHealth(w http.ResponseWriter, r *http.Request) {
 }
 
 var (
-	rateLimitMap  = make(map[string]time.Time)
-	rateLimitMu   sync.Mutex
+	rateLimitMap = make(map[string]time.Time)
+	rateLimitMu  sync.Mutex
 )
 
 func rateLimit(next http.HandlerFunc) http.HandlerFunc {

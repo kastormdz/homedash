@@ -22,15 +22,15 @@ func StartUpdateLoop() {
 	go func() {
 		for {
 			// P-3. Contexto con timeout para evitar bloqueos infinitos
-			_, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-			_ = UpdateCrypto()
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			_ = UpdateCrypto(ctx)
 			cancel()
 			time.Sleep(2 * time.Minute)
 		}
 	}()
 }
 
-func UpdateCrypto() error {
+func UpdateCrypto(ctx context.Context) error {
 	var wg sync.WaitGroup
 	wg.Add(2)
 
@@ -40,12 +40,12 @@ func UpdateCrypto() error {
 
 	go func() {
 		defer wg.Done()
-		btcPrice, btcChange, err1 = GetCryptoData("bitcoin", "BTCUSDT")
+		btcPrice, btcChange, err1 = GetCryptoData(ctx, "bitcoin", "BTCUSDT")
 	}()
 
 	go func() {
 		defer wg.Done()
-		ethPrice, ethChange, err2 = GetCryptoData("ethereum", "ETHUSDT")
+		ethPrice, ethChange, err2 = GetCryptoData(ctx, "ethereum", "ETHUSDT")
 	}()
 
 	wg.Wait()
@@ -104,10 +104,10 @@ type Binance24hResponse struct {
 	PriceChangePercent string `json:"priceChangePercent"`
 }
 
-func GetCryptoData(cgID, binanceSymbol string) (float64, float64, error) {
+func GetCryptoData(ctx context.Context, cgID, binanceSymbol string) (float64, float64, error) {
 	// Fuente 1: CoinGecko (incluye % 24h)
 	urlCG := fmt.Sprintf("https://api.coingecko.com/api/v3/simple/price?ids=%s&vs_currencies=usd&include_24hr_change=true", cgID)
-	resp, err := network.FetchSecure(urlCG)
+	resp, err := network.FetchSecureWithContext(ctx, urlCG)
 	if err == nil {
 		defer resp.Body.Close()
 		var result CoinGeckoResponse
@@ -123,7 +123,7 @@ func GetCryptoData(cgID, binanceSymbol string) (float64, float64, error) {
 
 	go func() {
 		defer wg.Done()
-		resp2, err := network.FetchSecure("https://api.binance.com/api/v3/ticker/price?symbol=" + binanceSymbol)
+		resp2, err := network.FetchSecureWithContext(ctx, "https://api.binance.com/api/v3/ticker/price?symbol="+binanceSymbol)
 		if err != nil {
 			return
 		}
@@ -136,7 +136,7 @@ func GetCryptoData(cgID, binanceSymbol string) (float64, float64, error) {
 
 	go func() {
 		defer wg.Done()
-		resp3, err := network.FetchSecure("https://api.binance.com/api/v3/ticker/24hr?symbol=" + binanceSymbol)
+		resp3, err := network.FetchSecureWithContext(ctx, "https://api.binance.com/api/v3/ticker/24hr?symbol="+binanceSymbol)
 		if err != nil {
 			return
 		}

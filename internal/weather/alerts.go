@@ -109,8 +109,8 @@ func getMendozaLocalAlert() WeatherAlert {
 	}
 	defer resp.Body.Close()
 
-	// Leemos el contenido (es pequeño)
-	body, _ := io.ReadAll(resp.Body)
+	// B-4-B: Limitar lectura a 512KB para evitar OOM
+	body, _ := io.ReadAll(io.LimitReader(resp.Body, 512*1024))
 	content := strings.ToLower(string(body))
 
 	var alert WeatherAlert
