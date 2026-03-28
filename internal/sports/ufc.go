@@ -29,21 +29,35 @@ func fetchLiveUFC() UFCMatch {
 	var mainCard []string
 	var p1Headshot, p2Headshot string
 
-	for i, comp := range mainEvent.Competitions {
+	// En UFC, el Main Event suele ser el ÚLTIMO de la lista de competitions.
+	// Vamos a recorrer en reversa para que el Main Event esté primero en nuestra lista.
+	for i := len(mainEvent.Competitions) - 1; i >= 0; i-- {
+		comp := mainEvent.Competitions[i]
 		p1, p2 := "TBD", "TBD"
 		if len(comp.Competitors) >= 2 {
 			p1 = comp.Competitors[0].Athlete.DisplayName
 			p2 = comp.Competitors[1].Athlete.DisplayName
 
-			// Extraer fotos del evento principal (primera competición de la lista)
-			if i == 0 {
-				p1Headshot = comp.Competitors[0].Athlete.Headshot
-				if p1Headshot == "" && comp.Competitors[0].ID != "" {
-					p1Headshot = fmt.Sprintf("https://a.espncdn.com/i/headshots/mma/players/full/%s.png", comp.Competitors[0].ID)
+			// Extraer fotos del evento principal (el último en la lista original, ahora el primero en nuestro loop)
+			if i == len(mainEvent.Competitions)-1 {
+				id1 := comp.Competitors[0].ID
+				id2 := comp.Competitors[1].ID
+				
+				rawP1 := comp.Competitors[0].Athlete.Headshot
+				if rawP1 == "" && id1 != "" {
+					rawP1 = fmt.Sprintf("https://a.espncdn.com/i/headshots/mma/players/full/%s.png", id1)
 				}
-				p2Headshot = comp.Competitors[1].Athlete.Headshot
-				if p2Headshot == "" && comp.Competitors[1].ID != "" {
-					p2Headshot = fmt.Sprintf("https://a.espncdn.com/i/headshots/mma/players/full/%s.png", comp.Competitors[1].ID)
+				rawP2 := comp.Competitors[1].Athlete.Headshot
+				if rawP2 == "" && id2 != "" {
+					rawP2 = fmt.Sprintf("https://a.espncdn.com/i/headshots/mma/players/full/%s.png", id2)
+				}
+
+				// Pasar por el proxy local para cachear imágenes
+				if rawP1 != "" {
+					p1Headshot = fmt.Sprintf("/crest?url=%s&name=athlete_%s", rawP1, id1)
+				}
+				if rawP2 != "" {
+					p2Headshot = fmt.Sprintf("/crest?url=%s&name=athlete_%s", rawP2, id2)
 				}
 			}
 
