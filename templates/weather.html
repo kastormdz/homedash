@@ -119,6 +119,7 @@
             <img src="/static/assets/logos/f1.svg" class="h-6 md:h-12 w-auto brightness-150 filter drop-shadow-[0_0_10px_rgba(225,6,0,0.6)] shrink-0">
             <div class="flex items-center space-x-2 md:space-x-3 min-w-0">
                 <img src="{{.NextMatch.F1.FlagURL}}" class="h-4 md:h-6 w-auto rounded-sm shadow-sm" onerror="this.style.display='none'">
+                <img src="{{.NextMatch.F1.PosterURL}}" class="hidden md:block h-10 md:h-14 object-contain opacity-90 filter brightness-125 drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]" onerror="this.style.display='none'">
                 <div class="text-base-content text-[9px] md:text-base font-black uppercase tracking-tight italic leading-tight text-right truncate pr-1">{{.NextMatch.F1.GrandPrix}}</div>
             </div>
         </div>
