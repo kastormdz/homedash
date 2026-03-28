@@ -150,14 +150,17 @@ func GetHolidayToday(t time.Time) *Holiday {
 
 func GetUpcomingHolidays(t time.Time) []UpcomingHoliday {
 	var upcoming []UpcomingHoliday
+	todayStr := t.Format("2006-01-02")
+	later := t.AddDate(0, 0, 30)
+	laterStr := later.Format("2006-01-02")
 
-	for i := 1; i <= 30; i++ {
-		nextDay := t.AddDate(0, 0, i)
-		if h := GetHolidayToday(nextDay); h != nil {
+	for _, h := range GetArgentinaHolidays() {
+		if h.Date > todayStr && h.Date <= laterStr {
+			d, _ := time.Parse("2006-01-02", h.Date)
 			upcoming = append(upcoming, UpcomingHoliday{
 				Name:    h.Name,
-				DayName: common.DaysAbbr[nextDay.Weekday()],
-				DateStr: nextDay.Format("02/01"),
+				DayName: common.DaysAbbr[d.Weekday()],
+				DateStr: d.Format("02/01"),
 			})
 		}
 	}

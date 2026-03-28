@@ -34,9 +34,9 @@ var (
 	ethPriceLock sync.Mutex
 
 	// 7. Temas válidos como var de paquete (no recrear en cada request)
-	validThemes = map[string]bool{
-		"dark": true, "dracula": true, "synthwave": true, "cyberpunk": true,
-		"retro": true, "dim": true, "coffee": true, "sunset": true, "night": true,
+	validThemes = map[string]struct{}{
+		"dark": {}, "dracula": {}, "synthwave": {}, "cyberpunk": {},
+		"retro": {}, "dim": {}, "coffee": {}, "sunset": {}, "night": {},
 	}
 )
 
@@ -96,6 +96,19 @@ func init() {
 	}
 }
 
+func securityHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// S-2. Headers de seguridad básicos
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("X-XSS-Protection", "1; mode=block")
+		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		// CSP permisivo para CDNs conocidos pero bloqueando inline scripts maliciosos
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://openweathermap.org https://upload.wikimedia.org https://cdn.register.f1.com https://a.espncdn.com https://static.promiedos.com.ar; connect-src 'self';")
+		next.ServeHTTP(w, r)
+	})
+}
+
 func main() {
 	log.Println("Iniciando Homedash...")
 
@@ -129,15 +142,20 @@ func main() {
 	crypto.StartUpdateLoop()
 	finance.StartUpdateLoop()
 
+	mux := http.NewServeMux()
 	fs := http.FileServer(http.Dir("static"))
-	http.Handle("/static/", http.StripPrefix("/static/", fs))
+	mux.Handle("/static/", http.StripPrefix("/static/", fs))
 
-	http.HandleFunc("/", handleIndex)
-	http.HandleFunc("/weather", handleWeather)
-	http.HandleFunc("/crest", handleCrestProxy)
-	http.HandleFunc("/settings", handleSettings)
-	http.HandleFunc("/autocomplete/teams", handleAutocompleteTeams)
-	http.HandleFunc("/autocomplete/cities", handleAutocompleteCities)
+	mux.HandleFunc("/", handleIndex)
+	mux.HandleFunc("/weather", handleWeather)
+	mux.HandleFunc("/crest", handleCrestProxy)
+	mux.HandleFunc("/settings", handleSettings)
+	mux.HandleFunc("/autocomplete/teams", rateLimit(handleAutocompleteTeams))
+	mux.HandleFunc("/autocomplete/cities", rateLimit(handleAutocompleteCities))
+	mux.HandleFunc("/health", handleHealth)
+
+	// Aplicar middleware de seguridad
+	secureMux := securityHeaders(mux)
 
 	port := ":8060"
 	if p := os.Getenv("PORT"); p != "" {
@@ -146,9 +164,10 @@ func main() {
 
 	server := &http.Server{
 		Addr:         port,
+		Handler:      secureMux,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 30 * time.Second,
-		IdleTimeout:  60 * time.Second,
+		IdleTimeout:  120 * time.Second,
 	}
 
 	// Graceful shutdown
@@ -268,42 +287,31 @@ func handleWeather(w http.ResponseWriter, r *http.Request) {
 
 	finData := finance.GetCachedFinance()
 
-	viewModel := struct {
-		weather.WeatherViewModel
-		BTCPrice    float64
-		BTCTrend    int
-		ETHPrice    float64
-		ETHTrend    int
-		RainProb    int
-		Earthquakes []earthquake.EarthquakeData
-		Alert       weather.WeatherAlert
-	}{
-		WeatherViewModel: weather.WeatherViewModel{
-			Current:       current,
-			Forecast:      forecast,
-			Sunrise:       sunrise,
-			Sunset:        sunset,
-			NextMatch:     sports.GetSportsDataForUser(settings.Team),
-			City:          settings.City,
-			ShowF1:        settings.ShowF1,
-			ShowFootball:  settings.ShowFootball,
-			ShowUFC:       settings.ShowUFC,
-			ShowFinance:   settings.ShowFinance,
-			Dolar:         finData,
-			BTCChange:     crypto.GetCachedBTCChange(),
-			ETHChange:     crypto.GetCachedETHChange(),
-			AQI:           aqi,
-			AQIDesc:       aqiDesc,
-			MoonIcon:      moonIcon,
-			MoonPhaseName: moonPhase,
-		},
-		BTCPrice:    btcPrice,
-		BTCTrend:    trend,
-		ETHPrice:    ethPrice,
-		ETHTrend:    ethTrend,
-		RainProb:    rainProb,
-		Earthquakes: earthquake.GetLatestEarthquakes(),
-		Alert:       weather.GetSMNAlert(settings.Province, settings.City),
+	viewModel := weather.WeatherViewModel{
+		Current:       current,
+		Forecast:      forecast,
+		Sunrise:       sunrise,
+		Sunset:        sunset,
+		NextMatch:     sports.GetSportsDataForUser(settings.Team),
+		City:          settings.City,
+		ShowF1:        settings.ShowF1,
+		ShowFootball:  settings.ShowFootball,
+		ShowUFC:       settings.ShowUFC,
+		ShowFinance:   settings.ShowFinance,
+		Dolar:         finData,
+		BTCPrice:      btcPrice,
+		BTCTrend:      trend,
+		BTCChange:     crypto.GetCachedBTCChange(),
+		ETHPrice:      ethPrice,
+		ETHTrend:      ethTrend,
+		ETHChange:     crypto.GetCachedETHChange(),
+		RainProb:      rainProb,
+		Earthquakes:   earthquake.GetLatestEarthquakes(),
+		Alert:         weather.GetSMNAlert(settings.Province, settings.City),
+		AQI:           aqi,
+		AQIDesc:       aqiDesc,
+		MoonIcon:      moonIcon,
+		MoonPhaseName: moonPhase,
 	}
 
 	err := tmpls.ExecuteTemplate(w, "weather.html", viewModel)
@@ -332,7 +340,7 @@ func handleSettings(w http.ResponseWriter, r *http.Request) {
 
 		theme := r.FormValue("theme")
 		if theme != "" {
-			if validThemes[theme] {
+			if _, ok := validThemes[theme]; ok {
 				s.Theme = theme
 			}
 		}
@@ -340,21 +348,30 @@ func handleSettings(w http.ResponseWriter, r *http.Request) {
 		city := r.FormValue("city")
 		if city != "" {
 			name, lat, lon, province, err := weather.SearchCity(city)
-			if err == nil {
-				// S4. Validación de Coordenadas
-				var fLat, fLon float64
-				if _, err := fmt.Sscanf(lat, "%f", &fLat); err != nil {
-					return
-				}
-				if _, err := fmt.Sscanf(lon, "%f", &fLon); err != nil {
-					return
-				}
-				if fLat >= -90 && fLat <= 90 && fLon >= -180 && fLon <= 180 {
-					s.City = name
-					s.Lat = lat
-					s.Lon = lon
-					s.Province = province
-				}
+			if err != nil {
+				http.Error(w, "Ciudad no encontrada", http.StatusNotFound)
+				return
+			}
+
+			// S4. Validación de Coordenadas
+			var fLat, fLon float64
+			if _, err := fmt.Sscanf(lat, "%f", &fLat); err != nil {
+				http.Error(w, "Latitud inválida", http.StatusBadRequest)
+				return
+			}
+			if _, err := fmt.Sscanf(lon, "%f", &fLon); err != nil {
+				http.Error(w, "Longitud inválida", http.StatusBadRequest)
+				return
+			}
+
+			if fLat >= -90 && fLat <= 90 && fLon >= -180 && fLon <= 180 {
+				s.City = name
+				s.Lat = lat
+				s.Lon = lon
+				s.Province = province
+			} else {
+				http.Error(w, "Coordenadas fuera de rango", http.StatusBadRequest)
+				return
 			}
 		}
 
@@ -375,6 +392,7 @@ func handleSettings(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		return
 	}
+	http.Error(w, "Método no permitido", http.StatusMethodNotAllowed)
 }
 
 func handleCrestProxy(w http.ResponseWriter, r *http.Request) {
@@ -438,6 +456,41 @@ func handleCrestProxy(w http.ResponseWriter, r *http.Request) {
 	_, _ = io.Copy(w, resp.Body)
 }
 
+func handleHealth(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, "OK")
+}
+
+var (
+	rateLimitMap  = make(map[string]time.Time)
+	rateLimitMu   sync.Mutex
+)
+
+func rateLimit(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ip := r.RemoteAddr
+		if pos := strings.LastIndex(ip, ":"); pos != -1 {
+			ip = ip[:pos]
+		}
+
+		rateLimitMu.Lock()
+		last, ok := rateLimitMap[ip]
+		if ok && time.Since(last) < 1*time.Second {
+			rateLimitMu.Unlock()
+			http.Error(w, "Too many requests", http.StatusTooManyRequests)
+			return
+		}
+		rateLimitMap[ip] = time.Now()
+		// Limpieza periódica simple de la caché si crece mucho
+		if len(rateLimitMap) > 1000 {
+			rateLimitMap = make(map[string]time.Time)
+		}
+		rateLimitMu.Unlock()
+
+		next.ServeHTTP(w, r)
+	}
+}
+
 func handleAutocompleteTeams(w http.ResponseWriter, r *http.Request) {
 	q := strings.ToLower(r.URL.Query().Get("team"))
 	teams := sports.GetTeams()
@@ -448,6 +501,10 @@ func handleAutocompleteTeams(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	w.Header().Set("Content-Type", "text/html")
+	if len(matches) == 0 {
+		fmt.Fprint(w, "<option value=\"\">No se encontraron equipos</option>")
+		return
+	}
 	for _, m := range matches {
 		// S2. Prevención XSS: Escapar contenido dinámico
 		fmt.Fprintf(w, "<option value=\"%s\">\n", template.HTMLEscapeString(m))
@@ -457,12 +514,15 @@ func handleAutocompleteTeams(w http.ResponseWriter, r *http.Request) {
 func handleAutocompleteCities(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query().Get("city")
 	if len(q) < 3 {
+		// No responder nada para queries cortas para evitar ruido visual
 		return
 	}
 	name, _, _, _, err := weather.SearchCity(q)
-	if err == nil {
-		w.Header().Set("Content-Type", "text/html")
-		// S2. Prevención XSS: Escapar contenido dinámico
-		fmt.Fprintf(w, "<option value=\"%s\">\n", template.HTMLEscapeString(name))
+	w.Header().Set("Content-Type", "text/html")
+	if err != nil {
+		fmt.Fprint(w, "<option value=\"\">No se encontraron ciudades</option>")
+		return
 	}
+	// S2. Prevención XSS: Escapar contenido dinámico
+	fmt.Fprintf(w, "<option value=\"%s\">\n", template.HTMLEscapeString(name))
 }

@@ -1,6 +1,7 @@
 package finance
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"homedash/internal/network"
@@ -34,7 +35,9 @@ var (
 func StartUpdateLoop() {
 	go func() {
 		for {
-			UpdateFinance()
+			_, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			_ = UpdateFinance()
+			cancel()
 			time.Sleep(5 * time.Minute)
 		}
 	}()
@@ -90,9 +93,7 @@ func UpdateFinance() error {
 			defer respB.Body.Close()
 			var d DolarPrice
 			if err := json.NewDecoder(respB.Body).Decode(&d); err == nil && d.Venta > 0 {
-				financeMutex.Lock()
 				newData.Blue = d
-				financeMutex.Unlock()
 			}
 		}
 	}()
@@ -104,9 +105,7 @@ func UpdateFinance() error {
 			defer respC.Body.Close()
 			var d DolarPrice
 			if err := json.NewDecoder(respC.Body).Decode(&d); err == nil && d.Venta > 0 {
-				financeMutex.Lock()
 				newData.Cripto = d
-				financeMutex.Unlock()
 			}
 		}
 	}()
@@ -115,18 +114,14 @@ func UpdateFinance() error {
 	go func() {
 		defer wg.Done()
 		if spyData, err := getYahooFinanceData("SPY.BA"); err == nil && spyData.Price > 0 {
-			financeMutex.Lock()
 			newData.SPY = spyData
-			financeMutex.Unlock()
 		}
 	}()
 
 	go func() {
 		defer wg.Done()
 		if qqqData, err := getYahooFinanceData("QQQ.BA"); err == nil && qqqData.Price > 0 {
-			financeMutex.Lock()
 			newData.QQQ = qqqData
-			financeMutex.Unlock()
 		}
 	}()
 

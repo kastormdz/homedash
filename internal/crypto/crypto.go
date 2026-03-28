@@ -1,6 +1,7 @@
 package crypto
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"homedash/internal/network"
@@ -20,7 +21,10 @@ var (
 func StartUpdateLoop() {
 	go func() {
 		for {
-			UpdateCrypto()
+			// P-3. Contexto con timeout para evitar bloqueos infinitos
+			_, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			_ = UpdateCrypto()
+			cancel()
 			time.Sleep(2 * time.Minute)
 		}
 	}()
