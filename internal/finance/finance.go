@@ -35,8 +35,8 @@ var (
 func StartUpdateLoop() {
 	go func() {
 		for {
-			_, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-			_ = UpdateFinance()
+			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			_ = UpdateFinance(ctx)
 			cancel()
 			time.Sleep(5 * time.Minute)
 		}
@@ -54,8 +54,8 @@ type YahooChartResponse struct {
 	} `json:"chart"`
 }
 
-func getYahooFinanceData(symbol string) (AssetData, error) {
-	resp, err := network.FetchSecure("https://query1.finance.yahoo.com/v8/finance/chart/" + symbol)
+func getYahooFinanceData(ctx context.Context, symbol string) (AssetData, error) {
+	resp, err := network.FetchSecureWithContext(ctx, "https://query1.finance.yahoo.com/v8/finance/chart/"+symbol)
 	if err != nil {
 		return AssetData{}, err
 	}
@@ -80,7 +80,7 @@ func getYahooFinanceData(symbol string) (AssetData, error) {
 	return AssetData{}, fmt.Errorf("no data for symbol")
 }
 
-func UpdateFinance() error {
+func UpdateFinance(ctx context.Context) error {
 	var newData FinanceData
 	var wg sync.WaitGroup
 	wg.Add(4)
@@ -88,7 +88,7 @@ func UpdateFinance() error {
 	// P-D. Paralelizar Blue y Cripto
 	go func() {
 		defer wg.Done()
-		respB, errB := network.FetchSecure("https://dolarapi.com/v1/dolares/blue")
+		respB, errB := network.FetchSecureWithContext(ctx, "https://dolarapi.com/v1/dolares/blue")
 		if errB == nil {
 			defer respB.Body.Close()
 			var d DolarPrice
@@ -100,7 +100,7 @@ func UpdateFinance() error {
 
 	go func() {
 		defer wg.Done()
-		respC, errC := network.FetchSecure("https://dolarapi.com/v1/dolares/cripto")
+		respC, errC := network.FetchSecureWithContext(ctx, "https://dolarapi.com/v1/dolares/cripto")
 		if errC == nil {
 			defer respC.Body.Close()
 			var d DolarPrice
@@ -113,14 +113,14 @@ func UpdateFinance() error {
 	// P-E. Paralelizar S&P500 y Nasdaq
 	go func() {
 		defer wg.Done()
-		if spyData, err := getYahooFinanceData("^GSPC"); err == nil && spyData.Price > 0 {
+		if spyData, err := getYahooFinanceData(ctx, "^GSPC"); err == nil && spyData.Price > 0 {
 			newData.SP500 = spyData
 		}
 	}()
 
 	go func() {
 		defer wg.Done()
-		if qqqData, err := getYahooFinanceData("^IXIC"); err == nil && qqqData.Price > 0 {
+		if qqqData, err := getYahooFinanceData(ctx, "^IXIC"); err == nil && qqqData.Price > 0 {
 			newData.Nasdaq = qqqData
 		}
 	}()

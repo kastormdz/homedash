@@ -61,6 +61,11 @@ Dashboard minimalista optimizado para carga instantánea, personalización indiv
     - Se implementó la visualización de la bandera del país de la carrera en F1, con mapeo automático de países a iconos locales y se restauró el trazado del circuito.
     - Se descargó el favicon localmente para resolver problemas de visualización por políticas de seguridad (CSP).
     - Se añadió un espacio entre el símbolo `$` y el valor numérico en los activos financieros en pesos (Dólar Blue/Cripto) para mayor legibilidad.
+33. **Proxy Manager & Seguridad (Auditoría v2):**
+    - Se implementó validación de `X-Forwarded-For` y `X-Forwarded-Proto` confiando solo en proxies de IPs privadas (Loopback, LAN).
+    - Se implementó middleware manual de compresión `gzip` y middleware de `Cache-Control` (24h) para recursos estáticos (`/static/`), mejorando el rendimiento.
+    - Se limpió el diseño del paquete `weather` moviendo `WeatherViewModel` a `cmd/main.go` para eliminar dependencias circulares y mejorar la arquitectura.
+    - Se añadieron etiquetas OCI (Labels) al `Dockerfile` y se actualizaron las exclusiones de `.dockerignore` para optimizar el tamaño y metadatos de la imagen.
 - **Fútbol:** `Promiedos` (vía JSON scraping) + `ESPN` (paralelizado).
 - **UFC:** API oficial de `ESPN` filtrada por fechas.
 - **F1:** API de `Ergast` + Pronóstico local por sesión.

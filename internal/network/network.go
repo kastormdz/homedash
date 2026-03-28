@@ -1,6 +1,7 @@
 package network
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -101,6 +102,11 @@ func IsDomainAllowed(rawURL string) (bool, error) {
 
 // FetchSecure realiza una petición GET validando errores y status
 func FetchSecure(targetURL string) (*http.Response, error) {
+	return FetchSecureWithContext(context.Background(), targetURL)
+}
+
+// FetchSecureWithContext realiza una petición GET con contexto
+func FetchSecureWithContext(ctx context.Context, targetURL string) (*http.Response, error) {
 	u, err := url.Parse(targetURL)
 	if err != nil {
 		return nil, err
@@ -111,7 +117,7 @@ func FetchSecure(targetURL string) (*http.Response, error) {
 		return nil, fmt.Errorf("destino bloqueado por ser una dirección interna: %s", u.Hostname())
 	}
 
-	req, err := http.NewRequest("GET", targetURL, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", targetURL, nil)
 	if err != nil {
 		return nil, err
 	}

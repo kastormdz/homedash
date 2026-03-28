@@ -3,12 +3,10 @@
 .gitignore
 homedash
 conductor/
-GEMINI.md
-AGENTS.md
-MIGRACION.md
-README.md
+*.md
 Dockerfile
 docker-compose.yml
 node_modules
 dist
 .env
+main
