@@ -1,6 +1,7 @@
 package sports
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"homedash/internal/common"
@@ -21,8 +22,8 @@ type PromiedosMatch struct {
 	Clock   string
 }
 
-func fetchPromiedosChannels() []PromiedosMatch {
-	req, err := http.NewRequest("GET", "https://www.promiedos.com.ar/", nil)
+func fetchPromiedosChannels(ctx context.Context) []PromiedosMatch {
+	req, err := http.NewRequestWithContext(ctx, "GET", "https://www.promiedos.com.ar/", nil)
 	if err != nil {
 		return nil
 	}

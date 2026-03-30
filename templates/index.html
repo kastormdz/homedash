@@ -1,11 +1,11 @@
 {{template "layout" .}}
 {{define "content"}}
     <!-- Grid principal -->
-    <div class="dashboard-container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-10 gap-2">
+    <div class="dashboard-container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-10 gap-1.5">
         
         <!-- 1. Tarjeta Reloj -->
         <div id="clock-container" 
-             class="bg-base-200 backdrop-blur-xl rounded-[2.5rem] p-4 md:p-6 shadow-2xl border border-base-300 flex flex-col justify-center h-full min-h-[240px] md:min-h-[280px] lg:col-span-3 relative overflow-hidden {{if .Holiday}}holiday-glow{{end}}">
+             class="bg-base-200 backdrop-blur-xl rounded-[2.5rem] p-4 md:p-5 shadow-2xl border border-base-300 flex flex-col justify-center h-full min-h-[200px] md:min-h-[240px] lg:col-span-3 relative overflow-hidden {{if .Holiday}}holiday-glow{{end}}">
             <div id="clock-content" class="contents">
                 {{if .Holiday}}
                 <div class="absolute top-0 left-0 w-full p-2 bg-amber-500/20 border-b border-amber-500/30 flex items-center justify-center space-x-2">
@@ -41,73 +41,12 @@
     </div>
 
     <!-- Footer: Firma a la izquierda, Configuración a la derecha -->
-    <div class="mt-4 mb-2 flex items-center justify-between px-6 opacity-50 hover:opacity-100 transition-opacity duration-500">
+    <div class="mt-2 mb-2 flex items-center justify-between px-6 opacity-50 hover:opacity-100 transition-opacity duration-500">
         <div class="text-[9px] font-bold text-base-content/60 uppercase tracking-[0.3em]">
             Homedash by <span class="text-primary font-black">kastor</span>
         </div>
         <button onclick="toggleModal()" class="text-base-content/60 hover:text-base-content transition-colors flex items-center text-[10px] font-black uppercase tracking-widest">
             <i data-lucide="settings" class="w-3.5 h-3.5 mr-2"></i> Configuración
         </button>
-    </div>
-
-    <!-- Configuration Modal -->
-    <div id="modal" class="custom-modal">
-        <div class="bg-base-200 border border-base-300 w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-xl font-black text-base-content uppercase tracking-tighter italic">Ajustes Personales</h2>
-                <button onclick="toggleModal()" class="text-base-content/60 hover:text-base-content"><i data-lucide="x" class="w-6 h-6"></i></button>
-            </div>
-            
-            <form hx-post="/settings" hx-swap="none" class="space-y-6">
-                <div>
-                    <label class="text-[10px] font-black text-base-content/60 uppercase tracking-widest block mb-2">Preferencias de Contenido</label>
-                    <div class="space-y-3 mb-6">
-                        <label class="flex items-center justify-between p-3 bg-base-300/50 rounded-xl border border-base-content/10 cursor-pointer hover:bg-base-300 transition-colors">
-                            <span class="text-sm font-bold text-base-content flex items-center"><i data-lucide="trophy" class="w-4 h-4 mr-2 text-primary"></i> Fútbol Argentino</span>
-                            <input type="checkbox" name="showFootball" {{if .ShowFootball}}checked{{end}} class="checkbox checkbox-primary">
-                        </label>
-                        <label class="flex items-center justify-between p-3 bg-base-300/50 rounded-xl border border-base-content/10 cursor-pointer hover:bg-base-300 transition-colors">
-                            <span class="text-sm font-bold text-base-content flex items-center"><i data-lucide="flag" class="w-4 h-4 mr-2 text-error"></i> Fórmula 1</span>
-                            <input type="checkbox" name="showF1" {{if .ShowF1}}checked{{end}} class="checkbox checkbox-error">
-                        </label>
-                        <label class="flex items-center justify-between p-3 bg-base-300/50 rounded-xl border border-base-content/10 cursor-pointer hover:bg-base-300 transition-colors">
-                            <span class="text-sm font-bold text-base-content flex items-center"><i data-lucide="swords" class="w-4 h-4 mr-2 text-error"></i> UFC</span>
-                            <input type="checkbox" name="showUFC" {{if .ShowUFC}}checked{{end}} class="checkbox checkbox-error">
-                        </label>
-                        <label class="flex items-center justify-between p-3 bg-base-300/50 rounded-xl border border-base-content/10 cursor-pointer hover:bg-base-300 transition-colors">
-                            <span class="text-sm font-bold text-base-content flex items-center"><i data-lucide="bitcoin" class="w-4 h-4 mr-2 text-orange-500"></i> Finanzas (Cripto/Dólar)</span>
-                            <input type="checkbox" name="showFinance" {{if .ShowFinance}}checked{{end}} class="checkbox checkbox-warning">
-                        </label>
-                    </div>
-
-                    <label class="text-[10px] font-black text-base-content/60 uppercase tracking-widest block mb-2 mt-4">Apariencia (Tema)</label>
-                    <select name="theme" class="w-full bg-base-300 border border-base-content/10 rounded-xl px-4 py-3 text-base-content focus:outline-none focus:border-primary transition-colors mb-4 appearance-none">
-                        <option value="dark" {{if eq .Theme "dark"}}selected{{end}}>Oscuro Base (Dark)</option>
-                        <option value="dracula" {{if eq .Theme "dracula"}}selected{{end}}>Dracula (Contraste alto)</option>
-                        <option value="synthwave" {{if eq .Theme "synthwave"}}selected{{end}}>Synthwave (Retro Neon)</option>
-                        <option value="cyberpunk" {{if eq .Theme "cyberpunk"}}selected{{end}}>Cyberpunk (Amarillo)</option>
-                        <option value="retro" {{if eq .Theme "retro"}}selected{{end}}>Retro (Claro cálido)</option>
-                        <option value="dim" {{if eq .Theme "dim"}}selected{{end}}>Dim (Gris oscuro suave)</option>
-                        <option value="coffee" {{if eq .Theme "coffee"}}selected{{end}}>Café (Marrones)</option>
-                        <option value="sunset" {{if eq .Theme "sunset"}}selected{{end}}>Sunset (Atardecer)</option>
-                        <option value="night" {{if eq .Theme "night"}}selected{{end}}>Night (Noche profunda)</option>
-                    </select>
-
-                    <label class="text-[10px] font-black text-base-content/60 uppercase tracking-widest block mb-2">Equipo a mostrar</label>
-                    <input type="text" name="team" list="teams-list" placeholder="Ej: Boca"
-                          hx-get="/autocomplete/teams" hx-trigger="keyup changed delay:300ms" hx-target="#teams-list"                           class="w-full bg-base-300 border border-base-content/10 rounded-xl px-4 py-3 text-base-content focus:outline-none focus:border-indigo-500 transition-colors mb-4">
-                    <datalist id="teams-list"></datalist>
-                    
-                    <label class="text-[10px] font-black text-base-content/60 uppercase tracking-widest block mb-2">Ciudad del Clima</label>
-                    <input type="text" name="city" list="cities-list" placeholder="Ej: Mendoza, AR..." 
-                           hx-get="/autocomplete/cities" hx-trigger="keyup changed delay:500ms" hx-target="#cities-list"
-                           class="w-full bg-base-300 border border-base-content/10 rounded-xl px-4 py-3 text-base-content focus:outline-none focus:border-indigo-500 transition-colors">
-                    <datalist id="cities-list"></datalist>
-                </div>
-                <button type="submit" class="w-full bg-primary hover:bg-indigo-500 text-base-content font-black uppercase py-4 rounded-xl shadow-lg transition-all tracking-widest" onclick="setTimeout(() => toggleModal(), 100)">
-                    Guardar Cambios
-                </button>
-            </form>
-        </div>
     </div>
 {{end}}

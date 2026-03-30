@@ -1,6 +1,7 @@
 package earthquake
 
 import (
+	"context"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
@@ -23,7 +24,7 @@ type EarthquakeData struct {
 	FullTime  time.Time `json:"-"` // Para ordenar
 }
 
-func GetLatestEarthquakes() []EarthquakeData {
+func GetLatestEarthquakes(ctx context.Context) []EarthquakeData {
 	var allQuakes []EarthquakeData
 	var wg sync.WaitGroup
 	wg.Add(2)
@@ -32,12 +33,12 @@ func GetLatestEarthquakes() []EarthquakeData {
 	
 	go func() {
 		defer wg.Done()
-		usgs = fetchUSGS()
+		usgs = fetchUSGS(ctx)
 	}()
 	
 	go func() {
 		defer wg.Done()
-		inpres = fetchINPRES()
+		inpres = fetchINPRES(ctx)
 	}()
 	
 	wg.Wait()
@@ -60,10 +61,10 @@ func GetLatestEarthquakes() []EarthquakeData {
 	return uniqueQuakes
 }
 
-func fetchUSGS() []EarthquakeData {
+func fetchUSGS(ctx context.Context) []EarthquakeData {
 	url := "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson&limit=10&minlatitude=-55&maxlatitude=-21&minlongitude=-74&maxlongitude=-53"
 
-	resp, err := network.FetchSecure(url)
+	resp, err := network.FetchSecureWithContext(ctx, url)
 	if err != nil { return nil }
 	defer resp.Body.Close()
 
@@ -117,8 +118,8 @@ type INPRESItem struct {
 	Prov  string `xml:"prov"`
 }
 
-func fetchINPRES() []EarthquakeData {
-	resp, err := network.FetchSecure("https://www.inpres.gob.ar/mapa/sismos.xml")
+func fetchINPRES(ctx context.Context) []EarthquakeData {
+	resp, err := network.FetchSecureWithContext(ctx, "https://www.inpres.gob.ar/mapa/sismos.xml")
 	if err != nil { return nil }
 	defer resp.Body.Close()
 

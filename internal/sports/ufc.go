@@ -1,6 +1,7 @@
 package sports
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"homedash/internal/common"
@@ -8,13 +9,13 @@ import (
 	"time"
 )
 
-func fetchLiveUFC() UFCMatch {
+func fetchLiveUFC(ctx context.Context) UFCMatch {
 	now := time.Now()
 	startDate := now.AddDate(0, 0, -2).Format("20060102")
 	endDate := now.AddDate(0, 0, 30).Format("20060102")
 	url := fmt.Sprintf("https://site.api.espn.com/apis/site/v2/sports/mma/ufc/scoreboard?dates=%s-%s", startDate, endDate)
 
-	resp, err := network.FetchSecure(url)
+	resp, err := network.FetchSecureWithContext(ctx, url)
 	if err != nil {
 		return UFCMatch{EventName: "Sin eventos"}
 	}
@@ -25,7 +26,19 @@ func fetchLiveUFC() UFCMatch {
 		return UFCMatch{EventName: "Sin eventos"}
 	}
 
-	mainEvent := sb.Events[0]
+	var mainEvent ESPNEvent
+	found := false
+	for _, event := range sb.Events {
+		if event.Status.Type.State != "post" {
+			mainEvent = event
+			found = true
+			break
+		}
+	}
+	if !found {
+		mainEvent = sb.Events[0]
+	}
+	
 	var mainCard []string
 	var p1Headshot, p2Headshot string
 

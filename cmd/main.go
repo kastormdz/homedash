@@ -109,9 +109,22 @@ func cacheMiddleware(next http.Handler) http.Handler {
 type gzipResponseWriter struct {
 	io.Writer
 	http.ResponseWriter
+	wroteHeader bool
 }
 
-func (w gzipResponseWriter) Write(b []byte) (int, error) {
+func (w *gzipResponseWriter) WriteHeader(code int) {
+	if !w.wroteHeader {
+		w.Header().Set("Content-Encoding", "gzip")
+		w.wroteHeader = true
+	}
+	w.ResponseWriter.WriteHeader(code)
+}
+
+func (w *gzipResponseWriter) Write(b []byte) (int, error) {
+	if !w.wroteHeader {
+		w.Header().Set("Content-Encoding", "gzip")
+		w.wroteHeader = true
+	}
 	return w.Writer.Write(b)
 }
 
@@ -121,10 +134,9 @@ func gzipMiddleware(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		w.Header().Set("Content-Encoding", "gzip")
 		gz := gzip.NewWriter(w)
 		defer gz.Close()
-		gzw := gzipResponseWriter{Writer: gz, ResponseWriter: w}
+		gzw := &gzipResponseWriter{Writer: gz, ResponseWriter: w}
 		next.ServeHTTP(gzw, r)
 	})
 }
@@ -146,7 +158,7 @@ func securityHeaders(next http.Handler) http.Handler {
 		}
 		if isTrustedProxy(host) {
 			if forwardedFor := r.Header.Get("X-Forwarded-For"); forwardedFor != "" {
-				r.RemoteAddr = strings.Split(forwardedFor, ",")[0]
+				r.RemoteAddr = strings.TrimSpace(strings.Split(forwardedFor, ",")[0])
 			}
 			if r.Header.Get("X-Forwarded-Proto") == "https" {
 				r.TLS = &tls.ConnectionState{}
@@ -175,7 +187,7 @@ func main() {
 
 	// 1. Deportes (Bloqueante hasta éxito o max retries)
 	for i := 0; i < maxRetries; i++ {
-		err := sports.ForceUpdate()
+		err := sports.ForceUpdate(context.Background())
 		if err == nil {
 			log.Println("[INIT] Deportes cargados con éxito.")
 			break
@@ -249,6 +261,7 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
 	settings := getSettings(r)
 	now := time.Now()
 	data := struct {
@@ -259,6 +272,8 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 		ShowUFC          bool
 		ShowFinance      bool
 		Theme            string
+		City             string
+		Team             string
 	}{
 		Holiday:          holidays.GetHolidayToday(now),
 		UpcomingHolidays: holidays.GetUpcomingHolidays(now),
@@ -267,6 +282,8 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 		ShowUFC:          settings.ShowUFC,
 		ShowFinance:      settings.ShowFinance,
 		Theme:            settings.Theme,
+		City:             settings.City,
+		Team:             settings.Team,
 	}
 	err := tmpls.ExecuteTemplate(w, "index.html", data)
 	if err != nil {
@@ -303,9 +320,13 @@ type WeatherViewModel struct {
 }
 
 func handleWeather(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
 	settings := getSettings(r)
 
-	weatherData, _ := weather.GetWeather(settings.Lat, settings.Lon)
+	weatherData, errW := weather.GetWeather(r.Context(), settings.Lat, settings.Lon)
+	if errW != nil {
+		log.Printf("Error obteniendo clima para %s: %v", settings.City, errW)
+	}
 	btcPrice := crypto.GetCachedBTC()
 	ethPrice := crypto.GetCachedETH()
 
@@ -389,7 +410,7 @@ func handleWeather(w http.ResponseWriter, r *http.Request) {
 		ETHTrend:      ethTrend,
 		ETHChange:     crypto.GetCachedETHChange(),
 		RainProb:      rainProb,
-		Earthquakes:   earthquake.GetLatestEarthquakes(),
+		Earthquakes:   earthquake.GetLatestEarthquakes(r.Context()),
 		Alert:         weather.GetSMNAlert(settings.Province, settings.City),
 		AQI:           aqi,
 		AQIDesc:       aqiDesc,
@@ -400,6 +421,7 @@ func handleWeather(w http.ResponseWriter, r *http.Request) {
 	err := tmpls.ExecuteTemplate(w, "weather.html", viewModel)
 	if err != nil {
 		log.Printf("Error renderizando weather: %v", err)
+		http.Error(w, "Error interno del servidor", http.StatusInternalServerError)
 	}
 }
 
@@ -428,10 +450,16 @@ func handleSettings(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		city := r.FormValue("city")
-		if city != "" {
+		city := strings.TrimSpace(r.FormValue("city"))
+		// Solo buscar coordenadas si la ciudad cambió para evitar fallos innecesarios
+		if city != "" && city != s.City {
+			if len(city) > 100 {
+				http.Error(w, "Nombre de ciudad demasiado largo", http.StatusBadRequest)
+				return
+			}
 			name, lat, lon, province, err := weather.SearchCity(city)
 			if err != nil {
+				log.Printf("[SETTINGS] Error buscando ciudad '%s': %v", city, err)
 				http.Error(w, "Ciudad no encontrada", http.StatusNotFound)
 				return
 			}
@@ -459,7 +487,12 @@ func handleSettings(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// Guardar en Cookie (1 año)
-		val, _ := json.Marshal(s)
+		val, err := json.Marshal(s)
+		if err != nil {
+			log.Printf("Error serializando settings: %v", err)
+			http.Error(w, "Error interno", http.StatusInternalServerError)
+			return
+		}
 		// S3. Cookie con flags de seguridad
 		http.SetCookie(w, &http.Cookie{
 			Name:     "settings",
@@ -502,7 +535,7 @@ func handleCrestProxy(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ext := ".png"
-	if strings.Contains(targetURL, ".svg") {
+	if strings.Contains(strings.ToLower(targetURL), ".svg") {
 		ext = ".svg"
 	}
 
@@ -522,7 +555,13 @@ func handleCrestProxy(w http.ResponseWriter, r *http.Request) {
 	}
 	defer resp.Body.Close()
 
-	w.Header().Set("Content-Type", resp.Header.Get("Content-Type"))
+	contentType := resp.Header.Get("Content-Type")
+	if !strings.HasPrefix(contentType, "image/") {
+		http.Error(w, "Content type no permitido", http.StatusUnsupportedMediaType)
+		return
+	}
+
+	w.Header().Set("Content-Type", contentType)
 	w.Header().Set("Cache-Control", "public, max-age=604800")
 
 	if name != "" {
@@ -531,12 +570,16 @@ func handleCrestProxy(w http.ResponseWriter, r *http.Request) {
 		out, err := os.Create(localPath)
 		if err == nil {
 			multi := io.MultiWriter(w, out)
-			_, _ = io.Copy(multi, resp.Body)
+			if _, err := io.Copy(multi, resp.Body); err != nil {
+				log.Printf("[PROXY] Error copiando a caché: %v", err)
+			}
 			out.Close()
 			return
 		}
 	}
-	_, _ = io.Copy(w, resp.Body)
+	if _, err := io.Copy(w, resp.Body); err != nil {
+		log.Printf("[PROXY] Error enviando respuesta: %v", err)
+	}
 }
 
 func handleHealth(w http.ResponseWriter, r *http.Request) {
@@ -564,9 +607,14 @@ func rateLimit(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 		rateLimitMap[ip] = time.Now()
-		// Limpieza periódica simple de la caché si crece mucho
+		// Limpieza selectiva de la caché si crece mucho
 		if len(rateLimitMap) > 1000 {
-			rateLimitMap = make(map[string]time.Time)
+			now := time.Now()
+			for k, v := range rateLimitMap {
+				if now.Sub(v) > 1*time.Second {
+					delete(rateLimitMap, k)
+				}
+			}
 		}
 		rateLimitMu.Unlock()
 

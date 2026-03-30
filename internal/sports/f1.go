@@ -1,6 +1,7 @@
 package sports
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"homedash/internal/common"
@@ -30,8 +31,8 @@ func GetFlagURL(country string) string {
 	return "/static/assets/flags/" + iso + ".svg"
 }
 
-func fetchLiveF1() F1Race {
-	resp, err := network.FetchSecure("https://api.jolpi.ca/ergast/f1/current/next.json")
+func fetchLiveF1(ctx context.Context) F1Race {
+	resp, err := network.FetchSecureWithContext(ctx, "https://api.jolpi.ca/ergast/f1/current/next.json")
 	if err != nil {
 		return F1Race{GrandPrix: "Sin carreras"}
 	}
@@ -46,7 +47,7 @@ func fetchLiveF1() F1Race {
 	weatherMap := make(map[string]string)
 	if race.Circuit.Location.Lat != "" && race.Circuit.Location.Long != "" {
 		wUrl := fmt.Sprintf("https://api.open-meteo.com/v1/forecast?latitude=%s&longitude=%s&daily=weather_code&timezone=auto&past_days=2", race.Circuit.Location.Lat, race.Circuit.Location.Long)
-		if wResp, wErr := network.FetchSecure(wUrl); wErr == nil {
+		if wResp, wErr := network.FetchSecureWithContext(ctx, wUrl); wErr == nil {
 			defer wResp.Body.Close()
 			var wData struct {
 				Daily struct {
@@ -55,7 +56,11 @@ func fetchLiveF1() F1Race {
 				} `json:"daily"`
 			}
 			if json.NewDecoder(wResp.Body).Decode(&wData) == nil {
+				// S-60. Fix Index out-of-range: validar largo de arrays
 				for i, t := range wData.Daily.Time {
+					if i >= len(wData.Daily.WeatherCode) {
+						break
+					}
 					code := wData.Daily.WeatherCode[i]
 					icon := "sun"
 					if code > 0 && code <= 3 {
@@ -104,8 +109,9 @@ func fetchLiveF1() F1Race {
 	addSess("FP1", race.FirstPractice.Date, race.FirstPractice.Time)
 	addSess("FP2", race.SecondPractice.Date, race.SecondPractice.Time)
 	addSess("FP3", race.ThirdPractice.Date, race.ThirdPractice.Time)
-	addSess("Qualy", race.Qualifying.Date, race.Qualifying.Time)
+	addSess("SQualy", race.SprintQualifying.Date, race.SprintQualifying.Time)
 	addSess("Sprint", race.Sprint.Date, race.Sprint.Time)
+	addSess("Qualy", race.Qualifying.Date, race.Qualifying.Time)
 	addSess("Race", race.Date, race.Time)
 
 	return F1Race{

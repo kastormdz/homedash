@@ -26,8 +26,8 @@ func init() {
 func StartUpdateLoop() {
 	go func() {
 		for {
-			_, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
-			ForceUpdate()
+			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+			ForceUpdate(ctx)
 			cancel()
 
 			// Determinar próximo intervalo
@@ -53,9 +53,9 @@ func StartUpdateLoop() {
 	}()
 }
 
-func ForceUpdate() error {
+func ForceUpdate(ctx context.Context) error {
 	start := time.Now()
-	newData := fetchFreshSportsData()
+	newData := fetchFreshSportsData(ctx)
 
 	// Si no obtuvimos nada de nada (ni F1, ni UFC, ni partidos), podrías ser un error de red
 	if len(newData.AllMatches) == 0 && (newData.F1.GrandPrix == "Sin carreras" || newData.F1.GrandPrix == "Cargando...") && (newData.UFC.EventName == "Sin eventos" || newData.UFC.EventName == "Cargando...") {
@@ -75,8 +75,9 @@ func GetSportsData() SportsData {
 	return cachedData
 }
 
-func fetchFreshSportsData() SportsData {
+func fetchFreshSportsData(ctx context.Context) SportsData {
 	var wg sync.WaitGroup
+	var fetchMu sync.Mutex
 	wg.Add(3)
 
 	var f1Data F1Race
@@ -85,17 +86,26 @@ func fetchFreshSportsData() SportsData {
 
 	go func() {
 		defer wg.Done()
-		f1Data = fetchLiveF1()
+		data := fetchLiveF1(ctx)
+		fetchMu.Lock()
+		f1Data = data
+		fetchMu.Unlock()
 	}()
 
 	go func() {
 		defer wg.Done()
-		ufcData = fetchLiveUFC()
+		data := fetchLiveUFC(ctx)
+		fetchMu.Lock()
+		ufcData = data
+		fetchMu.Unlock()
 	}()
 
 	go func() {
 		defer wg.Done()
-		promiedosList = fetchPromiedosChannels()
+		data := fetchPromiedosChannels(ctx)
+		fetchMu.Lock()
+		promiedosList = data
+		fetchMu.Unlock()
 	}()
 
 	wg.Wait()
@@ -127,7 +137,7 @@ func fetchFreshSportsData() SportsData {
 	for _, u := range urls {
 		go func(url string) {
 			defer wg.Done()
-			if m := fetchLiveMatches(url); m != nil {
+			if m := fetchLiveMatches(ctx, url); m != nil {
 				for i := range m {
 					if strings.Contains(m[i].Date, todayStr) {
 						pTeam := common.NormalizeName(m[i].Team)

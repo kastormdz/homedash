@@ -49,13 +49,19 @@ Dashboard minimalista optimizado para carga instantánea, personalización indiv
     - **Modularización:** División del paquete `internal/sports` en archivos específicos (football, f1, ufc, promiedos) para mejorar la mantenibilidad.
     - **Estabilidad:** Adición de contexts con timeout en todos los bucles de actualización y uso de `LimitReader` para evitar OOM al procesar HTML externo.
     - **UI:** Creación de un layout base (`layout.html`) para evitar duplicación de boilerplate en plantillas y mejora de iconos de fase lunar.
-31. **Actualización de Finanzas y UFC:**
-    - Se reemplazaron los CEDEARs de SPY/QQQ por los índices globales S&P 500 (^GSPC) y NASDAQ (^IXIC) en dólares.
+    31. **Actualización de Finanzas, UFC y F1 Mobile:**
+    - **UFC:** Se ajustó la lógica de selección de eventos para omitir eventos finalizados y priorizar el próximo evento programado (o en vivo).
+    - **F1 UI:** Restauración de fechas en sesiones y fecha del Gran Premio tras optimización de espacio.
+    - **Sismos:** Restauración del contador de sismos a 5 eventos para mantener la visibilidad histórica.
+    - **F1 Mobile:** Se eliminó la clase `hidden` en el trazado del circuito (PosterURL) para dispositivos móviles.
+    - **F1 Sprint:** Soporte para `SprintQualifying` (SQualy).
+    - **Finanzas:** Seguimiento del **Riesgo País** (ArgentinaDatos) con porcentaje de cambio y colores dinámicos.
+    - **UI:** Optimización de espacio vertical preservando legibilidad y restaurando indicadores de viento/lluvia.    - **UI:** Se reemplazaron los CEDEARs de SPY/QQQ por los índices globales S&P 500 (^GSPC) y NASDAQ (^IXIC) en dólares.
     - Se habilitó la selección de texto en la tarjeta de UFC para facilitar el copiado del nombre del evento.
     - Se centró la cuadrícula de sesiones de F1 en modo escritorio para un mejor balance visual cuando hay menos de 6 eventos.
     - Se añadió el prefijo "U$S " a los activos financieros en dólares (BTC, ETH, SP 500, NASDAQ) para distinguirlos de los precios en pesos.
     - Se añadieron las fotos (headshots) de los peleadores del evento principal de UFC, obtenidas dinámicamente de la API de ESPN.
-## Arquitectura Dinámica y Fuentes de Datos
+    ## Arquitectura Dinámica y Fuentes de Datos
 32. **Mejoras Visuales y Favicon:**
     - Se forzó el diseño de una sola fila para las sesiones de F1 en escritorio (`flex-nowrap`) y se centraron los elementos.
     - Se implementó la visualización de la bandera del país de la carrera en F1, con mapeo automático de países a iconos locales y se restauró el trazado del circuito.
@@ -66,6 +72,15 @@ Dashboard minimalista optimizado para carga instantánea, personalización indiv
     - Se implementó middleware manual de compresión `gzip` y middleware de `Cache-Control` (24h) para recursos estáticos (`/static/`), mejorando el rendimiento.
     - Se limpió el diseño del paquete `weather` moviendo `WeatherViewModel` a `cmd/main.go` para eliminar dependencias circulares y mejorar la arquitectura.
     - Se añadieron etiquetas OCI (Labels) al `Dockerfile` y se actualizaron las exclusiones de `.dockerignore` para optimizar el tamaño y metadatos de la imagen.
+34. **Optimización Extrema de Docker (Performance & Security):**
+    - **Arquitectura:** Migración de imagen base `alpine` a `gcr.io/distroless/static-debian12:nonroot` (Hardening extremo).
+    - **Build Time:** Reducción del tiempo de construcción consolidando assets y binario en una única capa de `COPY` con permisos (`--chown`) nativos.
+    - **Caché:** Reordenamiento estratégico: assets se copian *después* del `go build` para proteger la caché de compilación de cambios en HTML/estáticos.
+    - **Robustez:** Inyección manual de `tzdata` desde el builder para garantizar precisión horaria en entornos distroless.
+35. **Remediación Masiva de Bugs (Fase 2):**
+    - **Estabilidad Backend:** Fix de *Nil Pointer Panic* en `weather.go` forzando la inicialización del puntero antes del Decode. Implementación de *Double-Check Locking* en caché de ciudades. Propagación de `context.Context` hacia APIs de clima y sismos. Sincronización con `sync.Mutex` en `fetchFreshSportsData` eliminando el data race.
+    - **Seguridad y Control de Errores:** Validación de Content-Type en `handleCrestProxy` (MIME sniffing prevention) y extensión `.svg` en minúsculas. Manejo explícito de `io.ReadAll` y errores de plantilla. Purgado selectivo del `rateLimitMap` (evita que un ataque resetee a todos los usuarios válidos).
+    - **Frontend (A11y, Performance, CSP):** Atributos `alt` descriptivos y `loading="lazy"` en todas las imágenes/escudos. Soporte de semántica `aria` y vinculación de `for/id` en el modal. Eliminados eventos inline (`onclick`, `onerror`) manejados vía scripts. Soporte de `prefers-reduced-motion` y fallback global de `<noscript>`. Fuentes de Google pasadas a `<link>` (no-blocking).
 - **Fútbol:** `Promiedos` (vía JSON scraping) + `ESPN` (paralelizado).
 - **UFC:** API oficial de `ESPN` filtrada por fechas.
 - **F1:** API de `Ergast` + Pronóstico local por sesión.
@@ -73,8 +88,10 @@ Dashboard minimalista optimizado para carga instantánea, personalización indiv
 - **Sismos:** USGS + INPRES (Combinados y deduplicados en paralelo).
 
 ## Convenciones de Desarrollo (OBLIGATORIO)
+- **Idioma:** Todos los mensajes de commit, comentarios relevantes y documentación interna deben redactarse en **español de Argentina** (usando voseo y terminología técnica local).
+- **Integridad de Datos:** **PROHIBIDO** eliminar o remover cualquier dato o indicador visual existente sin el consentimiento expreso del usuario. Cualquier optimización de espacio debe priorizar la reubicación o el redimensionamiento sobre la eliminación.
 - **Documentación de Contexto:** Al final de cada sesión, actualizar `GEMINI.md`.
-- **Validación:** Ejecutar `go build ./...` antes de cualquier sincronización.
+- **Validación:** Ejecutar `go build ./...` y verificar rigurosamente la sintaxis de todos los archivos modificados (Go, HTML Templates, Shell scripts, etc.) antes de cualquier sincronización.
 - **Sincronización:** `rsync -avz --exclude '.git' --exclude 'homedash' -e "ssh -p 4370" . kastor@cronix.com.ar:/home/samba/docker/homedash`.
 - **Red:** Usar `network.FetchSecure` para cualquier petición externa.
 - **Seguridad:** Nunca confiar en entradas del usuario (`r.FormValue`) sin validar rangos o tipos.
