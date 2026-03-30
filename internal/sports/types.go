@@ -60,54 +60,56 @@ type UserSportsData struct {
 	UFC   UFCMatch
 }
 
+type ESPNEvent struct {
+	Name      string `json:"name"`
+	ShortName string `json:"shortName"`
+	Date      string `json:"date"`
+	Status    struct {
+		Type struct {
+			State string `json:"state"`
+		} `json:"type"`
+		DisplayClock string `json:"displayClock"`
+	} `json:"status"`
+	Competitions []struct {
+		Venue struct {
+			FullName string `json:"fullName"`
+		} `json:"venue"`
+		Notes []struct {
+			Text string `json:"text"`
+		} `json:"notes"`
+		Status struct {
+			Type struct {
+				State string `json:"state"`
+			} `json:"type"`
+		} `json:"status"`
+		Competitors []struct {
+			ID       string   `json:"id"`
+			HomeAway string   `json:"homeAway"`
+			Score    string   `json:"score"`
+			Team     struct {
+				DisplayName string `json:"displayName"`
+			} `json:"team"`
+			Athlete struct {
+				DisplayName string `json:"displayName"`
+				Headshot    string `json:"headshot"`
+			} `json:"athlete"`
+		} `json:"competitors"`
+		Broadcasts []struct {
+			Names []string `json:"names"`
+		} `json:"broadcasts"`
+		GeoBroadcasts []struct {
+			Media struct {
+				ShortName string `json:"shortName"`
+			} `json:"media"`
+		} `json:"geoBroadcasts"`
+	} `json:"competitions"`
+}
+
 type ESPNScoreboard struct {
 	Leagues []struct {
 		Name string `json:"name"`
 	} `json:"leagues"`
-	Events []struct {
-		Name      string `json:"name"`
-		ShortName string `json:"shortName"`
-		Date      string `json:"date"`
-		Status    struct {
-			Type struct {
-				State string `json:"state"`
-			} `json:"type"`
-			DisplayClock string `json:"displayClock"`
-		} `json:"status"`
-		Competitions []struct {
-			Venue struct {
-				FullName string `json:"fullName"`
-			} `json:"venue"`
-			Notes []struct {
-				Text string `json:"text"`
-			} `json:"notes"`
-			Status struct {
-				Type struct {
-					State string `json:"state"`
-				} `json:"type"`
-			} `json:"status"`
-			Competitors []struct {
-				ID       string   `json:"id"`
-				HomeAway string   `json:"homeAway"`
-				Score    string   `json:"score"`
-				Team     struct {
-					DisplayName string `json:"displayName"`
-				} `json:"team"`
-				Athlete struct {
-					DisplayName string `json:"displayName"`
-					Headshot    string `json:"headshot"`
-				} `json:"athlete"`
-			} `json:"competitors"`
-			Broadcasts []struct {
-				Names []string `json:"names"`
-			} `json:"broadcasts"`
-			GeoBroadcasts []struct {
-				Media struct {
-					ShortName string `json:"shortName"`
-				} `json:"media"`
-			} `json:"geoBroadcasts"`
-		} `json:"competitions"`
-	} `json:"events"`
+	Events []ESPNEvent `json:"events"`
 }
 
 type ergastResponse struct {
@@ -125,11 +127,12 @@ type ergastResponse struct {
 						Country string `json:"country"`
 					} `json:"location"`
 				} `json:"circuit"`
-				FirstPractice  ergastSession `json:"FirstPractice"`
-				SecondPractice ergastSession `json:"SecondPractice"`
-				ThirdPractice  ergastSession `json:"ThirdPractice"`
-				Qualifying     ergastSession `json:"Qualifying"`
-				Sprint         ergastSession `json:"Sprint"`
+				FirstPractice    ergastSession `json:"FirstPractice"`
+				SecondPractice   ergastSession `json:"SecondPractice"`
+				ThirdPractice    ergastSession `json:"ThirdPractice"`
+				Qualifying       ergastSession `json:"Qualifying"`
+				Sprint           ergastSession `json:"Sprint"`
+				SprintQualifying ergastSession `json:"SprintQualifying"`
 			} `json:"Races"`
 		} `json:"RaceTable"`
 	} `json:"MRData"`

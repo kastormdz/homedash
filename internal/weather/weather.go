@@ -1,6 +1,7 @@
 package weather
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"homedash/internal/common"
@@ -21,10 +22,11 @@ var (
 const maxCacheEntries = 100
 
 type cityResult struct {
-	Name     string
-	Lat      string
-	Lon      string
-	Province string
+	Name      string
+	Lat       string
+	Lon       string
+	Province  string
+	Timestamp time.Time
 }
 
 type cachedWeatherItem struct {
@@ -74,7 +76,7 @@ type ForecastItem struct {
 	Min  float64
 }
 
-func GetWeather(lat, lon string) (*WeatherResponse, error) {
+func GetWeather(ctx context.Context, lat, lon string) (*WeatherResponse, error) {
 	if lat == "" {
 		lat = "-32.89"
 	}
@@ -92,7 +94,7 @@ func GetWeather(lat, lon string) (*WeatherResponse, error) {
 	}
 
 	// 4. Fetch FUERA del write lock para no bloquear otros requests
-	data, err := GetWeatherWithClient(lat, lon)
+	data, err := GetWeatherWithClient(ctx, lat, lon)
 	if err != nil {
 		return nil, err
 	}
@@ -113,32 +115,31 @@ func GetWeather(lat, lon string) (*WeatherResponse, error) {
 	return data, nil
 }
 
-func GetWeatherWithClient(lat, lon string) (*WeatherResponse, error) {
+func GetWeatherWithClient(ctx context.Context, lat, lon string) (*WeatherResponse, error) {
 	var wg sync.WaitGroup
 	wg.Add(2)
 
-	var data *WeatherResponse
+	data := &WeatherResponse{}
 	var errW error
 	var aqi int
 	var aqiDesc string
 
 	go func() {
 		defer wg.Done()
-		fullURL := fmt.Sprintf("%s?latitude=%s&longitude=%s&current=temperature_2m,relative_humidity_2m,apparent_temperature,wind_speed_10m,weather_code,uv_index&daily=weather_code,temperature_2m_max,temperature_2m_min,uv_index_max,precipitation_probability_max,sunrise,sunset&timezone=auto", BaseURL, lat, lon)
-		resp, err := network.FetchSecure(fullURL)
+		fullURL := fmt.Sprintf("%s?latitude=%s&longitude=%s&current=temperature_2m,relative_humidity_2m,apparent_temperature,wind_speed_10m,weather_code,uv_index&daily=weather_code,temperature_2m_max,temperature_2m_min,uv_index_max,precipitation_probability_max,sunrise,sunset&timezone=auto&forecast_days=7", BaseURL, url.QueryEscape(lat), url.QueryEscape(lon))
+		resp, err := network.FetchSecureWithContext(ctx, fullURL)
 		if err != nil {
 			errW = err
 			return
 		}
 		defer resp.Body.Close()
-		data = &WeatherResponse{}
 		errW = json.NewDecoder(resp.Body).Decode(data)
 	}()
 
 	go func() {
 		defer wg.Done()
-		aqiURL := fmt.Sprintf("%s?latitude=%s&longitude=%s&current=us_aqi", AQIURL, lat, lon)
-		respA, err := network.FetchSecure(aqiURL)
+		aqiURL := fmt.Sprintf("%s?latitude=%s&longitude=%s&current=us_aqi", AQIURL, url.QueryEscape(lat), url.QueryEscape(lon))
+		respA, err := network.FetchSecureWithContext(ctx, aqiURL)
 		if err != nil {
 			return
 		}
@@ -156,7 +157,10 @@ func GetWeatherWithClient(lat, lon string) (*WeatherResponse, error) {
 
 	wg.Wait()
 
-	if errW != nil {
+	if errW != nil || data == nil {
+		if errW == nil {
+			errW = fmt.Errorf("no data returned from weather API")
+		}
 		return nil, fmt.Errorf("error al pedir el clima: %w", errW)
 	}
 
@@ -182,10 +186,16 @@ func evictOldestWeather() {
 }
 
 func evictOldestCity() {
-	// cityCache no tiene timestamp, eliminar la primera entrada encontrada
-	for k := range cityCache {
-		delete(cityCache, k)
-		return
+	var oldestKey string
+	var oldestTime time.Time
+	for k, v := range cityCache {
+		if oldestKey == "" || v.Timestamp.Before(oldestTime) {
+			oldestKey = k
+			oldestTime = v.Timestamp
+		}
+	}
+	if oldestKey != "" {
+		delete(cityCache, oldestKey)
 	}
 }
 
@@ -287,18 +297,34 @@ func SearchCity(cityName string) (name, lat, lon, province string, err error) {
 	// 4. Cache fuera del lock de lectura inicial
 	weatherMutex.Lock()
 	defer weatherMutex.Unlock()
+	// Double-check después de adquirir el write lock
+	if cachedRes, ok := cityCache[cityName]; ok {
+		return cachedRes.Name, cachedRes.Lat, cachedRes.Lon, cachedRes.Province, nil
+	}
 	// P-B. Eviction LRU para city cache
 	if len(cityCache) >= maxCacheEntries {
 		evictOldestCity()
 	}
-	cityCache[cityName] = cityResult{name, lat, lon, province}
+	cityCache[cityName] = cityResult{name, lat, lon, province, time.Now()}
 
 	return name, lat, lon, province, nil
 }
 
 func (w *WeatherResponse) GetForecastList() []ForecastItem {
 	var list []ForecastItem
-	for i := 0; i < len(w.Daily.Time); i++ {
+	// S5. Fix Slice bounds panic: usar el largo mínimo disponible
+	count := len(w.Daily.Time)
+	if len(w.Daily.WeatherCode) < count {
+		count = len(w.Daily.WeatherCode)
+	}
+	if len(w.Daily.TemperatureMax) < count {
+		count = len(w.Daily.TemperatureMax)
+	}
+	if len(w.Daily.TemperatureMin) < count {
+		count = len(w.Daily.TemperatureMin)
+	}
+
+	for i := 0; i < count; i++ {
 		date, _ := time.Parse("2006-01-02", w.Daily.Time[i])
 		list = append(list, ForecastItem{
 			Date: common.DaysAbbr[date.Weekday()],

@@ -1,45 +1,37 @@
 <!-- 2. Clima Actual -->
-<div class="bg-base-200 backdrop-blur-xl rounded-[2.5rem] p-5 md:p-6 shadow-2xl border border-base-300 flex flex-col justify-between h-full min-h-[240px] md:min-h-[280px] lg:col-span-3 overflow-hidden text-base-content">
+<div class="bg-base-200 backdrop-blur-xl rounded-[2.5rem] p-5 md:p-6 shadow-2xl border border-base-300 flex flex-col justify-between h-full min-h-[220px] md:min-h-[260px] lg:col-span-3 overflow-hidden text-base-content">
     <div class="flex justify-between items-start">
         <div>
-            <h2 class="text-primary text-[10px] font-black uppercase tracking-[0.3em] mb-1 flex items-center">
-                <i data-lucide="map-pin" class="w-3 h-3 mr-2"></i> {{.City}}
+            <h2 class="text-primary text-[11px] font-black uppercase tracking-[0.3em] mb-1 flex items-center">
+                <i data-lucide="map-pin" class="w-3.5 h-3.5 mr-2"></i> {{.City}}
             </h2>
             <div class="fluid-temp font-extrabold tracking-tighter text-base-content leading-none">{{.Current.Temperature}}<span class="text-primary">°</span></div>
-            <div class="flex items-center space-x-3 mt-2 text-base-content/60">
-                <div class="flex items-center text-[10px] font-bold uppercase tracking-tighter">
-                    <i data-lucide="sunrise" class="w-3 h-3 mr-1 text-amber-500/70"></i> Amanece: {{.Sunrise}}
-                </div>
-                <div class="flex items-center text-[10px] font-bold uppercase tracking-tighter">
-                    <i data-lucide="sunset" class="w-3 h-3 mr-1 text-orange-500/70"></i> Anochece: {{.Sunset}}
-                </div>
-            </div>
         </div>
         <div class="shrink-0">
             {{$code := .Current.WeatherCode}}
             {{$icon := "01d"}}
             {{if eq $code 0}}{{$icon = "01d"}}{{else if le $code 3}}{{$icon = "02d"}}{{else if le $code 48}}{{$icon = "50d"}}{{else if le $code 67}}{{$icon = "10d"}}{{else if le $code 77}}{{$icon = "13d"}}{{else}}{{$icon = "11d"}}{{end}}
             <img src="https://openweathermap.org/img/wn/{{$icon}}@4x.png" 
-                 class="w-20 h-20 md:w-24 md:h-24 drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] filter brightness-110">
+                 class="w-20 h-20 md:w-24 md:h-24 drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] filter brightness-110" alt="Clima actual">
         </div>
     </div>
     
-    <div class="space-y-2">
+    <div class="space-y-2 mt-1">
         <div class="bg-amber-500/10 p-2 rounded-xl border border-amber-500/20 flex items-center">
-            <i data-lucide="{{if .Alert.Icon}}{{.Alert.Icon}}{{else}}triangle-alert{{end}}" class="w-3.5 h-3.5 mr-2 text-amber-400 shrink-0"></i>
-            <div class="text-[9px] md:text-[10px] font-bold text-base-content leading-tight uppercase tracking-wider">{{if .Alert.Text}}{{.Alert.Text}}{{else}}Sin alertas actuales{{end}}</div>
+            <i data-lucide="{{if .Alert.Icon}}{{.Alert.Icon}}{{else}}triangle-alert{{end}}" class="w-4 h-4 mr-2 text-amber-400 shrink-0"></i>
+            <div class="text-[10px] font-bold text-base-content leading-tight uppercase tracking-wider">{{if .Alert.Text}}{{.Alert.Text}}{{else}}Sin alertas actuales{{end}}</div>
         </div>
 
         {{if .Earthquakes}}
         <div class="bg-error/10 p-2 rounded-xl border border-error/20 flex flex-col space-y-1">
-            <div class="flex items-center space-x-1.5 mb-1 px-1">
+            <div class="flex items-center space-x-1.5 px-1">
                 <i data-lucide="activity" class="w-3 h-3 text-error"></i>
                 <span class="text-[10px] font-black text-error uppercase tracking-tighter">Últimos Sismos</span>
             </div>
-            {{range $i, $e := .Earthquakes}}{{if lt $i 4}}
+            {{range $i, $e := .Earthquakes}}{{if lt $i 5}}
             <div class="flex items-center justify-between border-b border-error/5 last:border-0 pb-0.5 last:pb-0 {{if and (eq $i 0) .IsNew}}animate-pulse bg-red-500/5 rounded px-1{{end}}">
                 <div class="flex items-center min-w-0">
-                    <i data-lucide="activity" class="w-3 h-3 mr-1.5 {{if and (eq $i 0) .IsNew}}text-red-400{{else}}text-error{{end}} shrink-0"></i>
+                    <i data-lucide="activity" class="w-3 h-3 mr-1 {{if and (eq $i 0) .IsNew}}text-red-400{{else}}text-error{{end}} shrink-0"></i>
                     <div class="text-[9px] font-black text-base-content uppercase truncate">{{.Location}} <span class="text-base-content/60 ml-1 font-bold">[{{.Date}} {{.Time}}]</span></div>
                 </div>
                 <div class="text-[10px] font-black text-error ml-2">{{.Magnitude}}</div>
@@ -51,7 +43,7 @@
 </div>
 
 <!-- 3. Tarjeta Deportes (Fútbol + F1) -->
-<div class="bg-base-200 backdrop-blur-xl rounded-[2.5rem] p-4 md:p-5 shadow-2xl border border-base-300 flex flex-col justify-start md:justify-between md:h-full min-h-[340px] md:min-h-[280px] lg:col-span-4 overflow-visible md:overflow-hidden group {{if and (not .ShowFootball) (not .ShowF1)}}hidden{{end}} text-base-content">
+<div class="bg-base-200 backdrop-blur-xl rounded-[2.5rem] p-5 shadow-2xl border border-base-300 flex flex-col justify-start md:justify-between md:h-full min-h-[300px] md:min-h-[260px] lg:col-span-4 overflow-visible md:overflow-hidden group {{if and (not .ShowFootball) (not .ShowF1)}}hidden{{end}} text-base-content">
     
     <!-- SOCCER BLOCK -->
     {{if .ShowFootball}}
@@ -62,25 +54,25 @@
                     <i data-lucide="trophy" class="w-4 h-4 mr-2"></i> Fútbol
                 </div>
                 {{if eq .NextMatch.Match.Status "LIVE"}}
-                <div class="flex items-center bg-error/20 text-error text-[8px] font-black px-2 py-0.5 rounded-full border border-error/30 animate-pulse">
+                <div class="flex items-center bg-error/20 text-error text-[9px] font-black px-2 py-0.5 rounded-full border border-error/30 animate-pulse">
                     <span class="w-1.5 h-1.5 bg-red-500 rounded-full mr-1.5 shadow-[0_0_5px_rgba(239,68,68,0.8)]"></span> EN VIVO {{.NextMatch.Match.Clock}}
                 </div>
                 {{end}}
             </div>
-            <div class="bg-indigo-500/10 text-primary text-[8px] font-black px-2 py-0.5 rounded-full border border-indigo-500/20 uppercase italic max-w-[180px] truncate">
+            <div class="bg-indigo-500/10 text-primary text-[9px] font-black px-2 py-0.5 rounded-full border border-indigo-500/20 uppercase italic max-w-[180px] truncate">
                 {{.NextMatch.Match.Tournament}}
             </div>
         </div>
         
         <div class="flex flex-col flex-1 justify-center min-w-0">
             <div class="flex items-center justify-between mb-2">
-                <div class="text-sm md:text-lg lg:text-xl font-black text-base-content uppercase italic tracking-tighter leading-none mb-2 pr-4 truncate">
-                    {{.NextMatch.Match.Team}} <span class="text-primary text-[10px]">vs</span> {{.NextMatch.Match.Opponent}}
+                <div class="text-base md:text-lg lg:text-xl font-black text-base-content uppercase italic tracking-tighter leading-none mb-1 pr-4 truncate">
+                    {{.NextMatch.Match.Team}} <span class="text-primary text-xs">vs</span> {{.NextMatch.Match.Opponent}}
                 </div>
 
                 <!-- MARCADOR EN VIVO -->
                 {{if or (eq .NextMatch.Match.Status "LIVE") (eq .NextMatch.Match.Status "FINAL")}}
-                <div class="flex items-center space-x-2 bg-white/10 px-3 py-1.5 rounded-2xl border border-white/10 shadow-2xl shrink-0">
+                <div class="flex items-center space-x-2 bg-white/10 px-3 py-1.5 rounded-2xl border border-white/10 shrink-0 shadow-xl">
                     <span class="text-xl md:text-2xl font-black text-base-content tabular-nums leading-none">{{.NextMatch.Match.HomeScore}}</span>
                     <span class="text-primary font-black text-sm">-</span>
                     <span class="text-xl md:text-2xl font-black text-base-content tabular-nums leading-none">{{.NextMatch.Match.AwayScore}}</span>
@@ -91,21 +83,17 @@
             <div class="flex items-end justify-between">
                 <div class="flex flex-col space-y-1.5 min-w-0">
                     <div class="flex items-center space-x-3 truncate">
-                        <span class="text-sm md:text-base lg:text-lg text-primary font-black tracking-tight whitespace-nowrap">{{.NextMatch.Match.Date}} • {{.NextMatch.Match.Time}}</span>
+                        <span class="text-sm md:text-base text-primary font-black tracking-tight whitespace-nowrap">{{.NextMatch.Match.Date}} • {{.NextMatch.Match.Time}}</span>
                         {{if .NextMatch.Match.Channel}}
                         <span class="text-[9px] lg:text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded border border-indigo-500/30 font-black uppercase tracking-widest shadow-sm truncate">
-                            <i data-lucide="tv" class="w-2.5 h-2.5 inline mr-1"></i>{{.NextMatch.Match.Channel}}
+                            {{.NextMatch.Match.Channel}}
                         </span>
                         {{end}}
                     </div>
-                    <div class="flex items-center text-base-content/60 truncate">
-                        <i data-lucide="map-pin" class="w-3 h-3 mr-1.5 shrink-0"></i>
-                        <span class="text-[10px] font-bold uppercase leading-tight truncate">{{.NextMatch.Match.Stadium}}</span>
-                    </div>
                 </div>
                 <div class="flex items-center space-x-2 translate-y-1 shrink-0 ml-2">
-                    <img src="{{.NextMatch.Match.TeamCrest}}" class="w-10 h-10 md:w-12 md:h-12 object-contain filter drop-shadow-lg" onerror="this.src='/static/assets/crests/afa.png'">
-                    <img src="{{.NextMatch.Match.OpponentCrest}}" class="w-10 h-10 md:w-12 md:h-12 object-contain filter drop-shadow-lg" onerror="this.src='/static/assets/crests/afa.png'">
+                    <img src="{{.NextMatch.Match.TeamCrest}}" class="w-10 h-10 md:w-12 md:h-12 object-contain filter drop-shadow-lg team-crest" alt="Escudo Local" loading="lazy">
+                    <img src="{{.NextMatch.Match.OpponentCrest}}" class="w-10 h-10 md:w-12 md:h-12 object-contain filter drop-shadow-lg team-crest" alt="Escudo Visitante" loading="lazy">
                 </div>
             </div>
         </div>
@@ -116,22 +104,24 @@
     {{if .ShowF1}}
     <div class="bg-error/5 rounded-3xl p-3 md:p-4 border border-red-600/10 flex flex-col justify-start flex-1 overflow-visible">
         <div class="flex items-center justify-between mb-2 min-w-0">
-            <img src="/static/assets/logos/f1.svg" class="h-6 md:h-12 w-auto brightness-150 filter drop-shadow-[0_0_10px_rgba(225,6,0,0.6)] shrink-0">
-            <div class="flex items-center space-x-2 md:space-x-3 min-w-0">
-                <img src="{{.NextMatch.F1.FlagURL}}" class="h-4 md:h-6 w-auto rounded-sm shadow-sm" onerror="this.style.display='none'">
-                <img src="{{.NextMatch.F1.PosterURL}}" class="hidden md:block h-10 md:h-14 object-contain opacity-90 filter brightness-125 drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]" onerror="this.style.display='none'">
-                <div class="text-base-content text-[9px] md:text-base font-black uppercase tracking-tight italic leading-tight text-right truncate pr-1">{{.NextMatch.F1.GrandPrix}}</div>
+            <img src="/static/assets/logos/f1.svg" class="h-8 md:h-10 w-auto brightness-150 filter drop-shadow-[0_0_10px_rgba(225,6,0,0.6)] shrink-0" alt="F1 Logo">
+            <div class="flex items-center space-x-2 min-w-0 overflow-hidden">
+                <img src="{{.NextMatch.F1.FlagURL}}" class="h-5 w-auto rounded-sm shadow-sm f1-flag" alt="Bandera país" loading="lazy">
+                <img src="{{.NextMatch.F1.PosterURL}}" class="h-10 w-auto object-contain opacity-90 filter brightness-125 drop-shadow-[0_0_8px_rgba(255,255,255,0.2)] f1-poster" alt="Circuito GP" loading="lazy">
+                <div class="flex flex-col items-end min-w-0 pr-1">
+                    <div class="text-base-content text-[10px] md:text-sm font-black uppercase tracking-tight italic leading-tight truncate">{{.NextMatch.F1.GrandPrix}}</div>
+                </div>
             </div>
         </div>
         <div class="grid grid-cols-3 md:flex md:flex-nowrap md:justify-center gap-1.5">
             {{range .NextMatch.F1.Sessions}}
-            <div class="bg-base-300/40 rounded-xl p-2 md:p-1.5 border border-white/5 flex flex-col items-center justify-center hover:bg-error/10 transition-all relative {{if .Passed}}grayscale opacity-40{{end}} md:min-w-[100px] md:flex-1 md:max-w-[150px]">
+            <div class="bg-base-300/40 rounded-xl p-1.5 md:p-1 flex flex-col items-center justify-center hover:bg-error/10 transition-all relative {{if .Passed}}grayscale opacity-40{{end}} md:min-w-[80px] md:flex-1 md:max-w-[120px]">
                 <div class="flex items-center space-x-1 mb-0.5">
-                    <div class="text-[9px] md:text-[10px] lg:text-[11px] font-black text-error uppercase">{{.Name}}</div>
-                    {{if .WeatherIcon}}<i data-lucide="{{.WeatherIcon}}" class="w-3.5 h-3.5 md:w-4 md:h-4 text-base-content/70"></i>{{end}}
+                    <div class="text-[9px] md:text-[10px] font-black text-error uppercase">{{.Name}}</div>
+                    {{if .WeatherIcon}}<i data-lucide="{{.WeatherIcon}}" class="w-3 h-3 md:w-3.5 md:h-3.5 text-base-content/70"></i>{{end}}
                 </div>
-                <div class="text-[11px] md:text-xs lg:text-sm font-black text-base-content leading-none">{{.Time}}</div>
-                <div class="text-[9px] md:text-[9px] lg:text-[10px] text-base-content/60 font-bold uppercase mt-1">{{.Date}}</div>
+                <div class="text-xs md:text-sm font-black text-base-content leading-none">{{.Time}}</div>
+                <div class="text-[8px] lg:text-[9px] text-base-content/60 font-bold uppercase mt-0.5">{{.Date}}</div>
             </div>
             {{end}}
         </div>
@@ -143,19 +133,23 @@
 <div class="md:col-span-full grid grid-cols-1 lg:grid-cols-12 gap-2 mt-2">
     
     <!-- 1. Pronóstico Semanal + Stats (Izquierda - 5 cols) -->
-    <div class="{{if and (not .ShowUFC) (not .ShowFinance)}}lg:col-span-12{{else if or (not .ShowUFC) (not .ShowFinance)}}lg:col-span-6{{else}}lg:col-span-5{{end}} bg-base-200 backdrop-blur-xl rounded-[2.5rem] p-6 shadow-2xl border border-base-300 flex flex-col min-h-[240px] text-base-content">
-        <h3 class="text-base-content/60 text-[10px] font-black uppercase tracking-[0.3em] flex items-center mb-4">
+    <div class="{{if and (not .ShowUFC) (not .ShowFinance)}}lg:col-span-12{{else if or (not .ShowUFC) (not .ShowFinance)}}lg:col-span-6{{else}}lg:col-span-5{{end}} bg-base-200 backdrop-blur-xl rounded-[2.5rem] p-5 shadow-2xl border border-base-300 flex flex-col min-h-[220px] text-base-content">
+        <h3 class="text-base-content/60 text-[10px] font-black uppercase tracking-[0.3em] flex items-center mb-3">
             <i data-lucide="calendar-days" class="w-4 h-4 mr-2"></i> Pronóstico
+            <span class="ml-4 opacity-70 normal-case tracking-normal font-bold flex items-center">
+                <i data-lucide="sunrise" class="w-3.5 h-3.5 mr-1 text-amber-500/70"></i> Amanece: <span class="text-base-content mr-3">{{.Sunrise}}</span>
+                <i data-lucide="sunset" class="w-3.5 h-3.5 mr-1 text-orange-500/70"></i> Anochece: <span class="text-base-content">{{.Sunset}}</span>
+            </span>
         </h3>
         
-        <div class="flex-1 grid grid-cols-4 md:grid-cols-7 gap-2 mb-4">
+        <div class="flex-1 grid grid-cols-4 md:grid-cols-7 gap-1.5 mb-4">
             {{range .Forecast}}
-            <div class="bg-base-300/20 rounded-2xl p-2 flex flex-col items-center justify-center border border-white/5 hover:bg-white/5 transition-all">
+            <div class="bg-base-300/20 rounded-2xl p-1.5 flex flex-col items-center justify-center border border-white/5 hover:bg-white/5 transition-all">
                 <span class="text-base-content/60 font-black text-[9px] uppercase mb-1">{{.Date}}</span>
                 {{$code := .Code}}
                 {{$icon := "01d"}}
                 {{if eq $code 0}}{{$icon = "01d"}}{{else if le $code 3}}{{$icon = "02d"}}{{else if le $code 48}}{{$icon = "50d"}}{{else if le $code 67}}{{$icon = "10d"}}{{else if le $code 77}}{{$icon = "13d"}}{{else}}{{$icon = "11d"}}{{end}}
-                <img src="https://openweathermap.org/img/wn/{{$icon}}@2x.png" class="w-10 h-10 filter brightness-110">
+                <img src="https://openweathermap.org/img/wn/{{$icon}}@2x.png" class="w-10 h-10 filter brightness-110" alt="Día pronosticado" loading="lazy">
                 <div class="flex flex-col items-center mt-1">
                     <span class="text-base-content font-black text-sm leading-none">{{.Max}}°</span>
                     <span class="text-slate-600 font-bold text-[9px]">{{.Min}}°</span>
@@ -164,8 +158,8 @@
             {{end}}
         </div>
 
-        <div class="flex flex-wrap items-center justify-center md:justify-start gap-3 md:gap-4 bg-indigo-500/10 px-4 py-2.5 rounded-2xl border border-indigo-500/20 transition-all duration-500 {{if or (gt .RainProb 50) (gt .AQI 100) (gt .Current.UVIndex 8.0)}}bg-indigo-500/20 border-indigo-400/50{{end}} max-w-full">
-            <div class="flex items-center space-x-2 {{if or (gt .Current.Humidity 85) (lt .Current.Humidity 20)}}animate-pulse text-blue-400{{end}}">
+        <div class="flex flex-wrap items-center justify-center md:justify-start gap-3 md:gap-4 bg-indigo-500/10 px-4 py-2 rounded-2xl border border-indigo-500/20 transition-all duration-500 max-w-full">
+            <div class="flex items-center space-x-2">
                 <i data-lucide="droplets" class="w-4 h-4 text-blue-400 shrink-0"></i>
                 <div class="flex flex-col">
                     <span class="text-[8px] text-base-content/60 font-bold uppercase leading-none">Hum.</span>
@@ -189,7 +183,7 @@
                 </div>
             </div>
             <div class="hidden md:block w-px h-6 bg-white/10"></div>
-            <div class="flex items-center space-x-2 {{if gt .Current.UVIndex 8.0}}animate-pulse text-error{{end}}">
+            <div class="flex items-center space-x-2">
                 <i data-lucide="sun" class="w-4 h-4 {{if gt .Current.UVIndex 8.0}}text-error{{else}}text-amber-400{{end}} shrink-0"></i>
                 <div class="flex flex-col">
                     <span class="text-[8px] text-base-content/60 font-bold uppercase leading-none">UV</span>
@@ -197,14 +191,14 @@
                 </div>
             </div>
             <div class="hidden md:block w-px h-6 bg-white/10"></div>
-            <div class="flex items-center space-x-2 {{if gt .AQI 100}}animate-pulse bg-red-500/10 rounded-lg p-1{{end}}" title="{{.AQIDesc}}">
+            <div class="flex items-center space-x-2" title="{{.AQIDesc}}">
                 <i data-lucide="leaf" class="w-4 h-4 {{if le .AQI 50}}text-green-400{{else if le .AQI 100}}text-yellow-400{{else}}text-red-400{{end}} shrink-0"></i>
                 <div class="flex flex-col">
                     <span class="text-[8px] text-base-content/60 font-bold uppercase leading-none">Aire</span>
-                    <span class="text-xs font-black {{if gt .AQI 100}}text-red-400{{else}}text-base-content{{end}}">{{.AQI}}</span>
+                    <span class="text-xs font-black text-base-content">{{.AQI}}</span>
                 </div>
             </div>
-            <div class="hidden md:block w-px h-6 bg-white/10"></div>
+            <div class="hidden md:block w-px h-5 bg-white/10"></div>
             <div class="flex items-center space-x-2">
                 <i data-lucide="{{.MoonIcon}}" class="w-4 h-4 text-indigo-300 shrink-0"></i>
                 <div class="flex flex-col">
@@ -217,25 +211,25 @@
 
     <!-- 2. UFC (Centro - 3 cols) -->
     {{if .ShowUFC}}
-    <div class="{{if not .ShowFinance}}lg:col-span-6{{else}}lg:col-span-3{{end}} bg-base-200 backdrop-blur-xl rounded-[2.5rem] p-4 md:p-5 shadow-2xl border border-base-300 flex flex-col min-h-[240px] overflow-hidden text-base-content">
+    <div class="{{if not .ShowFinance}}lg:col-span-6{{else}}lg:col-span-3{{end}} bg-base-200 backdrop-blur-xl rounded-[2.5rem] p-5 shadow-2xl border border-base-300 flex flex-col min-h-[220px] overflow-hidden text-base-content">
         <div class="flex items-center justify-between mb-3 shrink-0">
-            <img src="/static/assets/logos/ufc.svg" class="h-8 md:h-12 w-auto brightness-150 filter drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]">
+            <img src="/static/assets/logos/ufc.svg" class="h-10 md:h-12 w-auto brightness-150 filter drop-shadow-[0_0_10px_rgba(255,255,255,0.2)]" alt="UFC Logo">
             <div class="text-base-content text-[11px] lg:text-xs font-black uppercase italic">{{.NextMatch.UFC.Date}}</div>
         </div>
 
         <div class="flex items-center space-x-3 mb-2 shrink-0">
             <div class="text-base-content text-[11px] lg:text-xs font-black uppercase italic truncate leading-tight flex-1 select-text">{{.NextMatch.UFC.EventName}}</div>
             {{if .NextMatch.UFC.P1Headshot}}
-            <div class="flex -space-x-3 hover:space-x-1 transition-all duration-500">
-                <img src="{{.NextMatch.UFC.P1Headshot}}" class="w-8 h-8 rounded-full border-2 border-red-600/50 object-cover bg-base-300" onerror="this.style.display='none'">
-                <img src="{{.NextMatch.UFC.P2Headshot}}" class="w-8 h-8 rounded-full border-2 border-red-600/50 object-cover bg-base-300" onerror="this.style.display='none'">
+            <div class="flex -space-x-3">
+                <img src="{{.NextMatch.UFC.P1Headshot}}" class="w-8 h-8 rounded-full border-2 border-red-600/50 object-cover bg-base-300 ufc-headshot" alt="Luchador 1" loading="lazy">
+                <img src="{{.NextMatch.UFC.P2Headshot}}" class="w-8 h-8 rounded-full border-2 border-red-600/50 object-cover bg-base-300 ufc-headshot" alt="Luchador 2" loading="lazy">
             </div>
             {{end}}
         </div>
 
         <div class="flex-1 space-y-1.5 overflow-hidden">
             {{range $i, $fight := .NextMatch.UFC.MainCard}}{{if lt $i 3}}
-            <div class="bg-base-300/30 rounded-xl p-2 border border-white/5 flex items-center justify-between border-l-2 border-l-red-600/40 hover:bg-white/5 transition-all">
+            <div class="bg-base-300/30 rounded-xl p-2 border border-white/5 flex items-center justify-between border-l-2 border-l-red-600/40">
                 <div class="text-[9px] lg:text-[10px] font-bold text-base-content italic truncate pr-2 select-text">{{$fight}}</div>
                 <i data-lucide="zap" class="w-3 h-3 text-error shrink-0"></i>
             </div>
@@ -249,14 +243,14 @@
 
     <!-- 3. Finanzas: Cripto, CEDEARs y Dólar (Derecha) -->
     {{if .ShowFinance}}
-    <div class="{{if .ShowUFC}}lg:col-span-4{{else}}lg:col-span-7{{end}} bg-base-200 backdrop-blur-xl rounded-[2.5rem] p-6 shadow-2xl border border-base-300 flex flex-col justify-between min-h-[240px] text-base-content">
+    <div class="{{if .ShowUFC}}lg:col-span-4{{else}}lg:col-span-7{{end}} bg-base-200 backdrop-blur-xl rounded-[2.5rem] p-5 shadow-2xl border border-base-300 flex flex-col justify-between min-h-[220px] text-base-content">
         <div class="grid grid-cols-2 gap-2 flex-1">
             <!-- Bitcoin -->
             <div class="bg-orange-500/5 rounded-2xl p-3 border border-orange-500/10 flex flex-col justify-center relative overflow-hidden">
                 <div class="flex justify-between items-start mb-1 relative z-10">
                     <div class="text-[8px] font-black uppercase text-orange-500/70 tracking-widest">Bitcoin</div>
                     {{if ne .BTCChange 0.0}}
-                    <span class="text-[8px] font-black {{if ge .BTCChange 0.0}}text-green-500{{else}}text-error{{end}}">
+                    <span class="text-[9px] font-black {{if ge .BTCChange 0.0}}text-green-500{{else}}text-error{{end}}">
                         {{if ge .BTCChange 0.0}}+{{end}}{{printf "%.1f" .BTCChange}}%
                     </span>
                     {{end}}
@@ -270,7 +264,7 @@
                 <div class="flex justify-between items-start mb-1 relative z-10">
                     <div class="text-[8px] font-black uppercase text-blue-500/70 tracking-widest">Ethereum</div>
                     {{if ne .ETHChange 0.0}}
-                    <span class="text-[8px] font-black {{if ge .ETHChange 0.0}}text-green-500{{else}}text-error{{end}}">
+                    <span class="text-[9px] font-black {{if ge .ETHChange 0.0}}text-green-500{{else}}text-error{{end}}">
                         {{if ge .ETHChange 0.0}}+{{end}}{{printf "%.1f" .ETHChange}}%
                     </span>
                     {{end}}
@@ -284,7 +278,7 @@
                 <div class="flex justify-between items-start mb-1 relative z-10">
                     <div class="text-[8px] font-black uppercase text-emerald-500/70 tracking-widest">S&P 500</div>
                     {{if ne .Dolar.SP500.Change 0.0}}
-                    <span class="text-[8px] font-black {{if ge .Dolar.SP500.Change 0.0}}text-green-500{{else}}text-error{{end}}">
+                    <span class="text-[9px] font-black {{if ge .Dolar.SP500.Change 0.0}}text-green-500{{else}}text-error{{end}}">
                         {{if ge .Dolar.SP500.Change 0.0}}+{{end}}{{printf "%.1f" .Dolar.SP500.Change}}%
                     </span>
                     {{end}}
@@ -298,7 +292,7 @@
                 <div class="flex justify-between items-start mb-1 relative z-10">
                     <div class="text-[8px] font-black uppercase text-purple-500/70 tracking-widest">NASDAQ</div>
                     {{if ne .Dolar.Nasdaq.Change 0.0}}
-                    <span class="text-[8px] font-black {{if ge .Dolar.Nasdaq.Change 0.0}}text-green-500{{else}}text-error{{end}}">
+                    <span class="text-[9px] font-black {{if ge .Dolar.Nasdaq.Change 0.0}}text-green-500{{else}}text-error{{end}}">
                         {{if ge .Dolar.Nasdaq.Change 0.0}}+{{end}}{{printf "%.1f" .Dolar.Nasdaq.Change}}%
                     </span>
                     {{end}}
@@ -311,7 +305,6 @@
             <div class="bg-green-600/5 rounded-2xl p-3 border border-green-500/10 flex flex-col justify-center relative overflow-hidden">
                 <div class="text-[8px] font-black uppercase text-green-500/70 tracking-widest mb-1 relative z-10">Dólar Blue</div>
                 <div class="text-xl font-black text-base-content leading-none relative z-10">$ {{if .Dolar.Blue}}{{printf "%.0f" .Dolar.Blue.Venta}}{{else}}---{{end}}</div>
-                <div class="text-[7px] font-bold text-base-content/60 uppercase mt-1 relative z-10">Compra: $ {{if .Dolar.Blue}}{{printf "%.0f" .Dolar.Blue.Compra}}{{else}}---{{end}}</div>
                 <div class="absolute -right-1 -bottom-2 opacity-10 text-green-500 text-4xl font-black pointer-events-none italic">USD</div>
             </div>
 
@@ -319,9 +312,30 @@
             <div class="bg-primary/5 rounded-2xl p-3 border border-indigo-500/10 flex flex-col justify-center relative overflow-hidden">
                 <div class="text-[8px] font-black uppercase text-primary/70 tracking-widest mb-1 relative z-10">Dólar Cripto</div>
                 <div class="text-xl font-black text-base-content leading-none relative z-10">$ {{if .Dolar.Cripto}}{{printf "%.0f" .Dolar.Cripto.Venta}}{{else}}---{{end}}</div>
-                <div class="text-[7px] font-bold text-base-content/60 uppercase mt-1 relative z-10">Compra: $ {{if .Dolar.Cripto}}{{printf "%.0f" .Dolar.Cripto.Compra}}{{else}}---{{end}}</div>
                 <div class="absolute -right-1 -bottom-2 opacity-10 text-primary text-4xl font-black pointer-events-none italic">USDT</div>
             </div>
+        </div>
+
+        <!-- Riesgo País (Compacto One-line) -->
+        <div class="mt-2 bg-red-500/5 rounded-2xl px-4 py-2 border border-red-500/10 flex items-center justify-between relative overflow-hidden">
+            <div class="flex items-center space-x-3 relative z-10">
+                <span class="text-[10px] font-black uppercase text-red-500/70 tracking-widest leading-none">Riesgo País</span>
+                <span class="text-lg font-black text-base-content leading-none">
+                    {{if gt .Dolar.RiesgoPais.Price 0.0}}
+                        {{printf "%.0f" .Dolar.RiesgoPais.Price}}
+                    {{else}}
+                        ---
+                    {{end}}
+                </span>
+            </div>
+            {{if ne .Dolar.RiesgoPais.Change 0.0}}
+            <div class="relative z-10">
+                <span class="text-[11px] font-black {{if gt .Dolar.RiesgoPais.Change 0.0}}text-green-500{{else}}text-error{{end}} flex items-center">
+                    {{if gt .Dolar.RiesgoPais.Change 0.0}}<i data-lucide="trending-up" class="w-3 h-3 mr-1"></i>+{{else}}<i data-lucide="trending-down" class="w-3 h-3 mr-1"></i>{{end}}{{printf "%.1f" .Dolar.RiesgoPais.Change}}%
+                </span>
+            </div>
+            {{end}}
+            <div class="absolute -right-2 -top-1 opacity-5 text-red-500 text-3xl font-black pointer-events-none italic uppercase leading-none">Riesgo</div>
         </div>
     </div>
     {{end}}

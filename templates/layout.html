@@ -10,9 +10,11 @@
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
     <link href="https://cdn.jsdelivr.net/npm/daisyui@4.10.1/dist/full.min.css" rel="stylesheet" type="text/css" />
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/lucide@0.475.0/dist/umd/lucide.min.js" integrity="sha384-prOTt12iGU6/k2uoXJ3az4BWS2qoxykgxJb6pjfmRK7MYOMnMe7bWWBMPZqxwVks" crossorigin="anonymous"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;400;600;800&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;400;600;800&display=swap');
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
         .fluid-clock { font-size: clamp(2rem, 8vw, 5rem); }
         .fluid-temp { font-size: clamp(2rem, 8vw, 5rem); }
@@ -41,16 +43,103 @@
             z-index: -1;
             border-radius: 2rem;
         }
-        .custom-modal { display: none; position: fixed; inset: 0; z-index: 100; align-items: center; justify-content: center; background: rgba(0,0,0,0.8); backdrop-filter: blur(4px); }
-        .custom-modal.active { display: flex; }
+        .custom-modal { display: none; position: fixed; inset: 0; z-index: 9999; align-items: center; justify-content: center; background: rgba(0,0,0,0.85); backdrop-filter: blur(6px); }
+        .custom-modal.active { display: flex !important; }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+        
+        @media (prefers-reduced-motion: reduce) {
+            *, ::before, ::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+            .holiday-glow { animation: none; }
+            .holiday-glow::before { animation: none; }
+        }
     </style>
+    <script>
+        // Función única y global para el modal
+        function toggleModal() {
+            const modal = document.getElementById('modal');
+            if (modal) {
+                modal.classList.toggle('active');
+            }
+        }
+    </script>
 </head>
 <body class="bg-base-100 text-base-content p-3 md:p-4 transition-all duration-700 select-none">
+    <noscript>
+        <div class="fixed inset-0 z-[999] bg-base-100 flex flex-col items-center justify-center p-8 text-center">
+            <h1 class="text-3xl font-black text-error mb-4">JavaScript Requerido</h1>
+            <p class="text-base-content/70">Homedash necesita JavaScript para funcionar.</p>
+        </div>
+    </noscript>
 
     {{template "content" .}}
+
+    <!-- Modal de Configuración Permanente -->
+    <div id="modal" class="custom-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div class="bg-base-200 border border-base-300 w-full max-w-md rounded-[2.5rem] p-8 shadow-2xl">
+            <div class="flex justify-between items-center mb-6">
+                <h2 id="modal-title" class="text-xl font-black text-base-content uppercase tracking-tighter italic">Ajustes Personales</h2>
+                <button onclick="toggleModal()" class="text-base-content/60 hover:text-base-content"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+            
+            <form hx-post="/settings" hx-swap="none" class="space-y-6">
+                <div>
+                    <label class="text-[10px] font-black text-base-content/60 uppercase tracking-widest block mb-2">Preferencias</label>
+                    <div class="space-y-3 mb-6">
+                        <label for="showFootball" class="flex items-center justify-between p-3 bg-base-300/50 rounded-xl border border-base-content/10 cursor-pointer hover:bg-base-300 transition-colors">
+                            <span class="text-sm font-bold text-base-content flex items-center"><i data-lucide="trophy" class="w-4 h-4 mr-2 text-primary"></i> Fútbol</span>
+                            <input id="showFootball" type="checkbox" name="showFootball" {{if .ShowFootball}}checked{{end}} class="checkbox checkbox-primary">
+                        </label>
+                        <label for="showF1" class="flex items-center justify-between p-3 bg-base-300/50 rounded-xl border border-base-content/10 cursor-pointer hover:bg-base-300 transition-colors">
+                            <span class="text-sm font-bold text-base-content flex items-center"><i data-lucide="flag" class="w-4 h-4 mr-2 text-error"></i> F1</span>
+                            <input id="showF1" type="checkbox" name="showF1" {{if .ShowF1}}checked{{end}} class="checkbox checkbox-error">
+                        </label>
+                        <label for="showUFC" class="flex items-center justify-between p-3 bg-base-300/50 rounded-xl border border-base-content/10 cursor-pointer hover:bg-base-300 transition-colors">
+                            <span class="text-sm font-bold text-base-content flex items-center"><i data-lucide="swords" class="w-4 h-4 mr-2 text-error"></i> UFC</span>
+                            <input id="showUFC" type="checkbox" name="showUFC" {{if .ShowUFC}}checked{{end}} class="checkbox checkbox-error">
+                        </label>
+                        <label for="showFinance" class="flex items-center justify-between p-3 bg-base-300/50 rounded-xl border border-base-content/10 cursor-pointer hover:bg-base-300 transition-colors">
+                            <span class="text-sm font-bold text-base-content flex items-center"><i data-lucide="bitcoin" class="w-4 h-4 mr-2 text-orange-500"></i> Finanzas</span>
+                            <input id="showFinance" type="checkbox" name="showFinance" {{if .ShowFinance}}checked{{end}} class="checkbox checkbox-warning">
+                        </label>
+                    </div>
+
+                    <label for="theme" class="text-[10px] font-black text-base-content/60 uppercase tracking-widest block mb-2">Tema</label>
+                    <select id="theme" name="theme" class="w-full bg-base-300 border border-base-content/10 rounded-xl px-4 py-3 text-base-content focus:outline-none focus:border-primary mb-4 appearance-none font-bold text-sm">
+                        <option value="dark" {{if eq .Theme "dark"}}selected{{end}}>Dark</option>
+                        <option value="dracula" {{if eq .Theme "dracula"}}selected{{end}}>Dracula</option>
+                        <option value="synthwave" {{if eq .Theme "synthwave"}}selected{{end}}>Synthwave</option>
+                        <option value="cyberpunk" {{if eq .Theme "cyberpunk"}}selected{{end}}>Cyberpunk</option>
+                        <option value="retro" {{if eq .Theme "retro"}}selected{{end}}>Retro</option>
+                        <option value="dim" {{if eq .Theme "dim"}}selected{{end}}>Dim</option>
+                        <option value="coffee" {{if eq .Theme "coffee"}}selected{{end}}>Coffee</option>
+                        <option value="sunset" {{if eq .Theme "sunset"}}selected{{end}}>Sunset</option>
+                        <option value="night" {{if eq .Theme "night"}}selected{{end}}>Night</option>
+                    </select>
+
+                    <label for="team" class="text-[10px] font-black text-base-content/60 uppercase tracking-widest block mb-2">Equipo</label>
+                    <input id="team" type="text" name="team" list="teams-list" placeholder="Boca" value="{{.Team}}"
+                          hx-get="/autocomplete/teams" hx-trigger="keyup changed delay:300ms" hx-target="#teams-list" class="w-full bg-base-300 border border-base-content/10 rounded-xl px-4 py-3 text-base-content focus:outline-none focus:border-indigo-500 mb-4 font-bold">
+                    <datalist id="teams-list"></datalist>
+                    
+                    <label for="city" class="text-[10px] font-black text-base-content/60 uppercase tracking-widest block mb-2">Ciudad</label>
+                    <input id="city" type="text" name="city" list="cities-list" placeholder="Mendoza" value="{{.City}}"
+                           hx-get="/autocomplete/cities" hx-trigger="keyup changed delay:500ms" hx-target="#cities-list"
+                           class="w-full bg-base-300 border border-base-content/10 rounded-xl px-4 py-3 text-base-content focus:outline-none focus:border-indigo-500 font-bold">
+                    <datalist id="cities-list"></datalist>
+                </div>
+                <button type="submit" class="btn btn-primary w-full font-black uppercase py-4 rounded-xl shadow-lg transition-all tracking-widest" onclick="setTimeout(() => toggleModal(), 100)">
+                    Guardar Cambios
+                </button>
+            </form>
+        </div>
+    </div>
 
     <script>
         function updateClock() {
@@ -58,17 +147,32 @@
             const options = { weekday: 'long', day: 'numeric', month: 'long' };
             const clockEl = document.getElementById('clock');
             const dateEl = document.getElementById('date');
-            if (clockEl) clockEl.textContent = now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
-            if (dateEl) dateEl.textContent = now.toLocaleDateString('es-AR', options);
+            if (clockEl && dateEl) {
+                clockEl.textContent = now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false });
+                dateEl.textContent = now.toLocaleDateString('es-AR', options);
+            }
         }
         setInterval(updateClock, 1000);
         updateClock();
-        document.body.addEventListener('htmx:afterSwap', function(evt) { lucide.createIcons(); });
-        lucide.createIcons();
-        function toggleModal() { 
-            const modal = document.getElementById('modal');
-            if (modal) modal.classList.toggle('active'); 
+
+        function setupImageErrorHandlers() {
+            document.querySelectorAll('img').forEach(img => {
+                img.addEventListener('error', function() {
+                    if (this.classList.contains('f1-flag') || this.classList.contains('f1-poster') || this.classList.contains('ufc-headshot')) {
+                        this.style.display = 'none';
+                    } else if (this.classList.contains('team-crest')) {
+                        this.src = '/static/assets/crests/afa.png';
+                    }
+                });
+            });
         }
+
+        document.body.addEventListener('htmx:afterSwap', function(evt) { 
+            lucide.createIcons(); 
+            setupImageErrorHandlers();
+        });
+        lucide.createIcons();
+        setupImageErrorHandlers();
     </script>
 </body>
 </html>

@@ -74,6 +74,7 @@ func GetArgentinaHolidays() []Holiday {
 	// Feriados inamovibles (Día/Mes)
 	fixed := []struct{ Name, Date string }{
 		{"Año Nuevo", "01-01"},
+		{"Día de la Memoria", "03-24"},
 		{"Día del Veterano", "04-02"},
 		{"Día del Trabajador", "05-01"},
 		{"Revolución de Mayo", "05-25"},
@@ -117,13 +118,9 @@ func GetArgentinaHolidays() []Holiday {
 		}
 	}
 
-	// Feriados turísticos inamovibles
+	// Feriados turísticos específicos por año (Solo los que no están en 'fixed' o son móviles)
 	turisticos := []struct{ Name, Date string }{
-		{"Feriado Turístico", fmt.Sprintf("%04d-03-24", year)},
-		{"Día de la Memoria", fmt.Sprintf("%04d-03-24", year)},
-		{"Feriado Turístico", fmt.Sprintf("%04d-07-09", year)},
 		{"Soberanía Nacional", fmt.Sprintf("%04d-11-20", year)},
-		{"Feriado Turístico", fmt.Sprintf("%04d-12-08", year)},
 	}
 	for _, h := range turisticos {
 		list = append(list, Holiday{Name: h.Name, Date: h.Date})

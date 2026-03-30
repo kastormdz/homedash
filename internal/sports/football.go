@@ -1,6 +1,7 @@
 package sports
 
 import (
+	"context"
 	"encoding/json"
 	"homedash/internal/common"
 	"homedash/internal/network"
@@ -70,8 +71,8 @@ func guessBroadcaster(tournament string) string {
 	return "A confirmar"
 }
 
-func fetchLiveMatches(url string) []MatchData {
-	req, err := http.NewRequest("GET", url, nil)
+func fetchLiveMatches(ctx context.Context, url string) []MatchData {
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil
 	}
@@ -155,6 +156,10 @@ func fetchLiveMatches(url string) []MatchData {
 
 		channel = strings.ReplaceAll(channel, "ESP+", "ESPN Premium")
 		channel = strings.ReplaceAll(channel, "TNTS", "TNT Sports")
+
+		if home == "" || away == "" {
+			continue
+		}
 
 		liveMatches = append(liveMatches, MatchData{
 			Team: home, Opponent: away, Date: dateStr, Time: timeStr, Tournament: tournamentName,

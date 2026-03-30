@@ -58,7 +58,7 @@ func GetSMNAlert(province string, city string) WeatherAlert {
 
 	// 2. Fallback: SMN
 	alertMutex.RLock()
-	if time.Since(alertCacheTime) < 5*time.Minute && alertCache != "" {
+	if time.Since(alertCacheTime) < 30*time.Minute && alertCache != "" {
 		cached := findAlertInCache(province)
 		alertMutex.RUnlock()
 		return cached
@@ -82,7 +82,13 @@ func GetSMNAlert(province string, city string) WeatherAlert {
 	items := rss.Channel.Items
 	for i := len(items) - 1; i >= 0; i-- {
 		item := items[i]
-		sb.WriteString(fmt.Sprintf("[%s] %s {%s}|", item.Title, item.Description, item.Link))
+		sb.WriteByte('[')
+		sb.WriteString(item.Title)
+		sb.WriteString("] ")
+		sb.WriteString(item.Description)
+		sb.WriteString(" {")
+		sb.WriteString(item.Link)
+		sb.WriteString("}|")
 	}
 	alertCache = sb.String()
 	alertCacheTime = time.Now()
@@ -96,12 +102,20 @@ func GetSMNAlert(province string, city string) WeatherAlert {
 func getMendozaLocalAlert() WeatherAlert {
 	// 8. Cache de 30 min para no golpear DACC en cada request
 	alertMutex.RLock()
-	if time.Since(mendozaAlertCacheTime) < 5*time.Minute && !mendozaAlertCacheTime.IsZero() {
+	if time.Since(mendozaAlertCacheTime) < 30*time.Minute && !mendozaAlertCacheTime.IsZero() {
 		result := mendozaAlertCache
 		alertMutex.RUnlock()
 		return result
 	}
 	alertMutex.RUnlock()
+
+	alertMutex.Lock()
+	defer alertMutex.Unlock()
+
+	// Double check
+	if time.Since(mendozaAlertCacheTime) < 30*time.Minute && !mendozaAlertCacheTime.IsZero() {
+		return mendozaAlertCache
+	}
 
 	resp, err := network.FetchSecure("https://www.contingencias.mendoza.gov.ar/web/pronostico.php")
 	if err != nil {
@@ -110,7 +124,10 @@ func getMendozaLocalAlert() WeatherAlert {
 	defer resp.Body.Close()
 
 	// B-4-B: Limitar lectura a 512KB para evitar OOM
-	body, _ := io.ReadAll(io.LimitReader(resp.Body, 512*1024))
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 512*1024))
+	if err != nil {
+		return WeatherAlert{Text: "Error leyendo alertas", Icon: "cloud-off"}
+	}
 	content := strings.ToLower(string(body))
 
 	var alert WeatherAlert
@@ -125,10 +142,8 @@ func getMendozaLocalAlert() WeatherAlert {
 		alert = WeatherAlert{Text: "Sin alertas actuales", Icon: "triangle-alert"}
 	}
 
-	alertMutex.Lock()
 	mendozaAlertCache = alert
 	mendozaAlertCacheTime = time.Now()
-	alertMutex.Unlock()
 
 	return alert
 }
