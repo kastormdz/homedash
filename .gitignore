@@ -18,6 +18,20 @@ GEMINI.md
 AGENTS.md
 MIGRACION.md
 conductor/
+graphify-out/
+screenshot.jpg
+skills-lock.json
+
+# Agent and config directories
+.agents/
+.claude/
+.gemini/
+.opencode/
+CLAUDE.md
+
+# Node artifacts
+package.json
+package-lock.json
 
 # IDE and OS specific
 .idea/
