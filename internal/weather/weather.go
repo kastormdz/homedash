@@ -96,6 +96,17 @@ func GetWeather(ctx context.Context, lat, lon string) (*WeatherResponse, error) 
 	// 4. Fetch FUERA del write lock para no bloquear otros requests
 	data, err := GetWeatherWithClient(ctx, lat, lon)
 	if err != nil {
+		// FALLBACK: Si falla la API pero tenemos datos viejos en caché, devolverlos
+		if ok {
+			// Actualizar el timestamp para no reintentar inmediatamente (enfriamiento de 2 min)
+			weatherMutex.Lock()
+			if item, stillExists := weatherCache[key]; stillExists {
+				item.Timestamp = time.Now().Add(-3 * time.Minute) // 5 - 3 = 2 min para el próximo intento
+			}
+			weatherMutex.Unlock()
+			fmt.Printf("[WEATHER] Fallback a datos viejos para %s,%s debido a error: %v (reintento en 2min)\n", lat, lon, err)
+			return item.Data, nil
+		}
 		return nil, err
 	}
 

@@ -38,24 +38,31 @@ func fetchLiveUFC(ctx context.Context) UFCMatch {
 	if !found {
 		mainEvent = sb.Events[0]
 	}
-	
-	var mainCard []string
+
+	var fights []UFCFight
 	var p1Headshot, p2Headshot string
 
 	// En UFC, el Main Event suele ser el ÚLTIMO de la lista de competitions.
 	// Vamos a recorrer en reversa para que el Main Event esté primero en nuestra lista.
 	for i := len(mainEvent.Competitions) - 1; i >= 0; i-- {
 		comp := mainEvent.Competitions[i]
-		p1, p2 := "TBD", "TBD"
+		p1Name, p2Name := "TBD", "TBD"
+		winner := 0
 		if len(comp.Competitors) >= 2 {
-			p1 = comp.Competitors[0].Athlete.DisplayName
-			p2 = comp.Competitors[1].Athlete.DisplayName
+			p1Name = comp.Competitors[0].Athlete.DisplayName
+			p2Name = comp.Competitors[1].Athlete.DisplayName
+
+			if comp.Competitors[0].Winner {
+				winner = 1
+			} else if comp.Competitors[1].Winner {
+				winner = 2
+			}
 
 			// Extraer fotos del evento principal (el último en la lista original, ahora el primero en nuestro loop)
 			if i == len(mainEvent.Competitions)-1 {
 				id1 := comp.Competitors[0].ID
 				id2 := comp.Competitors[1].ID
-				
+
 				rawP1 := comp.Competitors[0].Athlete.Headshot
 				if rawP1 == "" && id1 != "" {
 					rawP1 = fmt.Sprintf("https://a.espncdn.com/i/headshots/mma/players/full/%s.png", id1)
@@ -76,13 +83,18 @@ func fetchLiveUFC(ctx context.Context) UFCMatch {
 
 			fightStatus := ""
 			if comp.Status.Type.State == "in" {
-				fightStatus = " (EN VIVO)"
+				fightStatus = "EN VIVO"
 			}
 			if comp.Status.Type.State == "post" {
-				fightStatus = " (FINAL)"
+				fightStatus = "FINAL"
 			}
 
-			mainCard = append(mainCard, p1+" vs "+p2+fightStatus)
+			fights = append(fights, UFCFight{
+				P1:     p1Name,
+				P2:     p2Name,
+				Winner: winner,
+				Status: fightStatus,
+			})
 		}
 	}
 
@@ -103,5 +115,19 @@ func fetchLiveUFC(ctx context.Context) UFCMatch {
 	if name == "" {
 		name = mainEvent.ShortName
 	}
-	return UFCMatch{EventName: name, Date: dateStr, Time: timeStr, Status: status, MainCard: mainCard, P1Headshot: p1Headshot, P2Headshot: p2Headshot}
+
+	venue := ""
+	if len(mainEvent.Competitions) > 0 {
+		v := mainEvent.Competitions[0].Venue
+		if v.FullName != "" {
+			venue = v.FullName
+		} else if v.Address.City != "" {
+			venue = v.Address.City
+			if v.Address.Country != "" {
+				venue += ", " + v.Address.Country
+			}
+		}
+	}
+
+	return UFCMatch{EventName: name, Date: dateStr, Time: timeStr, Venue: venue, Status: status, Fights: fights, P1Headshot: p1Headshot, P2Headshot: p2Headshot}
 }

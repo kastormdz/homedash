@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"homedash/internal/network"
+	"log"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -118,28 +121,73 @@ func UpdateFinance(ctx context.Context) error {
 
 	go func() {
 		defer wg.Done()
-		// Usamos ArgentinaDatos para Riesgo País (DolarApi no lo tiene nativo)
-		respR, errR := network.FetchSecureWithContext(ctx, "https://api.argentinadatos.com/v1/finanzas/indices/riesgo-pais")
-		if errR == nil {
-			defer respR.Body.Close()
-			var history []struct {
-				Valor float64 `json:"valor"`
-				Fecha string  `json:"fecha"`
-			}
-			if err := json.NewDecoder(respR.Body).Decode(&history); err == nil && len(history) > 1 {
-				last := history[len(history)-1]
-				prev := history[len(history)-2]
-				change := 0.0
-				if prev.Valor > 0 {
-					change = ((last.Valor - prev.Valor) / prev.Valor) * 100
+		
+		type rpResult struct {
+			val    float64
+			change float64
+		}
+		resCh := make(chan rpResult, 2)
+		var rpWg sync.WaitGroup
+		rpWg.Add(2)
+
+		go func() {
+			defer rpWg.Done()
+			// Ámbito requiere User-Agent y a veces otros headers, FetchSecureWithContext los provee.
+			respA, errA := network.FetchSecureWithContext(ctx, "https://mercados.ambito.com/riesgopais/variacion")
+			if errA == nil {
+				defer respA.Body.Close()
+				var a struct {
+					Ultimo    string `json:"ultimo"`
+					Variacion string `json:"variacion"`
 				}
-				mu.Lock()
-				newData.RiesgoPais = AssetData{
-					Price:  last.Valor,
-					Change: change,
+				if err := json.NewDecoder(respA.Body).Decode(&a); err == nil && a.Ultimo != "" {
+					val, _ := strconv.ParseFloat(strings.ReplaceAll(a.Ultimo, ",", "."), 64)
+					varStr := strings.TrimSuffix(a.Variacion, "%")
+					change, _ := strconv.ParseFloat(strings.ReplaceAll(varStr, ",", "."), 64)
+					if val > 0 {
+						resCh <- rpResult{val, change}
+						return
+					}
 				}
-				mu.Unlock()
+			} else {
+				log.Printf("[FINANCE] Error Ámbito: %v", errA)
 			}
+		}()
+
+		go func() {
+			defer rpWg.Done()
+			if respR, errR := network.FetchSecureWithContext(ctx, "https://api.argentinadatos.com/v1/finanzas/indices/riesgo-pais"); errR == nil {
+				defer respR.Body.Close()
+				var history []struct {
+					Valor float64 `json:"valor"`
+					Fecha string  `json:"fecha"`
+				}
+				if err := json.NewDecoder(respR.Body).Decode(&history); err == nil && len(history) > 1 {
+					last := history[len(history)-1]
+					prev := history[len(history)-2]
+					change := 0.0
+					if prev.Valor > 0 {
+						change = ((last.Valor - prev.Valor) / prev.Valor) * 100
+					}
+					if last.Valor > 0 {
+						resCh <- rpResult{last.Valor, change}
+						return
+					}
+				}
+			} else {
+				log.Printf("[FINANCE] Error ArgentinaDatos: %v", errR)
+			}
+		}()
+
+		go func() {
+			rpWg.Wait()
+			close(resCh)
+		}()
+
+		if res, ok := <-resCh; ok {
+			mu.Lock()
+			newData.RiesgoPais = AssetData{Price: res.val, Change: res.change}
+			mu.Unlock()
 		}
 	}()
 

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -15,6 +16,7 @@ var (
 	allowedDomains = []string{
 		"upload.wikimedia.org",
 		"cdn.register.f1.com",
+		"espncdn.com",
 		"a.espncdn.com",
 		"static.promiedos.com.ar",
 		"www.promiedos.com.ar",
@@ -33,42 +35,56 @@ var (
 		"geocoding-api.open-meteo.com",
 	}
 
-	// Cliente HTTP global con timeouts configurados
+	safeDialer = &net.Dialer{
+		Timeout:   10 * time.Second,
+		KeepAlive: 30 * time.Second,
+		// Control se ejecuta después de la resolución pero antes de la conexión (Prevenir SSRF)
+		Control: func(network, address string, c syscall.RawConn) error {
+			host, _, _ := net.SplitHostPort(address)
+			ip := net.ParseIP(host)
+			if ip != nil {
+				if ip.IsLoopback() || ip.IsPrivate() || ip.IsUnspecified() || ip.IsLinkLocalUnicast() {
+					return fmt.Errorf("destino interno bloqueado: %s", host)
+				}
+			}
+			return nil
+		},
+	}
+
+	// Cliente HTTP global con timeouts configurados y protección DNS Rebinding (Hardening)
 	DefaultClient = &http.Client{
-		Timeout: 15 * time.Second,
+		Timeout: 30 * time.Second,
 		Transport: &http.Transport{
+			DialContext: func(ctx context.Context, networkStr, addr string) (net.Conn, error) {
+				// Usamos safeDialer que ya tiene el Control para validar IPs
+				return safeDialer.DialContext(ctx, networkStr, addr)
+			},
 			MaxIdleConns:        100,
 			IdleConnTimeout:     90 * time.Second,
 			TLSHandshakeTimeout: 10 * time.Second,
+			ForceAttemptHTTP2:   true,
 		},
 		CheckRedirect: validateRedirect,
 	}
 )
 
-// validateRedirect bloquea redirects a IPs internas o dominios no allowlisted
 func validateRedirect(req *http.Request, via []*http.Request) error {
 	if len(via) >= 3 {
 		return fmt.Errorf("demasiados redirects")
 	}
-	// S-1. Bloquear redirects a IPs internas
 	if isInternalRequest(req.URL) {
 		return fmt.Errorf("redirect a destino interno bloqueado: %s", req.URL.Hostname())
 	}
 	return nil
 }
 
-// isInternalRequest verifica si una URL apunta a IPs internas (SSRF protection)
 func isInternalRequest(u *url.URL) bool {
 	hostname := u.Hostname()
-	// S-A. Bloquear IPs directas internas
 	if ip := net.ParseIP(hostname); ip != nil {
 		return ip.IsLoopback() || ip.IsPrivate() || ip.IsUnspecified() || ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast()
 	}
-	// Intentar resolver DNS y verificar que no sea IP interna
 	ips, err := net.LookupIP(hostname)
 	if err != nil {
-		// Si es un dominio sin IP o error de resolución, no lo consideramos interno per se,
-		// pero net.LookupIP suele fallar para hostnames inválidos.
 		return false
 	}
 	for _, ip := range ips {
@@ -79,18 +95,14 @@ func isInternalRequest(u *url.URL) bool {
 	return false
 }
 
-// IsDomainAllowed verifica si una URL pertenece a la lista blanca
 func IsDomainAllowed(rawURL string) (bool, error) {
 	u, err := url.Parse(rawURL)
 	if err != nil {
 		return false, err
 	}
-
-	// S-A. Primero verificar que no apunte a IP interna
 	if isInternalRequest(u) {
 		return false, nil
 	}
-
 	hostname := strings.ToLower(u.Hostname())
 	for _, domain := range allowedDomains {
 		if hostname == domain || strings.HasSuffix(hostname, "."+domain) {
@@ -100,19 +112,16 @@ func IsDomainAllowed(rawURL string) (bool, error) {
 	return false, nil
 }
 
-// FetchSecure realiza una petición GET validando errores y status
 func FetchSecure(targetURL string) (*http.Response, error) {
 	return FetchSecureWithContext(context.Background(), targetURL)
 }
 
-// FetchSecureWithContext realiza una petición GET con contexto
 func FetchSecureWithContext(ctx context.Context, targetURL string) (*http.Response, error) {
 	u, err := url.Parse(targetURL)
 	if err != nil {
 		return nil, err
 	}
 
-	// S-1. Bloquear peticiones a IPs internas
 	if isInternalRequest(u) {
 		return nil, fmt.Errorf("destino bloqueado por ser una dirección interna: %s", u.Hostname())
 	}
@@ -122,6 +131,7 @@ func FetchSecureWithContext(ctx context.Context, targetURL string) (*http.Respon
 		return nil, err
 	}
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+	req.Header.Set("Accept", "application/json, text/plain, */*")
 
 	resp, err := DefaultClient.Do(req)
 	if err != nil {
