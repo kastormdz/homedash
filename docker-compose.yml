@@ -18,12 +18,9 @@ services:
     # D-C. Drop all capabilities
     cap_drop:
       - ALL
-    # D-B. Límites de recursos
-    deploy:
-      resources:
-        limits:
-          memory: 128M
-          cpus: '0.5'
+    # D-B. Límites de recursos (v2 compatibles)
+    mem_limit: 128M
+    cpus: 0.5
     logging:
       driver: "json-file"
       options:

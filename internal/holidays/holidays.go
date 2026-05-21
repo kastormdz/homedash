@@ -3,6 +3,7 @@ package holidays
 import (
 	"fmt"
 	"homedash/internal/common"
+	"sort"
 	"sync"
 	"time"
 )
@@ -17,6 +18,7 @@ type UpcomingHoliday struct {
 	Name    string
 	DayName string
 	DateStr string
+	IsNear  bool // Próximos 2 días
 }
 
 // 5. Cache de feriados por año para evitar recálculo en cada request
@@ -126,6 +128,11 @@ func GetArgentinaHolidays() []Holiday {
 		list = append(list, Holiday{Name: h.Name, Date: h.Date})
 	}
 
+	// Ordenamos la lista por fecha para asegurar consistencia
+	sort.Slice(list, func(i, j int) bool {
+		return list[i].Date < list[j].Date
+	})
+
 	// 5. Guardar en cache
 	holidayCacheMutex.Lock()
 	cachedHolidays = list
@@ -151,6 +158,9 @@ func GetUpcomingHolidays(t time.Time) []UpcomingHoliday {
 	later := t.AddDate(0, 0, 30)
 	laterStr := later.Format("2006-01-02")
 
+	// Umbral para "IsNear" (hoy + 5 días)
+	nearThreshold := t.AddDate(0, 0, 5).Format("2006-01-02")
+
 	for _, h := range GetArgentinaHolidays() {
 		if h.Date > todayStr && h.Date <= laterStr {
 			d, _ := time.Parse("2006-01-02", h.Date)
@@ -158,6 +168,7 @@ func GetUpcomingHolidays(t time.Time) []UpcomingHoliday {
 				Name:    h.Name,
 				DayName: common.DaysAbbr[d.Weekday()],
 				DateStr: d.Format("02/01"),
+				IsNear:  h.Date <= nearThreshold,
 			})
 		}
 	}

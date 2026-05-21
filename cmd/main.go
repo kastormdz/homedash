@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"compress/gzip"
 	"context"
 	"crypto/tls"
@@ -15,6 +16,8 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -30,18 +33,40 @@ import (
 )
 
 var (
-	tmpls        *template.Template
-	lastBTCPrice float64
-	btcPriceLock sync.Mutex
-	lastETHPrice float64
-	ethPriceLock sync.Mutex
+	tmpls     *template.Template
+	tmplsLock sync.RWMutex
 
 	// 7. Temas válidos como var de paquete (no recrear en cada request)
 	validThemes = map[string]struct{}{
 		"dark": {}, "dracula": {}, "synthwave": {}, "cyberpunk": {},
 		"retro": {}, "dim": {}, "coffee": {}, "sunset": {}, "night": {},
+		"nothing": {},
 	}
 )
+
+func loadTemplates() {
+	t := template.New("").Funcs(template.FuncMap{
+		"add": func(a, b int) int {
+			return a + b
+		},
+		"contains": func(s, substr string) bool {
+			return strings.Contains(strings.ToLower(s), strings.ToLower(substr))
+		},
+		"split": strings.Split,
+	})
+	parsed, err := t.ParseGlob(filepath.Join("templates", "*.html"))
+	if err != nil {
+		log.Printf("[ERROR] Fallo al cargar plantillas: %v", err)
+		return
+	}
+	tmplsLock.Lock()
+	tmpls = parsed
+	tmplsLock.Unlock()
+}
+
+func init() {
+	loadTemplates()
+}
 
 type AppSettings struct {
 	Team         string `json:"team"`
@@ -67,7 +92,7 @@ func getDefaultSettings() AppSettings {
 		ShowF1:       true,
 		ShowUFC:      true,
 		ShowFinance:  true,
-		Theme:        "dark",
+		Theme:        "nothing",
 	}
 }
 
@@ -77,26 +102,10 @@ func getSettings(r *http.Request) AppSettings {
 		val, _ := url.QueryUnescape(cookie.Value)
 		s := getDefaultSettings()
 		if err := json.Unmarshal([]byte(val), &s); err == nil {
-			// Si falta la provincia (ej. cookies viejas), intentamos recuperarla
-			if s.Province == "" && s.City != "" {
-				// SearchCity usa caché interna, así que no es costoso si se repite
-				_, _, _, province, err := weather.SearchCity(s.City)
-				if err == nil {
-					s.Province = province
-				}
-			}
 			return s
 		}
 	}
 	return getDefaultSettings()
-}
-
-func init() {
-	var err error
-	tmpls, err = template.ParseGlob(filepath.Join("templates", "*.html"))
-	if err != nil {
-		log.Fatalf("Error cargando plantillas: %v", err)
-	}
 }
 
 func cacheMiddleware(next http.Handler) http.Handler {
@@ -130,7 +139,7 @@ func (w *gzipResponseWriter) Write(b []byte) (int, error) {
 
 func gzipMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") || r.Header.Get("Accept") == "text/event-stream" {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -170,8 +179,8 @@ func securityHeaders(next http.Handler) http.Handler {
 		w.Header().Set("X-Frame-Options", "DENY")
 		w.Header().Set("X-XSS-Protection", "1; mode=block")
 		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
-		// CSP permisivo para CDNs conocidos pero bloqueando inline scripts maliciosos
-		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://openweathermap.org https://upload.wikimedia.org https://cdn.register.f1.com https://a.espncdn.com https://static.promiedos.com.ar https://img.icons8.com; connect-src 'self';")
+		// CSP permisivo para CDNs conocidos pero bloqueando inline scripts maliciosos (parcialmente, requiere unsafe-inline para htmx y modales)
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net https://cdn.tailwindcss.com https://stats.cronix.com.ar; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://openweathermap.org https://upload.wikimedia.org https://cdn.register.f1.com https://a.espncdn.com https://static.promiedos.com.ar https://img.icons8.com; connect-src 'self' https://stats.cronix.com.ar;")
 		next.ServeHTTP(w, r)
 	})
 }
@@ -203,23 +212,51 @@ func main() {
 	if err := finance.UpdateFinance(context.Background()); err != nil {
 		log.Printf("[INIT] Aviso: Finanzas no se pudieron cargar inicialmente: %v\n", err)
 	}
+	
+	// 3. Sismos y Alertas
+	earthquake.ForceUpdate(context.Background())
+	weather.ForceUpdateAlerts(context.Background())
 
 	// Iniciar bucles de actualización en segundo plano
 	sports.StartUpdateLoop()
 	crypto.StartUpdateLoop()
 	finance.StartUpdateLoop()
+	earthquake.StartUpdateLoop()
+	weather.StartAlertsLoop()
+
+	// Si se pasa el argumento "mcp", ejecutar el servidor MCP y salir
+	if len(os.Args) > 1 && os.Args[1] == "mcp" {
+		log.Println("[MCP] Iniciando servidor MCP sobre stdio...")
+		handleMCP()
+		return
+	}
 
 	mux := http.NewServeMux()
 	fs := http.FileServer(http.Dir("static"))
 	mux.Handle("/static/", http.StripPrefix("/static/", cacheMiddleware(fs)))
 
 	mux.HandleFunc("/", handleIndex)
+	mux.HandleFunc("/test", handleTest)
 	mux.HandleFunc("/weather", handleWeather)
 	mux.HandleFunc("/crest", handleCrestProxy)
 	mux.HandleFunc("/settings", handleSettings)
 	mux.HandleFunc("/autocomplete/teams", rateLimit(handleAutocompleteTeams))
 	mux.HandleFunc("/autocomplete/cities", rateLimit(handleAutocompleteCities))
 	mux.HandleFunc("/health", handleHealth)
+	mux.HandleFunc("/world-cup-fixture", handleWorldCupFixture)
+	mux.HandleFunc("/f1-standings", handleF1Standings)
+
+	// API JSON v1
+	mux.HandleFunc("/api/v1/weather", handleAPIWeather)
+	mux.HandleFunc("/api/v1/sports", handleAPISports)
+	mux.HandleFunc("/api/v1/finance", handleAPIFinance)
+	mux.HandleFunc("/api/v1/earthquakes", handleAPIEarthquakes)
+	mux.HandleFunc("/api/v1/holidays", handleAPIHolidays)
+	mux.HandleFunc("/api/v1/all", handleAPIAll)
+
+	// MCP vía SSE (Para comunicación entre contenedores)
+	mux.HandleFunc("/api/mcp/sse", handleMCPSSE)
+	mux.HandleFunc("/api/mcp/message", handleMCPMessage)
 
 	// Aplicar middleware de seguridad y gzip
 	secureMux := gzipMiddleware(securityHeaders(mux))
@@ -285,10 +322,51 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 		City:             settings.City,
 		Team:             settings.Team,
 	}
-	err := tmpls.ExecuteTemplate(w, "index.html", data)
+	var buf bytes.Buffer
+	tmplsLock.RLock()
+	err := tmpls.ExecuteTemplate(&buf, "index.html", data)
+	tmplsLock.RUnlock()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
+	w.Write(buf.Bytes())
+}
+
+func handleTest(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+	settings := getSettings(r)
+	now := time.Now()
+	data := struct {
+		Holiday          *holidays.Holiday
+		UpcomingHolidays []holidays.UpcomingHoliday
+		ShowF1           bool
+		ShowFootball     bool
+		ShowUFC          bool
+		ShowFinance      bool
+		Theme            string
+		City             string
+		Team             string
+	}{
+		Holiday:          holidays.GetHolidayToday(now),
+		UpcomingHolidays: holidays.GetUpcomingHolidays(now),
+		ShowF1:           settings.ShowF1,
+		ShowFootball:     settings.ShowFootball,
+		ShowUFC:          settings.ShowUFC,
+		ShowFinance:      settings.ShowFinance,
+		Theme:            "nothing", // FORZAR NADA
+		City:             settings.City,
+		Team:             settings.Team,
+	}
+	var buf bytes.Buffer
+	tmplsLock.RLock()
+	err := tmpls.ExecuteTemplate(&buf, "index.html", data)
+	tmplsLock.RUnlock()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Write(buf.Bytes())
 }
 
 type WeatherViewModel struct {
@@ -317,6 +395,7 @@ type WeatherViewModel struct {
 	AQIDesc       string
 	MoonIcon      string
 	MoonPhaseName string
+	IsAvailable   bool
 }
 
 func handleWeather(w http.ResponseWriter, r *http.Request) {
@@ -329,34 +408,8 @@ func handleWeather(w http.ResponseWriter, r *http.Request) {
 	}
 	btcPrice := crypto.GetCachedBTC()
 	ethPrice := crypto.GetCachedETH()
-
-	btcPriceLock.Lock()
-	trend := 0
-	if lastBTCPrice > 0 && btcPrice > 0 {
-		if btcPrice > lastBTCPrice {
-			trend = 1
-		} else if btcPrice < lastBTCPrice {
-			trend = -1
-		}
-	}
-	if btcPrice > 0 {
-		lastBTCPrice = btcPrice
-	}
-	btcPriceLock.Unlock()
-
-	ethPriceLock.Lock()
-	ethTrend := 0
-	if lastETHPrice > 0 && ethPrice > 0 {
-		if ethPrice > lastETHPrice {
-			ethTrend = 1
-		} else if ethPrice < lastETHPrice {
-			ethTrend = -1
-		}
-	}
-	if ethPrice > 0 {
-		lastETHPrice = ethPrice
-	}
-	ethPriceLock.Unlock()
+	trend := crypto.GetCachedBTCTrend()
+	ethTrend := crypto.GetCachedETHTrend()
 
 	rainProb := 0
 	var current weather.CurrentWeather
@@ -366,8 +419,10 @@ func handleWeather(w http.ResponseWriter, r *http.Request) {
 	aqiDesc := "Desconocido"
 	moonIcon := "moon"
 	moonPhase := "---"
+	isAvailable := false
 
 	if weatherData != nil {
+		isAvailable = true
 		current = weatherData.Current
 		forecast = weatherData.GetForecastList()
 		// 1. Fix: Verificar que Sunrise/Sunset no estén vacíos antes de acceder [0]
@@ -410,19 +465,25 @@ func handleWeather(w http.ResponseWriter, r *http.Request) {
 		ETHTrend:      ethTrend,
 		ETHChange:     crypto.GetCachedETHChange(),
 		RainProb:      rainProb,
-		Earthquakes:   earthquake.GetLatestEarthquakes(r.Context()),
+		Earthquakes:   earthquake.GetLatestEarthquakes(),
 		Alert:         weather.GetSMNAlert(settings.Province, settings.City),
 		AQI:           aqi,
 		AQIDesc:       aqiDesc,
 		MoonIcon:      moonIcon,
 		MoonPhaseName: moonPhase,
+		IsAvailable:   isAvailable,
 	}
 
-	err := tmpls.ExecuteTemplate(w, "weather.html", viewModel)
+	var buf bytes.Buffer
+	tmplsLock.RLock()
+	err := tmpls.ExecuteTemplate(&buf, "weather.html", viewModel)
+	tmplsLock.RUnlock()
 	if err != nil {
 		log.Printf("Error renderizando weather: %v", err)
 		http.Error(w, "Error interno del servidor", http.StatusInternalServerError)
+		return
 	}
+	w.Write(buf.Bytes())
 }
 
 func handleSettings(w http.ResponseWriter, r *http.Request) {
@@ -504,7 +565,8 @@ func handleSettings(w http.ResponseWriter, r *http.Request) {
 			SameSite: http.SameSiteLaxMode,
 		})
 
-		w.Header().Set("HX-Refresh", "true")
+		// Trigger para refrescar solo el clima inmediatamente sin recargar toda la página
+		w.Header().Set("HX-Trigger", "refreshWeather")
 		w.WriteHeader(http.StatusOK)
 		return
 	}
@@ -547,50 +609,58 @@ func handleCrestProxy(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// B1. Protección contra Panic: Verificar error antes de StatusCode (FetchSecure encapsula esto)
 	resp, err := network.FetchSecure(targetURL)
 	if err != nil {
-		http.Error(w, "Error al obtener escudo", http.StatusBadGateway)
+		http.Error(w, "Error al obtener imagen", http.StatusServiceUnavailable)
 		return
 	}
 	defer resp.Body.Close()
 
+	// S6. Validación de Content-Type
 	contentType := resp.Header.Get("Content-Type")
 	if !strings.HasPrefix(contentType, "image/") {
-		http.Error(w, "Content type no permitido", http.StatusUnsupportedMediaType)
+		http.Error(w, "URL no es una imagen válida", http.StatusForbidden)
 		return
 	}
 
 	w.Header().Set("Content-Type", contentType)
-	w.Header().Set("Cache-Control", "public, max-age=604800")
+	w.Header().Set("Cache-Control", "public, max-age=604800") // 7 días
+
+	// Purgar selectivamente del cuerpo para guardar en disco
+	var body bytes.Buffer
+	tee := io.TeeReader(resp.Body, &body)
+	_, _ = io.Copy(w, tee)
 
 	if name != "" {
 		localPath := filepath.Join("static", "assets", "cache", name+ext)
-		_ = os.MkdirAll(filepath.Dir(localPath), 0755)
-		out, err := os.Create(localPath)
-		if err == nil {
-			multi := io.MultiWriter(w, out)
-			if _, err := io.Copy(multi, resp.Body); err != nil {
-				log.Printf("[PROXY] Error copiando a caché: %v", err)
-			}
-			out.Close()
-			return
+		if err := os.MkdirAll(filepath.Dir(localPath), 0755); err != nil {
+			log.Printf("[CACHE] Error creando directorio para crest %s: %v", name, err)
+		} else if err := os.WriteFile(localPath, body.Bytes(), 0644); err != nil {
+			log.Printf("[CACHE] Error guardando crest %s: %v", name, err)
 		}
 	}
-	if _, err := io.Copy(w, resp.Body); err != nil {
-		log.Printf("[PROXY] Error enviando respuesta: %v", err)
-	}
-}
-
-func handleHealth(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	fmt.Fprint(w, "OK")
 }
 
 var (
 	rateLimitMap = make(map[string]time.Time)
 	rateLimitMu  sync.Mutex
 )
+
+func init() {
+	go func() {
+		ticker := time.NewTicker(1 * time.Minute)
+		for range ticker.C {
+			rateLimitMu.Lock()
+			now := time.Now()
+			for k, v := range rateLimitMap {
+				if now.Sub(v) > 5*time.Minute {
+					delete(rateLimitMap, k)
+				}
+			}
+			rateLimitMu.Unlock()
+		}
+	}()
+}
 
 func rateLimit(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -607,15 +677,6 @@ func rateLimit(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 		rateLimitMap[ip] = time.Now()
-		// Limpieza selectiva de la caché si crece mucho
-		if len(rateLimitMap) > 1000 {
-			now := time.Now()
-			for k, v := range rateLimitMap {
-				if now.Sub(v) > 1*time.Second {
-					delete(rateLimitMap, k)
-				}
-			}
-		}
 		rateLimitMu.Unlock()
 
 		next.ServeHTTP(w, r)
@@ -656,4 +717,266 @@ func handleAutocompleteCities(w http.ResponseWriter, r *http.Request) {
 	}
 	// S2. Prevención XSS: Escapar contenido dinámico
 	fmt.Fprintf(w, "<option value=\"%s\">\n", template.HTMLEscapeString(name))
+}
+
+func handleHealth(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprint(w, "OK")
+}
+
+func handleF1Standings(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+	standings, err := sports.FetchF1Standings(r.Context())
+	if err != nil {
+		log.Printf("Error fetching F1 standings: %v", err)
+		http.Error(w, "Error obteniendo posiciones F1", http.StatusInternalServerError)
+		return
+	}
+
+	var buf bytes.Buffer
+	tmplsLock.RLock()
+	err = tmpls.ExecuteTemplate(&buf, "f1_standings.html", standings)
+	tmplsLock.RUnlock()
+	if err != nil {
+		log.Printf("Error renderizando F1 standings: %v", err)
+		http.Error(w, "Error interno del servidor", http.StatusInternalServerError)
+		return
+	}
+	w.Write(buf.Bytes())
+}
+
+type TeamStats struct {
+	Name     string
+	Logo     string
+	FlagURL  string // Para coincidir con la plantilla
+	PJ       int
+	Played   int // Para coincidir con la plantilla
+	G        int
+	E        int
+	P        int
+	GF       int
+	GC       int
+	GoalDiff int // Para coincidir con la plantilla
+	Pts      int
+	Points   int // Para coincidir con la plantilla
+	Rank     int
+}
+
+type GroupData struct {
+	Name    string
+	Round   string // Para coincidir con la plantilla en Brackets
+	Teams   []*TeamStats
+	Matches []sports.WorldCupMatch
+}
+
+type WorldCupViewData struct {
+	Groups   []*GroupData
+	Brackets []*GroupData
+}
+
+func handleWorldCupFixture(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+	data := sports.GetSportsData()
+
+	var groups []*GroupData
+	var brackets []*GroupData
+	bracketsMap := make(map[string]*GroupData)
+	var groupMatchesPool []sports.WorldCupMatch
+
+	// Traducciones de etapas para el Mundial
+	stageTranslations := map[string]string{
+		"Group Stage":      "Fase de Grupos",
+		"Round of 32":      "Dieciseisavos",
+		"Round of 16":      "Octavos de final",
+		"Quarter-finals":   "Cuartos de final",
+		"Semi-finals":      "Semifinales",
+		"Final":            "Final",
+		"Third Place Play-off": "Tercer Puesto",
+	}
+
+	for _, m := range data.WorldCup {
+		title := m.Stage
+		if t, ok := stageTranslations[title]; ok {
+			title = t
+		}
+		
+		if title == "Fase de Grupos" || m.Group == "Fase de Grupos" {
+			groupMatchesPool = append(groupMatchesPool, m)
+		} else {
+			g, ok := bracketsMap[title]
+			if !ok {
+				g = &GroupData{Name: title, Round: title, Matches: []sports.WorldCupMatch{m}}
+				bracketsMap[title] = g
+				brackets = append(brackets, g)
+			} else {
+				g.Matches = append(g.Matches, m)
+			}
+		}
+	}
+
+	// Procesar pool de grupos usando componentes conexos
+	if len(groupMatchesPool) > 0 {
+		adj := make(map[string]map[string]bool)
+		matchByTeam := make(map[string][]sports.WorldCupMatch)
+		for _, m := range groupMatchesPool {
+			if adj[m.Home] == nil { adj[m.Home] = make(map[string]bool) }
+			if adj[m.Away] == nil { adj[m.Away] = make(map[string]bool) }
+			adj[m.Home][m.Away] = true
+			adj[m.Away][m.Home] = true
+			matchByTeam[m.Home] = append(matchByTeam[m.Home], m)
+			matchByTeam[m.Away] = append(matchByTeam[m.Away], m)
+		}
+
+		visited := make(map[string]bool)
+		type tempGroup struct {
+			matches []sports.WorldCupMatch
+			firstID string
+			forcedName string
+		}
+		var inferredTGroups []tempGroup
+		
+		var allTeams []string
+		for t := range adj { allTeams = append(allTeams, t) }
+		sort.Strings(allTeams)
+
+		for _, t := range allTeams {
+			if !visited[t] {
+				comp := []string{}
+				q := []string{t}
+				visited[t] = true
+				for len(q) > 0 {
+					curr := q[0]; q = q[1:]
+					comp = append(comp, curr)
+					for neighbor := range adj[curr] {
+						if !visited[neighbor] {
+							visited[neighbor] = true
+							q = append(q, neighbor)
+						}
+					}
+				}
+				
+				mSet := make(map[string]sports.WorldCupMatch)
+				firstID := "9999999999"
+				forcedName := ""
+				for _, ct := range comp {
+					for _, m := range matchByTeam[ct] {
+						mSet[m.ID] = m
+						if m.ID < firstID { firstID = m.ID }
+						if strings.HasPrefix(strings.ToUpper(m.Stage), "GRUPO ") && forcedName == "" {
+							forcedName = m.Stage
+						}
+					}
+				}
+				var mList []sports.WorldCupMatch
+				for _, m := range mSet { mList = append(mList, m) }
+				sort.Slice(mList, func(i, j int) bool { return mList[i].ID < mList[j].ID })
+				inferredTGroups = append(inferredTGroups, tempGroup{matches: mList, firstID: firstID, forcedName: forcedName})
+			}
+		}
+		
+		// Ordenar grupos por cronología (ID del primer partido)
+		sort.Slice(inferredTGroups, func(i, j int) bool { return inferredTGroups[i].firstID < inferredTGroups[j].firstID })
+		
+		letters := []string{"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"}
+		usedLetters := make(map[string]bool)
+		
+		// Primero asignar nombres forzados si existen
+		for _, tg := range inferredTGroups {
+			if tg.forcedName != "" {
+				parts := strings.Fields(tg.forcedName)
+				if len(parts) >= 2 {
+					usedLetters[parts[len(parts)-1]] = true
+				}
+			}
+		}
+
+		nextLetterIdx := 0
+		for _, tg := range inferredTGroups {
+			name := tg.forcedName
+			if name == "" {
+				for nextLetterIdx < len(letters) && usedLetters[letters[nextLetterIdx]] {
+					nextLetterIdx++
+				}
+				letter := ""
+				if nextLetterIdx < len(letters) { 
+					letter = letters[nextLetterIdx]
+					usedLetters[letter] = true
+					nextLetterIdx++
+				} else {
+					letter = strconv.Itoa(nextLetterIdx + 1)
+					nextLetterIdx++
+				}
+				name = "GRUPO " + letter
+			}
+			
+			g := &GroupData{Name: name, Round: name, Matches: tg.matches}
+			groups = append(groups, g)
+		}
+	}
+
+	// Calcular estadísticas
+	for _, g := range groups {
+		for _, m := range g.Matches {
+			isLiveOrFinal := m.Status == "LIVE" || m.Status == "FINAL"
+			calculateStats(g, m.Home, m.HomeLogo, m.HomeScore, m.AwayScore, isLiveOrFinal)
+			calculateStats(g, m.Away, m.AwayLogo, m.AwayScore, m.HomeScore, isLiveOrFinal)
+		}
+		sort.Slice(g.Teams, func(i, j int) bool {
+			if g.Teams[i].Pts != g.Teams[j].Pts { return g.Teams[i].Pts > g.Teams[j].Pts }
+			diffI := g.Teams[i].GF - g.Teams[i].GC
+			diffJ := g.Teams[j].GF - g.Teams[j].GC
+			return diffI > diffJ
+		})
+		// Asignar Rank y campos extra después de ordenar
+		for i, t := range g.Teams {
+			t.Rank = i + 1
+			t.GoalDiff = t.GF - t.GC
+			t.Played = t.PJ
+			t.Points = t.Pts
+			t.FlagURL = t.Logo
+		}
+	}
+
+	viewData := WorldCupViewData{Groups: groups, Brackets: brackets}
+	var buf bytes.Buffer
+	tmplsLock.RLock()
+	err := tmpls.ExecuteTemplate(&buf, "worldcup.html", viewData)
+	tmplsLock.RUnlock()
+	if err != nil {
+		log.Printf("Error renderizando fixture mundial: %v", err)
+		http.Error(w, "Error renderizando", http.StatusInternalServerError)
+		return
+	}
+	w.Write(buf.Bytes())
+}
+
+func calculateStats(g *GroupData, teamName, teamLogo, scoreStr, oppScoreStr string, isLiveOrFinal bool) {
+	var stats *TeamStats
+	for _, t := range g.Teams {
+		if t.Name == teamName {
+			stats = t
+			break
+		}
+	}
+	if stats == nil {
+		stats = &TeamStats{Name: teamName, Logo: teamLogo}
+		g.Teams = append(g.Teams, stats)
+	}
+
+	if isLiveOrFinal {
+		s, _ := strconv.Atoi(scoreStr)
+		os, _ := strconv.Atoi(oppScoreStr)
+		stats.PJ++
+		stats.GF += s
+		stats.GC += os
+		if s > os {
+			stats.G++
+			stats.Pts += 3
+		} else if s == os {
+			stats.E++
+			stats.Pts += 1
+		} else {
+			stats.P++
+		}
+	}
 }

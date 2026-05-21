@@ -13,8 +13,10 @@ import (
 var (
 	cachedBTC       float64
 	cachedBTCChange float64
+	cachedBTCTrend  int
 	cachedETH       float64
 	cachedETHChange float64
+	cachedETHTrend  int
 	cryptoMutex     sync.RWMutex
 )
 
@@ -56,10 +58,24 @@ func UpdateCrypto(ctx context.Context) error {
 
 	cryptoMutex.Lock()
 	if err1 == nil && btcPrice > 0 {
+		if cachedBTC > 0 {
+			if btcPrice > cachedBTC {
+				cachedBTCTrend = 1
+			} else if btcPrice < cachedBTC {
+				cachedBTCTrend = -1
+			}
+		}
 		cachedBTC = btcPrice
 		cachedBTCChange = btcChange
 	}
 	if err2 == nil && ethPrice > 0 {
+		if cachedETH > 0 {
+			if ethPrice > cachedETH {
+				cachedETHTrend = 1
+			} else if ethPrice < cachedETH {
+				cachedETHTrend = -1
+			}
+		}
 		cachedETH = ethPrice
 		cachedETHChange = ethChange
 	}
@@ -73,6 +89,12 @@ func GetCachedBTC() float64 {
 	return cachedBTC
 }
 
+func GetCachedBTCTrend() int {
+	cryptoMutex.RLock()
+	defer cryptoMutex.RUnlock()
+	return cachedBTCTrend
+}
+
 func GetCachedBTCChange() float64 {
 	cryptoMutex.RLock()
 	defer cryptoMutex.RUnlock()
@@ -83,6 +105,12 @@ func GetCachedETH() float64 {
 	cryptoMutex.RLock()
 	defer cryptoMutex.RUnlock()
 	return cachedETH
+}
+
+func GetCachedETHTrend() int {
+	cryptoMutex.RLock()
+	defer cryptoMutex.RUnlock()
+	return cachedETHTrend
 }
 
 func GetCachedETHChange() float64 {

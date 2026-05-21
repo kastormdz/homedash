@@ -6,12 +6,13 @@ import (
 	"homedash/internal/common"
 	"homedash/internal/network"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
 
 var TeamMapping = map[string]string{
-	"boca": "boca", "river": "river", "racing": "racing", "independiente": "independiente",
+	"boca": "boca", "bocajuniors": "boca", "river": "river", "racing": "racing", "independiente": "independiente",
 	"sanlorenzo": "sanlorenzo", "talleres": "talleres", "instituto": "instituto", "godoycruz": "godoycruz",
 	"velez": "velez", "rosariocentral": "rosariocentral", "newells": "newells", "huracan": "huracan",
 	"defensayjusticia": "defensayjusticia", "estudiantes": "estudiantes", "lanus": "lanus", "banfield": "banfield",
@@ -99,14 +100,16 @@ func fetchLiveMatches(ctx context.Context, url string) []MatchData {
 			continue
 		}
 		comp := event.Competitions[0]
-		var home, away, hScore, aScore string
+		var home, away, hScore, aScore, homeLogo, awayLogo string
 		for _, c := range comp.Competitors {
 			if c.HomeAway == "home" {
 				home = c.Team.DisplayName
 				hScore = c.Score
+				homeLogo = c.Team.Logo
 			} else {
 				away = c.Team.DisplayName
 				aScore = c.Score
+				awayLogo = c.Team.Logo
 			}
 		}
 		status := "SCHEDULED"
@@ -116,9 +119,11 @@ func fetchLiveMatches(ctx context.Context, url string) []MatchData {
 			status = "FINAL"
 		}
 		dateStr, timeStr := "", ""
+		var rawDate time.Time
 		if t, err := parseToArgentina(event.Date); err == nil {
 			dateStr = common.DaysAbbr[t.Weekday()] + " " + t.Format("02/01")
 			timeStr = t.Format("15:04")
+			rawDate = t
 		}
 
 		channel := ""
@@ -162,8 +167,14 @@ func fetchLiveMatches(ctx context.Context, url string) []MatchData {
 		}
 
 		liveMatches = append(liveMatches, MatchData{
-			Team: home, Opponent: away, Date: dateStr, Time: timeStr, Tournament: tournamentName,
+			Team: home, Opponent: away, Date: dateStr, Time: timeStr, RawDate: rawDate, Tournament: tournamentName,
 			Stadium: comp.Venue.FullName, Channel: channel, HomeScore: hScore, AwayScore: aScore, Status: status, Clock: event.Status.DisplayClock,
+			HomeLogo:             homeLogo,
+			AwayLogo:             awayLogo,
+			NormalizedTeam:       common.NormalizeName(home),
+			NormalizedOpponent:   common.NormalizeName(away),
+			NormalizedTournament: strings.ToLower(tournamentName),
+			EventID:              event.ID,
 		})
 	}
 	return liveMatches
@@ -181,9 +192,8 @@ func GetSportsDataForUser(teamName string) UserSportsData {
 	lowestScore := 9999
 
 	for _, f := range all.AllMatches {
-		tName := common.NormalizeName(f.Team)
-		oName := common.NormalizeName(f.Opponent)
-		tourn := strings.ToLower(f.Tournament)
+		tName := f.NormalizedTeam
+		oName := f.NormalizedOpponent
 
 		matchTeam := false
 		if searchName == "independiente" {
@@ -205,18 +215,26 @@ func GetSportsDataForUser(teamName string) UserSportsData {
 		}
 
 		if matchTeam {
-			statusScore := 1000
+			// Scoring: LIVE (0) > HOY (10) > PROXIMOS (según fecha)
+			statusScore := 2000
 			if f.Status == "LIVE" {
 				statusScore = 0
-			} else if strings.Contains(f.Date, time.Now().Format("02/01")) {
-				statusScore = 10
+			} else if !f.RawDate.IsZero() {
+				diff := time.Until(f.RawDate)
+				if diff < 24*time.Hour && f.RawDate.Day() == time.Now().Day() {
+					statusScore = 10
+				} else if diff > 0 {
+					// Cada día suma 100 puntos, asegurando que lo más cercano gane
+					statusScore = 200 + int(diff.Hours()/24)*100
+				}
 			}
 
-			tournScore := 100
-			if strings.Contains(tourn, "liga profesional") || strings.Contains(tourn, "primera division") {
+			tournScore := 50
+			tourn := f.NormalizedTournament
+			if strings.Contains(tourn, "liga profesional") || strings.Contains(tourn, "primera division") || strings.Contains(tourn, "copa de la liga") {
 				tournScore = 0
 			} else if strings.Contains(tourn, "copa argentina") || strings.Contains(tourn, "libertadores") || strings.Contains(tourn, "sudamericana") {
-				tournScore = 50
+				tournScore = 20
 			}
 
 			totalScore := statusScore + tournScore
@@ -233,9 +251,18 @@ func GetSportsDataForUser(teamName string) UserSportsData {
 			Tournament: "Sin partidos agendados", Team: teamName, Opponent: "N/A", Date: "--/--", Time: "--:--", Stadium: "A confirmar", Status: "SCHEDULED",
 		}
 	} else {
+		// 1. Obtener escudos locales si existen
 		bestMatch.TeamCrest = GetCrestURL(bestMatch.Team)
 		bestMatch.OpponentCrest = GetCrestURL(bestMatch.Opponent)
+
+		// 2. Si es el escudo genérico (AFA) y tenemos el logo de ESPN, usar el de ESPN vía proxy
+		if bestMatch.TeamCrest == "/static/assets/crests/afa.png" && bestMatch.HomeLogo != "" {
+			bestMatch.TeamCrest = "/crest?url=" + url.QueryEscape(bestMatch.HomeLogo) + "&name=" + url.QueryEscape(bestMatch.NormalizedTeam)
+		}
+		if bestMatch.OpponentCrest == "/static/assets/crests/afa.png" && bestMatch.AwayLogo != "" {
+			bestMatch.OpponentCrest = "/crest?url=" + url.QueryEscape(bestMatch.AwayLogo) + "&name=" + url.QueryEscape(bestMatch.NormalizedOpponent)
+		}
 	}
 
-	return UserSportsData{Match: bestMatch, F1: all.F1, UFC: all.UFC}
+	return UserSportsData{Match: bestMatch, F1: all.F1, UFC: all.UFC, WorldCup: all.WorldCup}
 }

@@ -18,7 +18,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
     CGO_ENABLED=0 GOOS=linux go build \
     -ldflags="-s -w" \
-    -o /homedash ./cmd/main.go
+    -o /homedash ./cmd/
 
 ### STAGE 2: Producción (Imagen final)
 FROM gcr.io/distroless/static-debian12:nonroot

@@ -1,6 +1,7 @@
 package weather
 
 import (
+	"context"
 	"encoding/xml"
 	"fmt"
 	"homedash/internal/common"
@@ -12,14 +13,99 @@ import (
 )
 
 var (
-	alertCache     string
-	alertCacheTime time.Time
-	alertMutex     sync.RWMutex
-
-	// 8. Cache para alerta de Mendoza
+	alertCache            string
+	alertMutex            sync.RWMutex
 	mendozaAlertCache     WeatherAlert
 	mendozaAlertCacheTime time.Time
 )
+
+func StartAlertsLoop() {
+	go func() {
+		for {
+			ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+			ForceUpdateAlerts(ctx)
+			cancel()
+			time.Sleep(15 * time.Minute)
+		}
+	}()
+}
+
+func ForceUpdateAlerts(ctx context.Context) {
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		updateSMNAlerts(ctx)
+	}()
+
+	go func() {
+		defer wg.Done()
+		updateMendozaAlerts(ctx)
+	}()
+
+	wg.Wait()
+}
+
+func updateSMNAlerts(ctx context.Context) {
+	resp, err := network.FetchSecureWithContext(ctx, "https://ssl.smn.gob.ar/CAP/AR.php")
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+
+	var rss RSS
+	if err := xml.NewDecoder(resp.Body).Decode(&rss); err != nil {
+		return
+	}
+
+	var sb strings.Builder
+	items := rss.Channel.Items
+	for i := len(items) - 1; i >= 0; i-- {
+		item := items[i]
+		sb.WriteByte('[')
+		sb.WriteString(item.Title)
+		sb.WriteString("] ")
+		sb.WriteString(item.Description)
+		sb.WriteString(" {")
+		sb.WriteString(item.Link)
+		sb.WriteString("}|")
+	}
+
+	alertMutex.Lock()
+	alertCache = sb.String()
+	alertMutex.Unlock()
+}
+
+func updateMendozaAlerts(ctx context.Context) {
+	resp, err := network.FetchSecureWithContext(ctx, "https://www.contingencias.mendoza.gov.ar/web/pronostico.php")
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 512*1024))
+	if err != nil {
+		return
+	}
+	content := strings.ToLower(string(body))
+
+	var alert WeatherAlert
+	if strings.Contains(content, "alerta de granizo") || strings.Contains(content, "tormentas fuertes") {
+		alert = WeatherAlert{Text: "Alerta de Granizo (DACC)", Icon: "cloud-lightning"}
+	} else if strings.Contains(content, "viento zonda") || strings.Contains(content, "zonda en precordillera") {
+		alert = WeatherAlert{Text: "Alerta Viento Zonda (DACC)", Icon: "wind"}
+	} else if strings.Contains(content, "heladas parciales") || strings.Contains(content, "heladas generales") {
+		alert = WeatherAlert{Text: "Alerta de Heladas (DACC)", Icon: "thermometer-snowflake"}
+	} else {
+		alert = WeatherAlert{Text: "Sin alertas actuales", Icon: "triangle-alert"}
+	}
+
+	alertMutex.Lock()
+	mendozaAlertCache = alert
+	mendozaAlertCacheTime = time.Now()
+	alertMutex.Unlock()
+}
 
 type RSS struct {
 	Channel Channel `xml:"channel"`
@@ -46,106 +132,22 @@ func GetSMNAlert(province string, city string) WeatherAlert {
 		return defaultAlert
 	}
 
-	// 1. Prioridad: Mendoza (Contingencias Climáticas)
 	pNorm := normalizeProvince(province)
 	cNorm := normalizeProvince(city)
+
+	alertMutex.RLock()
+	defer alertMutex.RUnlock()
+
 	if pNorm == "mendoza" || cNorm == "mendoza" || cNorm == "godoy cruz" {
-		alert := getMendozaLocalAlert()
-		if alert.Text != "Sin alertas actuales" {
-			return alert
+		// Validar que la caché de Mendoza no sea viejísima por si falla el loop (ej > 2h)
+		if !mendozaAlertCacheTime.IsZero() && time.Since(mendozaAlertCacheTime) < 2*time.Hour {
+			if mendozaAlertCache.Text != "Sin alertas actuales" {
+				return mendozaAlertCache
+			}
 		}
 	}
 
-	// 2. Fallback: SMN
-	alertMutex.RLock()
-	if time.Since(alertCacheTime) < 30*time.Minute && alertCache != "" {
-		cached := findAlertInCache(province)
-		alertMutex.RUnlock()
-		return cached
-	}
-	alertMutex.RUnlock()
-
-	// Fetch new alerts from SMN
-	resp, err := network.FetchSecure("https://ssl.smn.gob.ar/CAP/AR.php")
-	if err != nil {
-		return WeatherAlert{Text: "Error SMN", Icon: "cloud-off"}
-	}
-	defer resp.Body.Close()
-
-	var rss RSS
-	if err := xml.NewDecoder(resp.Body).Decode(&rss); err != nil {
-		return WeatherAlert{Text: "Error Alertas", Icon: "cloud-off"}
-	}
-
-	alertMutex.Lock()
-	var sb strings.Builder
-	items := rss.Channel.Items
-	for i := len(items) - 1; i >= 0; i-- {
-		item := items[i]
-		sb.WriteByte('[')
-		sb.WriteString(item.Title)
-		sb.WriteString("] ")
-		sb.WriteString(item.Description)
-		sb.WriteString(" {")
-		sb.WriteString(item.Link)
-		sb.WriteString("}|")
-	}
-	alertCache = sb.String()
-	alertCacheTime = time.Now()
-	// RC2 Fix: Evaluar antes de liberar el lock para consistencia
-	cached := findAlertInCache(province)
-	alertMutex.Unlock()
-
-	return cached
-}
-
-func getMendozaLocalAlert() WeatherAlert {
-	// 8. Cache de 30 min para no golpear DACC en cada request
-	alertMutex.RLock()
-	if time.Since(mendozaAlertCacheTime) < 30*time.Minute && !mendozaAlertCacheTime.IsZero() {
-		result := mendozaAlertCache
-		alertMutex.RUnlock()
-		return result
-	}
-	alertMutex.RUnlock()
-
-	alertMutex.Lock()
-	defer alertMutex.Unlock()
-
-	// Double check
-	if time.Since(mendozaAlertCacheTime) < 30*time.Minute && !mendozaAlertCacheTime.IsZero() {
-		return mendozaAlertCache
-	}
-
-	resp, err := network.FetchSecure("https://www.contingencias.mendoza.gov.ar/web/pronostico.php")
-	if err != nil {
-		return WeatherAlert{Text: "Sin alertas actuales", Icon: "triangle-alert"}
-	}
-	defer resp.Body.Close()
-
-	// B-4-B: Limitar lectura a 512KB para evitar OOM
-	body, err := io.ReadAll(io.LimitReader(resp.Body, 512*1024))
-	if err != nil {
-		return WeatherAlert{Text: "Error leyendo alertas", Icon: "cloud-off"}
-	}
-	content := strings.ToLower(string(body))
-
-	var alert WeatherAlert
-	// Buscamos patrones de alerta comunes en Mendoza
-	if strings.Contains(content, "alerta de granizo") || strings.Contains(content, "tormentas fuertes") {
-		alert = WeatherAlert{Text: "Alerta de Granizo (DACC)", Icon: "cloud-lightning"}
-	} else if strings.Contains(content, "viento zonda") || strings.Contains(content, "zonda en precordillera") {
-		alert = WeatherAlert{Text: "Alerta Viento Zonda (DACC)", Icon: "wind"}
-	} else if strings.Contains(content, "heladas parciales") || strings.Contains(content, "heladas generales") {
-		alert = WeatherAlert{Text: "Alerta de Heladas (DACC)", Icon: "thermometer-snowflake"}
-	} else {
-		alert = WeatherAlert{Text: "Sin alertas actuales", Icon: "triangle-alert"}
-	}
-
-	mendozaAlertCache = alert
-	mendozaAlertCacheTime = time.Now()
-
-	return alert
+	return findAlertInCache(province)
 }
 
 func findAlertInCache(province string) WeatherAlert {

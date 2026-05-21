@@ -6,27 +6,38 @@ import (
 )
 
 type MatchData struct {
-	Team          string
-	Opponent      string
-	Date          string
-	Time          string
-	Tournament    string
-	Stadium       string
-	TeamCrest     string
-	OpponentCrest string
-	Channel       string
-	HomeScore     string
-	AwayScore     string
-	Status        string
-	Clock         string
+	Team                 string
+	Opponent             string
+	Date                 string
+	Time                 string
+	RawDate              time.Time // Para ordenamiento y scoring
+	Tournament           string
+	Stadium              string
+	TeamCrest            string
+	OpponentCrest        string
+	HomeLogo             string
+	AwayLogo             string
+	Channel              string
+	HomeScore            string
+	AwayScore            string
+	Status               string
+	Clock                string
+	NormalizedTeam       string
+	NormalizedOpponent   string
+	NormalizedTournament string
+	EventID              string // ID único del evento (ESPN)
+	WasRescheduled       bool
+	RescheduledNote      string // ej: "Antes: Lun 12/05 20:00"
 }
 
 type F1Session struct {
-	Name        string
-	Date        string
-	Time        string
-	WeatherIcon string
-	Passed      bool
+	Name            string
+	Date            string
+	Time            string
+	WeatherIcon     string
+	Passed          bool
+	WasRescheduled  bool
+	RescheduledNote string
 }
 
 type F1Race struct {
@@ -38,33 +49,91 @@ type F1Race struct {
 	Sessions  []F1Session
 }
 
+type F1DriverStanding struct {
+	Pos      string
+	Driver   string
+	Team     string
+	Points   string
+	Wins     string
+}
+
+type F1ConstructorStanding struct {
+	Pos    string
+	Team   string
+	Points string
+	Wins   string
+}
+
+type F1Standings struct {
+	Drivers      []F1DriverStanding
+	Constructors []F1ConstructorStanding
+}
+
+type UFCFight struct {
+	P1     string
+	P2     string
+	Winner int    // 1 para P1, 2 para P2, 0 si no hay ganador
+	Status string // "EN VIVO", "FINAL", etc.
+}
+
 type UFCMatch struct {
-	EventName   string
-	Date        string
-	Time        string
-	Status      string
-	MainCard    []string
-	P1Headshot  string
-	P2Headshot  string
+	EventName       string
+	Date            string
+	Time            string
+	Venue           string
+	Status          string
+	Fights          []UFCFight
+	P1Headshot      string
+	P2Headshot      string
+	WasRescheduled  bool
+	RescheduledNote string
+}
+
+type WorldCupMatch struct {
+	ID              string
+	Date            string
+	Time            string
+	Home            string
+	Away            string
+	HomeScore       string
+	AwayScore       string
+	HomeLogo        string
+	AwayLogo        string
+	Status          string
+	Stage           string
+	Group           string
+	VenueCity       string
+	VenueCountry    string
+	Tournament      string
+	WasRescheduled  bool
+	RescheduledNote string
 }
 
 type SportsData struct {
 	AllMatches []MatchData
 	F1         F1Race
 	UFC        UFCMatch
+	WorldCup   []WorldCupMatch
 }
 
 type UserSportsData struct {
-	Match MatchData
-	F1    F1Race
-	UFC   UFCMatch
+	Match    MatchData
+	F1       F1Race
+	UFC      UFCMatch
+	WorldCup []WorldCupMatch
 }
 
 type ESPNEvent struct {
+	ID        string `json:"id"`
 	Name      string `json:"name"`
 	ShortName string `json:"shortName"`
 	Date      string `json:"date"`
-	Status    struct {
+	Season    struct {
+		Year int    `json:"year"`
+		Type int    `json:"type"`
+		Slug string `json:"slug"`
+	} `json:"season"`
+	Status struct {
 		Type struct {
 			State string `json:"state"`
 		} `json:"type"`
@@ -73,6 +142,10 @@ type ESPNEvent struct {
 	Competitions []struct {
 		Venue struct {
 			FullName string `json:"fullName"`
+			Address  struct {
+				City    string `json:"city"`
+				Country string `json:"country"`
+			} `json:"address"`
 		} `json:"venue"`
 		Notes []struct {
 			Text string `json:"text"`
@@ -83,11 +156,13 @@ type ESPNEvent struct {
 			} `json:"type"`
 		} `json:"status"`
 		Competitors []struct {
-			ID       string   `json:"id"`
-			HomeAway string   `json:"homeAway"`
-			Score    string   `json:"score"`
+			ID       string `json:"id"`
+			HomeAway string `json:"homeAway"`
+			Score    string `json:"score"`
+			Winner   bool   `json:"winner"`
 			Team     struct {
 				DisplayName string `json:"displayName"`
+				Logo        string `json:"logo"`
 			} `json:"team"`
 			Athlete struct {
 				DisplayName string `json:"displayName"`
