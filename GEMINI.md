@@ -203,3 +203,17 @@ Rules:
 - If graphify-out/wiki/index.md exists, navigate it instead of reading raw files
 - For cross-module "how does X relate to Y" questions, prefer `graphify query "<question>"`, `graphify path "<A>" "<B>"`, or `graphify explain "<concept>"` over grep — these traverse the graph's EXTRACTED + INFERRED edges instead of scanning files
 - After modifying code files in this session, run `graphify update .` to keep the graph current (AST-only, no API cost)
+
+## Deploy
+
+Production server: `cronix.com.ar` via SSH on port 4370.
+
+From the project root:
+
+```bash
+# Sync files to server
+rsync -avz --exclude '.git' --exclude 'homedash' -e "ssh -p 4370" . kastor@cronix.com.ar:/home/samba/docker/homedash
+
+# Rebuild container
+ssh -p 4370 kastor@cronix.com.ar "cd /home/samba/docker/homedash && docker compose up --build -d"
+```
