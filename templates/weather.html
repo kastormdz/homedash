@@ -29,18 +29,15 @@
                 <h2 class="term-card-header text-[11px] font-black uppercase tracking-[0.15em] flex items-center mb-2">
                     <i data-lucide="map-pin" class="w-3.5 h-3.5 mr-2"></i> {{.City}}
                 </h2>
-                {{if .IsAvailable}}
-                <div class="fluid-temp font-extrabold tracking-tighter text-base-content leading-none term-temp-glow">{{printf "%.1f" .Current.Temperature}}<span class="text-primary">°C</span></div>
-                {{else}}
-                <div class="fluid-temp font-extrabold tracking-tighter text-base-content/30 leading-none">--.-<span class="text-primary/30">°</span></div>
-                <div class="text-[11px] font-black text-error uppercase tracking-widest mt-1">Clima no disponible</div>
+                {{if not .IsAvailable}}
+                <div class="text-[11px] font-black text-error uppercase tracking-widest">Clima no disponible</div>
                 {{end}}
             </div>
             <div class="shrink-0">
                 {{$code := .Current.WeatherCode}}
                 {{$icon := "01d"}}
                 {{if eq $code 0}}{{$icon = "01d"}}{{else if le $code 3}}{{$icon = "02d"}}{{else if le $code 48}}{{$icon = "50d"}}{{else if le $code 67}}{{$icon = "10d"}}{{else if le $code 77}}{{$icon = "13d"}}{{else}}{{$icon = "11d"}}{{end}}
-                <img src="https://openweathermap.org/img/wn/{{$icon}}@4x.png" class="w-16 h-16 md:w-20 md:h-20" alt="Clima actual">
+                <img src="https://openweathermap.org/img/wn/{{$icon}}@4x.png" class="w-10 h-10 md:w-12 md:h-12" alt="Clima actual">
             </div>
         </div>
 
