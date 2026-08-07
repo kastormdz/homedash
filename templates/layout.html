@@ -589,6 +589,7 @@
         </div>
     </noscript>
 
+    {{if eq .Theme "terminal"}}
     <!-- Prompt terminal (solo visible con data-theme="terminal" en /test) -->
     <div class="terminal-prompt-bar hidden">
         <span class="t-user">homedash</span><span class="t-at">@</span><span class="t-host">cronix</span><span class="t-at">:~</span><span class="t-path">$</span><span class="t-cmd">uptime --dashboard</span><span class="t-caret"></span>
@@ -652,6 +653,7 @@
             </div>
         </div>
     </div>
+    {{end}}
 
     {{template "content" .}}
 
