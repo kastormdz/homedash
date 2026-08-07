@@ -331,6 +331,12 @@ func handleIndex(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	http.SetCookie(w, &http.Cookie{
+		Name:   "hd_theme",
+		Value:  "",
+		Path:   "/",
+		MaxAge: -1,
+	})
 	w.Write(buf.Bytes())
 }
 
@@ -375,6 +381,11 @@ func handleTest(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	http.SetCookie(w, &http.Cookie{
+		Name:  "hd_theme",
+		Value: "terminal",
+		Path:  "/",
+	})
 	w.Write(buf.Bytes())
 }
 
@@ -386,6 +397,7 @@ type WeatherViewModel struct {
 	NextMatch     sports.UserSportsData
 	TodayHoliday  *holidays.Holiday
 	City          string
+	Theme         string
 	ShowF1        bool
 	ShowFootball  bool
 	ShowUFC       bool
@@ -455,6 +467,11 @@ func handleWeather(w http.ResponseWriter, r *http.Request) {
 
 	finData := finance.GetCachedFinance()
 
+	viewTheme := settings.Theme
+	if c, errC := r.Cookie("hd_theme"); errC == nil && c.Value == "terminal" {
+		viewTheme = "terminal"
+	}
+
 	viewModel := WeatherViewModel{
 		Current:       current,
 		Forecast:      forecast,
@@ -462,6 +479,7 @@ func handleWeather(w http.ResponseWriter, r *http.Request) {
 		Sunset:        sunset,
 		NextMatch:     sports.GetSportsDataForUser(settings.Team),
 		City:          settings.City,
+		Theme:         viewTheme,
 		ShowF1:        settings.ShowF1,
 		ShowFootball:  settings.ShowFootball,
 		ShowUFC:       settings.ShowUFC,
