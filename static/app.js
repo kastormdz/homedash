@@ -11,6 +11,19 @@ window.tailwind.config = {
                     "accent": "#ff0000",
                     "--rounded-box": "2.5rem",
                     "--rounded-btn": "9999px"
+                },
+                "terminal": {
+                    "primary": "#10b981",
+                    "base-100": "#050505",
+                    "base-200": "#0a0a0a",
+                    "base-300": "#1a1a1a",
+                    "base-content": "#d1d5db",
+                    "neutral": "#1a1a1a",
+                    "error": "#ef4444",
+                    "warning": "#f59e0b",
+                    "accent": "#22d3ee",
+                    "--rounded-box": "0.25rem",
+                    "--rounded-btn": "0.25rem"
                 }
             }
         ]

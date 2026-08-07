@@ -23,7 +23,7 @@
                 <div class="w-10 h-10 border border-base-content/20 flex items-center justify-center text-base-content font-black text-sm font-mono">
                     {{$letter}}
                 </div>
-                <h3 class="text-lg font-black text-base-content uppercase tracking-tighter">Grupo {{$letter}}</h3>
+                <h3 class="term-card-header text-lg font-black text-base-content uppercase tracking-tighter">Grupo {{$letter}}</h3>
             </div>
             {{if .Matches}}
                 {{$firstVenue := (index .Matches 0).VenueCountry}}
