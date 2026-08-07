@@ -12,7 +12,8 @@ services:
     volumes:
       # Permite editar plantillas en caliente sin rebuild
       - ./templates:/app/templates
-      # Persistencia SOLO de la caché de escudos dinámica
+      # Persistencia de la caché de deportes y la caché de escudos dinámica
+      - ./data:/app/data
       - ./static/assets/cache:/app/static/assets/cache
     restart: unless-stopped
     # D-C. Drop all capabilities

@@ -30,6 +30,12 @@ function toggleFixtureModal() {
         modal.classList.toggle('active');
     }
 }
+function togglePartidosModal() {
+    const modal = document.getElementById('partidos-modal');
+    if (modal) {
+        modal.classList.toggle('active');
+    }
+}
 function toggleF1Modal() {
     const modal = document.getElementById('f1-modal');
     if (modal) {

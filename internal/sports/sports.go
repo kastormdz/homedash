@@ -104,6 +104,16 @@ func ForceUpdate(ctx context.Context) error {
 	cacheMutex.Lock()
 	oldData := cachedData
 	detectReschedules(&newData, oldData)
+	// Proteger datos de fútbol: si ESPN no devolvió partidos pero ya teníamos una cache válida, conservarla.
+	// Evita que un bloqueo/rate-limit temporal de ESPN borre los partidos del día.
+	if len(newData.AllMatches) == 0 && len(oldData.AllMatches) > 0 {
+		newData.AllMatches = oldData.AllMatches
+		log.Printf("[SPORTS] ESPN sin partidos, conservando %d partidos de la cache anterior", len(oldData.AllMatches))
+	}
+	if len(newData.WorldCup) == 0 && len(oldData.WorldCup) > 0 {
+		newData.WorldCup = oldData.WorldCup
+		log.Printf("[SPORTS] ESPN sin mundial, conservando %d partidos de la cache anterior", len(oldData.WorldCup))
+	}
 	cachedData = newData
 	cacheMutex.Unlock()
 
@@ -242,12 +252,12 @@ func fetchFreshSportsData(ctx context.Context) SportsData {
 	dateRange := now.Format("20060102") + "-" + later.Format("20060102")
 
 	urls := []string{
-		"https://site.api.espn.com/apis/site/v2/sports/soccer/arg.1/scoreboard?lang=es&region=ar&limit=50&dates=" + dateRange,
-		"https://site.api.espn.com/apis/site/v2/sports/soccer/arg.2/scoreboard?lang=es&region=ar&limit=50&dates=" + dateRange,
-		"https://site.api.espn.com/apis/site/v2/sports/soccer/arg.copa/scoreboard?lang=es&region=ar&limit=50&dates=" + dateRange,
-		"https://site.api.espn.com/apis/site/v2/sports/soccer/arg.copa_lpf/scoreboard?lang=es&region=ar&limit=50&dates=" + dateRange,
-		"https://site.api.espn.com/apis/site/v2/sports/soccer/conmebol.libertadores/scoreboard?lang=es&region=ar&limit=50&dates=" + dateRange,
-		"https://site.api.espn.com/apis/site/v2/sports/soccer/conmebol.sudamericana/scoreboard?lang=es&region=ar&limit=50&dates=" + dateRange,
+		"https://site.web.api.espn.com/apis/site/v2/sports/soccer/arg.1/scoreboard?lang=es&region=ar&limit=50&dates=" + dateRange,
+		"https://site.web.api.espn.com/apis/site/v2/sports/soccer/arg.2/scoreboard?lang=es&region=ar&limit=50&dates=" + dateRange,
+		"https://site.web.api.espn.com/apis/site/v2/sports/soccer/arg.copa/scoreboard?lang=es&region=ar&limit=50&dates=" + dateRange,
+		"https://site.web.api.espn.com/apis/site/v2/sports/soccer/arg.copa_lpf/scoreboard?lang=es&region=ar&limit=50&dates=" + dateRange,
+		"https://site.web.api.espn.com/apis/site/v2/sports/soccer/conmebol.libertadores/scoreboard?lang=es&region=ar&limit=50&dates=" + dateRange,
+		"https://site.web.api.espn.com/apis/site/v2/sports/soccer/conmebol.sudamericana/scoreboard?lang=es&region=ar&limit=50&dates=" + dateRange,
 	}
 
 	var mu sync.Mutex
