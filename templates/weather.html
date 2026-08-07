@@ -37,7 +37,7 @@
             {{$icon := "01d"}}
             {{if eq $code 0}}{{$icon = "01d"}}{{else if le $code 3}}{{$icon = "02d"}}{{else if le $code 48}}{{$icon = "50d"}}{{else if le $code 67}}{{$icon = "10d"}}{{else if le $code 77}}{{$icon = "13d"}}{{else}}{{$icon = "11d"}}{{end}}
             <img src="https://openweathermap.org/img/wn/{{$icon}}@4x.png" 
-                 class="w-16 h-16 md:w-20 md:h-20 filter grayscale brightness-150" alt="Clima actual">
+                 class="w-16 h-16 md:w-20 md:h-20" alt="Clima actual">
         </div>
     </div>
     
@@ -124,8 +124,8 @@
                     </div>
                 </div>
                 <div class="flex items-center space-x-2 shrink-0 ml-2">
-                    <img src="{{.NextMatch.Match.TeamCrest}}" class="w-10 h-10 object-contain grayscale brightness-125" alt="Escudo Local" loading="lazy">
-                    <img src="{{.NextMatch.Match.OpponentCrest}}" class="w-10 h-10 object-contain grayscale brightness-125" alt="Escudo Visitante" loading="lazy">
+                    <img src="{{.NextMatch.Match.TeamCrest}}" class="w-10 h-10 object-contain" alt="Escudo Local" loading="lazy">
+                    <img src="{{.NextMatch.Match.OpponentCrest}}" class="w-10 h-10 object-contain" alt="Escudo Visitante" loading="lazy">
                 </div>
             </div>
         </div>
@@ -137,20 +137,20 @@
     <div class="bg-white/5 rounded-xl p-3 md:p-4 border border-white/5 flex flex-col justify-start flex-1 overflow-visible">
         <div class="flex items-center justify-between mb-3 min-w-0 space-x-4 border-b border-white/5 pb-2">
             <div class="flex items-center space-x-3 shrink-0">
-                <img src="/static/assets/logos/f1.svg" class="h-12 w-auto filter grayscale brightness-200" alt="F1 Logo">
+                <img src="/static/assets/logos/f1.svg" class="h-12 w-auto" alt="F1 Logo">
                 <button hx-get="/f1-standings" hx-target="#f1-content" onclick="toggleF1Modal()" class="text-[10px] font-black text-error hover:text-white uppercase tracking-widest bg-error/10 px-2 py-0.5 rounded border border-error/20 transition-all flex items-center">
                     POSICIONES
                 </button>
             </div>
             <div class="flex items-center space-x-4 min-w-0 overflow-hidden flex-1 justify-end">
-                <img src="{{.NextMatch.F1.FlagURL}}" class="h-5 w-auto grayscale opacity-50" alt="Bandera" loading="lazy">
-                <img src="{{.NextMatch.F1.PosterURL}}" class="h-14 w-auto object-contain grayscale brightness-150 f1-circuit-layout" alt="Circuito" loading="lazy">
+                <img src="{{.NextMatch.F1.FlagURL}}" class="h-5 w-auto" alt="Bandera" loading="lazy">
+                <img src="{{.NextMatch.F1.PosterURL}}" class="h-14 w-auto object-contain f1-circuit-layout" alt="Circuito" loading="lazy">
                 <div class="text-base-content text-sm md:text-xl font-black uppercase tracking-tight w-full text-right truncate">{{.NextMatch.F1.GrandPrix}}</div>
             </div>
         </div>
         <div class="grid grid-cols-3 md:flex md:flex-nowrap md:justify-center gap-2">
             {{range .NextMatch.F1.Sessions}}
-            <div class="bg-white/5 rounded p-2 flex flex-col items-center justify-center hover:bg-error/20 transition-all relative {{if .Passed}}grayscale opacity-30{{end}} md:min-w-[80px] md:flex-1">
+            <div class="bg-white/5 rounded p-2 flex flex-col items-center justify-center hover:bg-error/20 transition-all relative {{if .Passed}}opacity-40{{end}} md:min-w-[80px] md:flex-1">
                 <div class="text-xs font-black text-error uppercase tracking-widest mb-1">{{.Name}}</div>
                 <i data-lucide="{{.WeatherIcon}}" class="w-4 h-4 text-primary mb-1"></i>
                 <div class="text-sm font-black text-base-content leading-none font-mono">{{.Time}}</div>
@@ -187,7 +187,7 @@
                 {{$code := .Code}}
                 {{$icon := "01d"}}
                 {{if eq $code 0}}{{$icon = "01d"}}{{else if le $code 3}}{{$icon = "02d"}}{{else if le $code 48}}{{$icon = "50d"}}{{else if le $code 67}}{{$icon = "10d"}}{{else if le $code 77}}{{$icon = "13d"}}{{else}}{{$icon = "11d"}}{{end}}
-                <img src="https://openweathermap.org/img/wn/{{$icon}}@2x.png" class="w-8 h-8 grayscale brightness-150" alt="Día pronosticado" loading="lazy">
+                <img src="https://openweathermap.org/img/wn/{{$icon}}@2x.png" class="w-8 h-8" alt="Día pronosticado" loading="lazy">
                 <div class="flex flex-col items-center mt-1">
                     <span class="text-base-content font-black text-xs leading-none">{{.Max}}°</span>
                     <span class="text-base-content/30 font-bold text-[10px]">{{.Min}}°</span>
@@ -198,32 +198,32 @@
 
         <div class="grid grid-cols-3 md:grid-cols-6 gap-2 bg-white/5 p-3 rounded-xl border border-white/10">
             <div class="flex flex-col items-center">
-                <i data-lucide="droplets" class="w-4 h-4 text-primary mb-1 opacity-60"></i>
+                <i data-lucide="droplets" class="w-4 h-4 text-primary mb-1"></i>
                 <span class="text-[10px] text-base-content/40 font-black uppercase mb-1">HUM.</span>
                 <span class="text-sm font-black text-base-content">{{.Current.Humidity}}%</span>
             </div>
             <div class="flex flex-col items-center">
-                <i data-lucide="wind" class="w-4 h-4 text-primary mb-1 opacity-60"></i>
+                <i data-lucide="wind" class="w-4 h-4 text-primary mb-1"></i>
                 <span class="text-[10px] text-base-content/40 font-black uppercase mb-1">VIENTO</span>
                 <span class="text-sm font-black text-base-content">{{.Current.WindSpeed}} <span class="text-[10px] opacity-40">km/h</span></span>
             </div>
             <div class="flex flex-col items-center">
-                <i data-lucide="cloud-rain" class="w-4 h-4 text-primary mb-1 opacity-60"></i>
+                <i data-lucide="cloud-rain" class="w-4 h-4 text-primary mb-1"></i>
                 <span class="text-[10px] text-base-content/40 font-black uppercase mb-1">LLUVIA</span>
                 <span class="text-sm font-black {{if gt .RainProb 50}}text-primary{{else}}text-base-content{{end}}">{{.RainProb}}%</span>
             </div>
             <div class="flex flex-col items-center">
-                <i data-lucide="sun" class="w-4 h-4 text-primary mb-1 opacity-60"></i>
+                <i data-lucide="sun" class="w-4 h-4 text-primary mb-1"></i>
                 <span class="text-[10px] text-base-content/40 font-black uppercase mb-1">UV</span>
                 <span class="text-sm font-black {{if gt .Current.UVIndex 8.0}}text-error{{else}}text-base-content{{end}}">{{.Current.UVIndex}}</span>
             </div>
             <div class="flex flex-col items-center">
-                <i data-lucide="leaf" class="w-4 h-4 text-primary mb-1 opacity-60"></i>
+                <i data-lucide="leaf" class="w-4 h-4 text-primary mb-1"></i>
                 <span class="text-[10px] text-base-content/40 font-black uppercase mb-1">AIRE</span>
                 <span class="text-sm font-black text-base-content">{{.AQI}}</span>
             </div>
             <div class="flex flex-col items-center">
-                <i data-lucide="{{.MoonIcon}}" class="w-4 h-4 text-primary mb-1 opacity-60"></i>
+                <i data-lucide="{{.MoonIcon}}" class="w-4 h-4 text-primary mb-1"></i>
                 <span class="text-[10px] text-base-content/40 font-black uppercase mb-1">LUNA</span>
                 <span class="text-sm font-black text-base-content truncate w-full text-center">{{.MoonPhaseName}}</span>
             </div>
@@ -235,11 +235,11 @@
     <div class="{{if not .ShowFinance}}lg:col-span-6{{else}}lg:col-span-3{{end}} bg-base-200 rounded-2xl p-5 border border-base-300 flex flex-col min-h-[220px] overflow-hidden text-base-content">
         <div class="flex items-center justify-between mb-4 shrink-0">
             <div class="flex items-center space-x-4">
-                <img src="/static/assets/logos/ufc.svg" class="h-12 md:h-14 w-auto filter grayscale brightness-200" alt="UFC Logo">
+                <img src="/static/assets/logos/ufc.svg" class="h-12 md:h-14 w-auto" alt="UFC Logo">
                 {{if .NextMatch.UFC.P1Headshot}}
                 <div class="flex -space-x-3 ml-2">
-                    <img src="{{.NextMatch.UFC.P1Headshot}}" class="w-12 h-12 rounded-full border border-error grayscale" alt="P1" loading="lazy">
-                    <img src="{{.NextMatch.UFC.P2Headshot}}" class="w-12 h-12 rounded-full border border-error grayscale" alt="P2" loading="lazy">
+                    <img src="{{.NextMatch.UFC.P1Headshot}}" class="w-12 h-12 rounded-full border border-error" alt="P1" loading="lazy">
+                    <img src="{{.NextMatch.UFC.P2Headshot}}" class="w-12 h-12 rounded-full border border-error" alt="P2" loading="lazy">
                 </div>
                 {{end}}
             </div>
