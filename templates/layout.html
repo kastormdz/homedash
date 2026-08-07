@@ -639,11 +639,6 @@
                     <img src="https://openweathermap.org/img/wn/{{$ticon}}@2x.png" class="w-9 h-9" alt="Clima actual" loading="lazy">
                 </div>
                 {{end}}
-                <div class="term-status-line">
-                    <span class="term-ok">[OK] servicios</span>
-                    <span class="term-sep">·</span>
-                    <span class="term-ok">[OK] sync</span>
-                </div>
                 {{if .UpcomingHolidays}}
                 {{range $i, $h := .UpcomingHolidays}}{{if eq $i 0}}
                 <div class="term-feriado-badge">
