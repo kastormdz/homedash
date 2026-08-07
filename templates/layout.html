@@ -392,6 +392,10 @@
         [data-theme="terminal"] .term-header #clock {
             font-size: clamp(1.6rem, 4vw, 2.6rem) !important;
         }
+        [data-theme="terminal"] .term-header .term-temp-glow {
+            font-size: clamp(1.6rem, 4vw, 2.6rem) !important;
+            line-height: 1 !important;
+        }
         [data-theme="terminal"] .term-status-line {
             font-family: 'JetBrains Mono', monospace !important;
             font-size: 11px !important;
@@ -623,6 +627,18 @@
                 <p id="date" class="text-primary text-xs md:text-sm font-bold mt-1 capitalize"></p>
             </div>
             <div class="flex flex-col items-end gap-2 min-w-0">
+                {{if .WeatherAvailable}}
+                <div class="flex items-center gap-3 shrink-0">
+                    <div class="text-right">
+                        <div class="fluid-temp font-extrabold tracking-tighter leading-none term-temp-glow">{{printf "%.1f" .CurrentTemp}}<span class="text-primary text-2xl">°C</span></div>
+                        <div class="text-[10px] font-black text-base-content/50 uppercase tracking-[0.2em] mt-0.5">{{.City}}</div>
+                    </div>
+                    {{$tcode := .WeatherCode}}
+                    {{$ticon := "01d"}}
+                    {{if eq $tcode 0}}{{$ticon = "01d"}}{{else if le $tcode 3}}{{$ticon = "02d"}}{{else if le $tcode 48}}{{$ticon = "50d"}}{{else if le $tcode 67}}{{$ticon = "10d"}}{{else if le $tcode 77}}{{$ticon = "13d"}}{{else}}{{$ticon = "11d"}}{{end}}
+                    <img src="https://openweathermap.org/img/wn/{{$ticon}}@2x.png" class="w-9 h-9" alt="Clima actual" loading="lazy">
+                </div>
+                {{end}}
                 <div class="term-status-line">
                     <span class="term-ok">[OK] servicios</span>
                     <span class="term-sep">·</span>

@@ -348,6 +348,9 @@ func handleTest(w http.ResponseWriter, r *http.Request) {
 		Theme            string
 		City             string
 		Team             string
+		CurrentTemp      float64
+		WeatherAvailable bool
+		WeatherCode      int
 	}{
 		Holiday:          holidays.GetHolidayToday(now),
 		UpcomingHolidays: holidays.GetUpcomingHolidays(now),
@@ -358,6 +361,11 @@ func handleTest(w http.ResponseWriter, r *http.Request) {
 		Theme:            "terminal", // FORZAR TEMA TERMINAL (entorno de test /test)
 		City:             settings.City,
 		Team:             settings.Team,
+	}
+	if wData, errW := weather.GetWeather(r.Context(), settings.Lat, settings.Lon); errW == nil {
+		data.CurrentTemp = wData.Current.Temperature
+		data.WeatherCode = wData.Current.WeatherCode
+		data.WeatherAvailable = true
 	}
 	var buf bytes.Buffer
 	tmplsLock.RLock()
