@@ -3,8 +3,159 @@
 {{$hasStrongQuake := false}}
 {{range .Earthquakes}}{{if and .IsNew (ge .Magnitude "4.5")}}{{$hasStrongQuake = true}}{{end}}{{end}}
 
-<!-- ============ FILA 1: CLIMA + SISMOS ============ -->
+<!-- ============ FILA 1: FÚTBOL + F1 + UFC ============ -->
 <div class="lg:col-span-12 grid grid-cols-1 lg:grid-cols-12 gap-3">
+
+    <!-- FÚTBOL -->
+    {{if .ShowFootball}}
+    <div class="lg:col-span-3 term-card flex flex-col min-h-[260px] text-base-content">
+        <div class="flex items-center justify-between mb-3">
+            <div class="term-card-header text-[11px] font-black uppercase tracking-[0.15em] flex items-center">
+                <i data-lucide="trophy" class="w-4 h-4 mr-2"></i> FÚTBOL
+            </div>
+            <button hx-get="/partidos-del-dia" hx-target="#partidos-content" hx-swap="innerHTML" onclick="togglePartidosModal()" class="term-btn text-[10px] font-black text-amber-400 hover:text-white uppercase tracking-widest bg-white/5 px-2 py-0.5 rounded border border-white/10 transition-all flex items-center">
+                <i data-lucide="calendar-days" class="w-3 h-3 mr-1"></i> PARTIDOS DEL DÍA
+            </button>
+        </div>
+
+        <div class="flex-1 flex flex-col justify-center">
+            <div class="flex items-start justify-between gap-2 mb-2">
+                <div class="text-sm md:text-base font-black text-base-content uppercase tracking-tight leading-tight truncate">
+                    {{.NextMatch.Match.Team}} <span class="text-primary text-xs">VS</span> {{.NextMatch.Match.Opponent}}
+                </div>
+                {{if or (eq .NextMatch.Match.Status "LIVE") (eq .NextMatch.Match.Status "FINAL")}}
+                <div class="flex items-center space-x-2 bg-white/5 px-2 py-1 rounded border border-white/10 shrink-0">
+                    <span class="text-lg font-black text-base-content tabular-nums leading-none">{{.NextMatch.Match.HomeScore}}</span>
+                    <span class="text-primary font-black text-sm">:</span>
+                    <span class="text-lg font-black text-base-content tabular-nums leading-none">{{.NextMatch.Match.AwayScore}}</span>
+                </div>
+                {{end}}
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2 mb-2">
+                {{if eq .NextMatch.Match.Status "LIVE"}}
+                <span class="term-live flex items-center text-error text-[10px] font-black px-2 py-0.5 border border-error/30">
+                    <span class="w-1.5 h-1.5 bg-red-600 rounded-full mr-1.5"></span> LIVE {{.NextMatch.Match.Clock}}
+                </span>
+                {{end}}
+                <span class="text-[10px] text-primary font-black uppercase tracking-widest truncate">{{.NextMatch.Match.Tournament}}</span>
+            </div>
+
+            <div class="flex items-center justify-between">
+                <div class="flex flex-col space-y-1 min-w-0">
+                    <div class="flex items-center space-x-2 truncate">
+                        <span class="text-xs font-black text-cyan-300 tracking-tight whitespace-nowrap tabular-nums">{{.NextMatch.Match.Date}} • {{.NextMatch.Match.Time}}</span>
+                        {{if .NextMatch.Match.WasRescheduled}}
+                        <span class="text-[10px] text-amber-400 border border-amber-400/30 px-2 py-0.5 rounded font-black uppercase tracking-widest truncate" title="{{.NextMatch.Match.RescheduledNote}}">
+                            <i data-lucide="clock-alert" class="w-3 h-3 inline mr-1"></i>REPROG
+                        </span>
+                        {{end}}
+                        {{if .NextMatch.Match.Channel}}
+                        <span class="text-[10px] text-base-content/60 border border-white/10 px-2 py-0.5 rounded font-black uppercase tracking-widest truncate">
+                            {{.NextMatch.Match.Channel}}
+                        </span>
+                        {{end}}
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2 shrink-0 ml-2">
+                    <img src="{{.NextMatch.Match.TeamCrest}}" class="w-9 h-9 object-contain" alt="Escudo Local" loading="lazy">
+                    <img src="{{.NextMatch.Match.OpponentCrest}}" class="w-9 h-9 object-contain" alt="Escudo Visitante" loading="lazy">
+                </div>
+            </div>
+        </div>
+    </div>
+    {{end}}
+
+    <!-- F1 -->
+    {{if .ShowF1}}
+    <div class="lg:col-span-6 term-card flex flex-col min-h-[260px] text-base-content">
+        <div class="flex items-center justify-between mb-3 border-b border-white/5 pb-2">
+            <div class="flex items-center space-x-3 shrink-0">
+                <img src="/static/assets/logos/f1.svg" class="h-8 w-auto" alt="F1 Logo">
+                <button hx-get="/f1-standings" hx-target="#f1-content" onclick="toggleF1Modal()" class="term-btn text-[10px] font-black text-error hover:text-white uppercase tracking-widest bg-error/10 px-2 py-0.5 rounded border border-error/20 transition-all flex items-center">
+                    POSICIONES
+                </button>
+            </div>
+            <div class="flex items-center space-x-3 min-w-0 overflow-hidden flex-1 justify-end">
+                <img src="{{.NextMatch.F1.FlagURL}}" class="h-4 w-auto" alt="Bandera" loading="lazy">
+                <img src="{{.NextMatch.F1.PosterURL}}" class="h-10 w-auto object-contain f1-circuit-layout" alt="Circuito" loading="lazy">
+                <div class="text-base-content text-sm md:text-lg font-black uppercase tracking-tight w-full text-right truncate">{{.NextMatch.F1.GrandPrix}}</div>
+            </div>
+        </div>
+        <div class="grid grid-cols-3 md:flex md:flex-nowrap md:justify-center gap-2 flex-1 items-center">
+            {{range .NextMatch.F1.Sessions}}
+            <div class="bg-white/5 rounded p-2 flex flex-col items-center justify-center hover:bg-error/20 transition-all relative {{if .Passed}}opacity-40{{end}} md:min-w-[90px] md:flex-1 {{if eq .Name "Race"}}term-session-race{{end}}">
+                <div class="text-xs font-black uppercase tracking-widest mb-1 term-session-name {{if eq .Name "Race"}}text-green-500{{else}}text-error{{end}}">{{.Name}}</div>
+                <i data-lucide="{{.WeatherIcon}}" class="w-4 h-4 text-primary mb-1"></i>
+                <div class="text-sm font-black text-base-content leading-none font-mono tabular-nums">{{.Time}}</div>
+                <div class="text-[11px] text-base-content/40 font-bold uppercase mt-1 font-mono">{{.Date}}</div>
+                {{if .WasRescheduled}}
+                <div class="absolute -top-2 -right-2 bg-amber-500 text-black text-[9px] font-black px-1.5 py-0.5 rounded-full border border-amber-500" title="{{.RescheduledNote}}">
+                    <i data-lucide="clock-alert" class="w-3 h-3 inline"></i>
+                </div>
+                {{end}}
+            </div>
+            {{end}}
+        </div>
+    </div>
+    {{end}}
+
+    <!-- UFC -->
+    {{if .ShowUFC}}
+    <div class="lg:col-span-3 term-card flex flex-col min-h-[260px] text-base-content">
+        <div class="flex items-center justify-between mb-3 border-b border-white/5 pb-2">
+            <div class="flex items-center space-x-3 shrink-0">
+                <img src="/static/assets/logos/ufc.svg" class="h-8 w-auto" alt="UFC Logo">
+                <span class="term-card-header text-[11px] font-black uppercase tracking-[0.15em]">UFC</span>
+            </div>
+            <div class="text-right">
+                <div class="text-sm font-black text-error uppercase tracking-widest tabular-nums">{{.NextMatch.UFC.Date}}</div>
+                <div class="text-xs font-black text-error uppercase tracking-widest mt-0.5 tabular-nums">{{.NextMatch.UFC.Time}} ART</div>
+            </div>
+        </div>
+
+        <div class="flex items-center justify-between mb-2 gap-3">
+            <div class="flex items-center space-x-3 min-w-0">
+                {{if .NextMatch.UFC.P1Headshot}}
+                <div class="flex -space-x-3">
+                    <img src="{{.NextMatch.UFC.P1Headshot}}" class="w-11 h-11 rounded-full border border-error" alt="P1" loading="lazy">
+                    <img src="{{.NextMatch.UFC.P2Headshot}}" class="w-11 h-11 rounded-full border border-error" alt="P2" loading="lazy">
+                </div>
+                {{end}}
+                <div class="min-w-0">
+                    <div class="text-base-content text-xs md:text-sm font-black uppercase truncate leading-tight tracking-widest">{{.NextMatch.UFC.EventName}}</div>
+                    {{if .NextMatch.UFC.Venue}}
+                    <div class="text-[11px] font-bold text-base-content/40 uppercase tracking-widest truncate">{{.NextMatch.UFC.Venue}}</div>
+                    {{end}}
+                </div>
+            </div>
+            {{if .NextMatch.UFC.WasRescheduled}}
+            <div class="inline-flex items-center text-[10px] font-black text-amber-400 border border-amber-400/30 px-2 py-0.5 rounded uppercase tracking-widest shrink-0" title="{{.NextMatch.UFC.RescheduledNote}}">
+                <i data-lucide="clock-alert" class="w-3 h-3 mr-1 inline"></i>REPROG
+            </div>
+            {{end}}
+        </div>
+
+        <div class="flex-1 space-y-0">
+            {{range $i, $fight := .NextMatch.UFC.Fights}}{{if lt $i 5}}
+            <div class="flex items-center justify-between term-divider py-1.5">
+                <div class="text-xs md:text-sm font-black truncate flex items-center gap-1.5 tracking-tight">
+                    <span class="{{if eq $fight.Winner 1}}text-error{{else}}text-base-content/60{{end}} uppercase">{{$fight.P1}}</span>
+                    <span class="text-[10px] opacity-30">VS</span>
+                    <span class="{{if eq $fight.Winner 2}}text-error{{else}}text-base-content/60{{end}} uppercase">{{$fight.P2}}</span>
+                    {{if $fight.Status}}
+                    <span class="ml-1 px-1 py-0.5 bg-error/20 text-error text-[10px] font-black rounded-[2px] border border-error/30 uppercase tracking-tight">{{$fight.Status}}</span>
+                    {{end}}
+                </div>
+            </div>
+            {{end}}{{end}}
+        </div>
+    </div>
+    {{end}}
+</div>
+
+<!-- ============ FILA 2: CLIMA + SISMOS ============ -->
+<div class="lg:col-span-12 grid grid-cols-1 lg:grid-cols-12 gap-3 mt-1">
 
     <!-- CLIMA -->
     <div class="lg:col-span-7 term-card flex flex-col justify-between min-h-[240px] text-base-content relative {{if $isRaining}}rain-active{{end}} {{if $hasStrongQuake}}strong-quake-alert{{end}}">
@@ -141,114 +292,16 @@
     {{end}}
 </div>
 
-<!-- ============ FILA 2: FÚTBOL + F1 ============ -->
-<div class="lg:col-span-12 grid grid-cols-1 lg:grid-cols-12 gap-3 mt-1">
-
-    <!-- FÚTBOL -->
-    {{if .ShowFootball}}
-    <div class="lg:col-span-4 term-card flex flex-col min-h-[260px] text-base-content">
-        <div class="flex items-center justify-between mb-3">
-            <div class="term-card-header text-[11px] font-black uppercase tracking-[0.15em] flex items-center">
-                <i data-lucide="trophy" class="w-4 h-4 mr-2"></i> FÚTBOL
-            </div>
-            <button hx-get="/partidos-del-dia" hx-target="#partidos-content" hx-swap="innerHTML" onclick="togglePartidosModal()" class="term-btn text-[10px] font-black text-amber-400 hover:text-white uppercase tracking-widest bg-white/5 px-2 py-0.5 rounded border border-white/10 transition-all flex items-center">
-                <i data-lucide="calendar-days" class="w-3 h-3 mr-1"></i> PARTIDOS DEL DÍA
-            </button>
-        </div>
-
-        <div class="flex-1 flex flex-col justify-center">
-            <div class="flex items-start justify-between gap-2 mb-2">
-                <div class="text-sm md:text-base font-black text-base-content uppercase tracking-tight leading-tight truncate">
-                    {{.NextMatch.Match.Team}} <span class="text-primary text-xs">VS</span> {{.NextMatch.Match.Opponent}}
-                </div>
-                {{if or (eq .NextMatch.Match.Status "LIVE") (eq .NextMatch.Match.Status "FINAL")}}
-                <div class="flex items-center space-x-2 bg-white/5 px-2 py-1 rounded border border-white/10 shrink-0">
-                    <span class="text-lg font-black text-base-content tabular-nums leading-none">{{.NextMatch.Match.HomeScore}}</span>
-                    <span class="text-primary font-black text-sm">:</span>
-                    <span class="text-lg font-black text-base-content tabular-nums leading-none">{{.NextMatch.Match.AwayScore}}</span>
-                </div>
-                {{end}}
-            </div>
-
-            <div class="flex flex-wrap items-center gap-2 mb-2">
-                {{if eq .NextMatch.Match.Status "LIVE"}}
-                <span class="term-live flex items-center text-error text-[10px] font-black px-2 py-0.5 border border-error/30">
-                    <span class="w-1.5 h-1.5 bg-red-600 rounded-full mr-1.5"></span> LIVE {{.NextMatch.Match.Clock}}
-                </span>
-                {{end}}
-                <span class="text-[10px] text-primary font-black uppercase tracking-widest truncate">{{.NextMatch.Match.Tournament}}</span>
-            </div>
-
-            <div class="flex items-center justify-between">
-                <div class="flex flex-col space-y-1 min-w-0">
-                    <div class="flex items-center space-x-2 truncate">
-                        <span class="text-xs font-black text-cyan-300 tracking-tight whitespace-nowrap tabular-nums">{{.NextMatch.Match.Date}} • {{.NextMatch.Match.Time}}</span>
-                        {{if .NextMatch.Match.WasRescheduled}}
-                        <span class="text-[10px] text-amber-400 border border-amber-400/30 px-2 py-0.5 rounded font-black uppercase tracking-widest truncate" title="{{.NextMatch.Match.RescheduledNote}}">
-                            <i data-lucide="clock-alert" class="w-3 h-3 inline mr-1"></i>REPROG
-                        </span>
-                        {{end}}
-                        {{if .NextMatch.Match.Channel}}
-                        <span class="text-[10px] text-base-content/60 border border-white/10 px-2 py-0.5 rounded font-black uppercase tracking-widest truncate">
-                            {{.NextMatch.Match.Channel}}
-                        </span>
-                        {{end}}
-                    </div>
-                </div>
-                <div class="flex items-center space-x-2 shrink-0 ml-2">
-                    <img src="{{.NextMatch.Match.TeamCrest}}" class="w-9 h-9 object-contain" alt="Escudo Local" loading="lazy">
-                    <img src="{{.NextMatch.Match.OpponentCrest}}" class="w-9 h-9 object-contain" alt="Escudo Visitante" loading="lazy">
-                </div>
-            </div>
-        </div>
-    </div>
-    {{end}}
-
-    <!-- F1 -->
-    {{if .ShowF1}}
-    <div class="lg:col-span-8 term-card flex flex-col min-h-[260px] text-base-content">
-        <div class="flex items-center justify-between mb-3 border-b border-white/5 pb-2">
-            <div class="flex items-center space-x-3 shrink-0">
-                <img src="/static/assets/logos/f1.svg" class="h-8 w-auto" alt="F1 Logo">
-                <button hx-get="/f1-standings" hx-target="#f1-content" onclick="toggleF1Modal()" class="term-btn text-[10px] font-black text-error hover:text-white uppercase tracking-widest bg-error/10 px-2 py-0.5 rounded border border-error/20 transition-all flex items-center">
-                    POSICIONES
-                </button>
-            </div>
-            <div class="flex items-center space-x-3 min-w-0 overflow-hidden flex-1 justify-end">
-                <img src="{{.NextMatch.F1.FlagURL}}" class="h-4 w-auto" alt="Bandera" loading="lazy">
-                <img src="{{.NextMatch.F1.PosterURL}}" class="h-10 w-auto object-contain f1-circuit-layout" alt="Circuito" loading="lazy">
-                <div class="text-base-content text-sm md:text-lg font-black uppercase tracking-tight w-full text-right truncate">{{.NextMatch.F1.GrandPrix}}</div>
-            </div>
-        </div>
-        <div class="grid grid-cols-3 md:flex md:flex-nowrap md:justify-center gap-2 flex-1 items-center">
-            {{range .NextMatch.F1.Sessions}}
-            <div class="bg-white/5 rounded p-2 flex flex-col items-center justify-center hover:bg-error/20 transition-all relative {{if .Passed}}opacity-40{{end}} md:min-w-[90px] md:flex-1 {{if eq .Name "Race"}}term-session-race{{end}}">
-                <div class="text-xs font-black uppercase tracking-widest mb-1 term-session-name {{if eq .Name "Race"}}text-green-500{{else}}text-error{{end}}">{{.Name}}</div>
-                <i data-lucide="{{.WeatherIcon}}" class="w-4 h-4 text-primary mb-1"></i>
-                <div class="text-sm font-black text-base-content leading-none font-mono tabular-nums">{{.Time}}</div>
-                <div class="text-[11px] text-base-content/40 font-bold uppercase mt-1 font-mono">{{.Date}}</div>
-                {{if .WasRescheduled}}
-                <div class="absolute -top-2 -right-2 bg-amber-500 text-black text-[9px] font-black px-1.5 py-0.5 rounded-full border border-amber-500" title="{{.RescheduledNote}}">
-                    <i data-lucide="clock-alert" class="w-3 h-3 inline"></i>
-                </div>
-                {{end}}
-            </div>
-            {{end}}
-        </div>
-    </div>
-    {{end}}
-</div>
-
-<!-- ============ FILA 3: FINANZAS + UFC ============ -->
+<!-- ============ FILA 3: FINANZAS ============ -->
 <div class="lg:col-span-12 grid grid-cols-1 lg:grid-cols-12 gap-3 mt-1">
 
     <!-- FINANZAS -->
     {{if .ShowFinance}}
-    <div class="lg:col-span-4 term-card flex flex-col min-h-[260px] text-base-content">
+    <div class="lg:col-span-12 term-card flex flex-col min-h-[160px] text-base-content">
         <h3 class="term-card-header text-[11px] font-black uppercase tracking-[0.15em] flex items-center mb-3">
             <i data-lucide="bitcoin" class="w-4 h-4 mr-2"></i> FINANZAS
         </h3>
-        <div class="grid grid-cols-2 gap-2 flex-1">
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 flex-1">
             <div class="bg-white/5 rounded-lg p-3 border border-white/5 flex flex-col justify-center relative overflow-hidden">
                 <div class="flex justify-between items-start mb-1 relative z-10">
                     <div class="text-[10px] font-black uppercase tracking-widest text-base-content/40">BTC</div>
@@ -322,59 +375,6 @@
                 </span>
             </div>
             {{end}}
-        </div>
-    </div>
-    {{end}}
-
-    <!-- UFC -->
-    {{if .ShowUFC}}
-    <div class="lg:col-span-8 term-card flex flex-col min-h-[260px] text-base-content">
-        <div class="flex items-center justify-between mb-3 border-b border-white/5 pb-2">
-            <div class="flex items-center space-x-3 shrink-0">
-                <img src="/static/assets/logos/ufc.svg" class="h-8 w-auto" alt="UFC Logo">
-                <span class="term-card-header text-[11px] font-black uppercase tracking-[0.15em]">UFC</span>
-            </div>
-            <div class="text-right">
-                <div class="text-sm font-black text-error uppercase tracking-widest tabular-nums">{{.NextMatch.UFC.Date}}</div>
-                <div class="text-xs font-black text-error uppercase tracking-widest mt-0.5 tabular-nums">{{.NextMatch.UFC.Time}} ART</div>
-            </div>
-        </div>
-
-        <div class="flex items-center justify-between mb-2 gap-3">
-            <div class="flex items-center space-x-3 min-w-0">
-                {{if .NextMatch.UFC.P1Headshot}}
-                <div class="flex -space-x-3">
-                    <img src="{{.NextMatch.UFC.P1Headshot}}" class="w-11 h-11 rounded-full border border-error" alt="P1" loading="lazy">
-                    <img src="{{.NextMatch.UFC.P2Headshot}}" class="w-11 h-11 rounded-full border border-error" alt="P2" loading="lazy">
-                </div>
-                {{end}}
-                <div class="min-w-0">
-                    <div class="text-base-content text-xs md:text-sm font-black uppercase truncate leading-tight tracking-widest">{{.NextMatch.UFC.EventName}}</div>
-                    {{if .NextMatch.UFC.Venue}}
-                    <div class="text-[11px] font-bold text-base-content/40 uppercase tracking-widest truncate">{{.NextMatch.UFC.Venue}}</div>
-                    {{end}}
-                </div>
-            </div>
-            {{if .NextMatch.UFC.WasRescheduled}}
-            <div class="inline-flex items-center text-[10px] font-black text-amber-400 border border-amber-400/30 px-2 py-0.5 rounded uppercase tracking-widest shrink-0" title="{{.NextMatch.UFC.RescheduledNote}}">
-                <i data-lucide="clock-alert" class="w-3 h-3 mr-1 inline"></i>REPROG
-            </div>
-            {{end}}
-        </div>
-
-        <div class="flex-1 space-y-0">
-            {{range $i, $fight := .NextMatch.UFC.Fights}}{{if lt $i 5}}
-            <div class="flex items-center justify-between term-divider py-1.5">
-                <div class="text-xs md:text-sm font-black truncate flex items-center gap-1.5 tracking-tight">
-                    <span class="{{if eq $fight.Winner 1}}text-error{{else}}text-base-content/60{{end}} uppercase">{{$fight.P1}}</span>
-                    <span class="text-[10px] opacity-30">VS</span>
-                    <span class="{{if eq $fight.Winner 2}}text-error{{else}}text-base-content/60{{end}} uppercase">{{$fight.P2}}</span>
-                    {{if $fight.Status}}
-                    <span class="ml-1 px-1 py-0.5 bg-error/20 text-error text-[10px] font-black rounded-[2px] border border-error/30 uppercase tracking-tight">{{$fight.Status}}</span>
-                    {{end}}
-                </div>
-            </div>
-            {{end}}{{end}}
         </div>
     </div>
     {{end}}
