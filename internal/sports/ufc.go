@@ -13,7 +13,7 @@ func fetchLiveUFC(ctx context.Context) UFCMatch {
 	now := time.Now()
 	startDate := now.AddDate(0, 0, -2).Format("20060102")
 	endDate := now.AddDate(0, 0, 30).Format("20060102")
-	url := fmt.Sprintf("https://site.api.espn.com/apis/site/v2/sports/mma/ufc/scoreboard?dates=%s-%s", startDate, endDate)
+	url := fmt.Sprintf("https://site.web.api.espn.com/apis/site/v2/sports/mma/ufc/scoreboard?dates=%s-%s", startDate, endDate)
 
 	resp, err := network.FetchSecureWithContext(ctx, url)
 	if err != nil {

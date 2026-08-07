@@ -245,6 +245,7 @@ func main() {
 	mux.HandleFunc("/health", handleHealth)
 	mux.HandleFunc("/world-cup-fixture", handleWorldCupFixture)
 	mux.HandleFunc("/f1-standings", handleF1Standings)
+	mux.HandleFunc("/partidos-del-dia", handlePartidosDelDia)
 
 	// API JSON v1
 	mux.HandleFunc("/api/v1/weather", handleAPIWeather)
@@ -772,6 +773,41 @@ type GroupData struct {
 type WorldCupViewData struct {
 	Groups   []*GroupData
 	Brackets []*GroupData
+}
+
+func handlePartidosDelDia(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+	settings := getSettings(r)
+	todayStr := time.Now().Format("02/01")
+
+	var partidos []sports.MatchData
+	for _, m := range sports.GetSportsData().AllMatches {
+		if strings.Contains(m.Date, todayStr) {
+			m.TeamCrest = sports.GetCrestURL(m.Team)
+			m.OpponentCrest = sports.GetCrestURL(m.Opponent)
+			partidos = append(partidos, m)
+		}
+	}
+
+	viewData := struct {
+		Partidos []sports.MatchData
+		Team     string
+	}{
+		Partidos: partidos,
+		Team:     settings.Team,
+	}
+
+	var buf bytes.Buffer
+	tmplsLock.RLock()
+	err := tmpls.ExecuteTemplate(&buf, "partidos.html", viewData)
+	tmplsLock.RUnlock()
+	if err != nil {
+		log.Printf("[PARTIDOS] Error ejecutando template: %v", err)
+		http.Error(w, "Error interno", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Write(buf.Bytes())
 }
 
 func handleWorldCupFixture(w http.ResponseWriter, r *http.Request) {

@@ -26,6 +26,7 @@ var (
 		"dolarapi.com",
 		"api.jolpi.ca",
 		"site.api.espn.com",
+		"site.web.api.espn.com",
 		"www.inpres.gob.ar",
 		"earthquake.usgs.gov",
 		"ssl.smn.gob.ar",

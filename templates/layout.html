@@ -354,6 +354,21 @@
         </div>
     </div>
 
+    <!-- Modal Partidos del Día -->
+    <div id="partidos-modal" class="custom-modal fixed inset-0 z-[100] hidden items-center justify-center bg-base-100/95 transition-all duration-300" role="dialog" aria-modal="true" aria-labelledby="partidos-modal-title">
+        <div class="bg-base-200 w-full h-full md:h-[98vh] md:w-[98vw] md:rounded-xl shadow-none relative overflow-hidden flex flex-col p-4 md:p-10 border border-base-300">
+            <button onclick="togglePartidosModal()" class="absolute top-6 right-6 text-base-content/40 hover:text-base-content z-50 p-2 border border-base-300 rounded-lg hover:bg-base-300/50 transition-all">
+                <i data-lucide="x" class="w-6 h-6"></i>
+            </button>
+            <div id="partidos-content" class="flex-1 overflow-y-auto custom-scrollbar">
+                <div class="flex flex-col items-center justify-center py-32">
+                    <span class="loading loading-ring loading-lg text-primary"></span>
+                    <p class="text-[11px] font-black text-base-content/20 uppercase tracking-[0.3em] mt-6 animate-pulse">BUSCANDO PARTIDOS...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal Posiciones F1 -->
     <div id="f1-modal" class="custom-modal fixed inset-0 z-[100] hidden items-center justify-center bg-base-100/95 transition-all duration-300" role="dialog" aria-modal="true" aria-labelledby="f1-modal-title">
         <div class="bg-base-200 w-full h-full md:h-[98vh] md:w-[98vw] md:rounded-xl shadow-none relative overflow-hidden flex flex-col p-4 md:p-10 border border-base-300">

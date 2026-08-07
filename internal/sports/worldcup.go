@@ -14,7 +14,7 @@ import (
 func fetchWorldCupFixture(ctx context.Context) []WorldCupMatch {
 	start := time.Now()
 	// Rango de fechas para el Mundial 2026: 11 de junio al 19 de julio
-	url := "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?lang=es&region=ar&limit=200&dates=20260611-20260719"
+	url := "https://site.web.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?lang=es&region=ar&limit=200&dates=20260611-20260719"
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
