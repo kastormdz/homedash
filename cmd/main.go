@@ -355,7 +355,7 @@ func handleTest(w http.ResponseWriter, r *http.Request) {
 		ShowFootball:     settings.ShowFootball,
 		ShowUFC:          settings.ShowUFC,
 		ShowFinance:      settings.ShowFinance,
-		Theme:            "nothing", // FORZAR NADA
+		Theme:            "terminal", // FORZAR TEMA TERMINAL (entorno de test /test)
 		City:             settings.City,
 		Team:             settings.Team,
 	}

@@ -1,7 +1,7 @@
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 p-2">
     <!-- Pilotos -->
     <div class="bg-base-200 border border-base-300 rounded-xl p-5">
-        <h3 class="text-sm font-black uppercase tracking-widest mb-6 text-error flex items-center">
+        <h3 class="term-card-header text-sm font-black uppercase tracking-widest mb-6 text-error flex items-center">
             <i data-lucide="users" class="w-4 h-4 mr-2"></i> PILOTOS
         </h3>
         <div class="space-y-1">
@@ -13,8 +13,8 @@
             </div>
             {{range .Drivers}}
             <div class="grid grid-cols-12 items-center text-xs font-bold py-2 border-b border-base-300/50 last:border-0 hover:bg-base-300/50 px-2 transition-colors">
-                <div class="col-span-1 opacity-40 font-mono">{{.Pos}}</div>
-                <div class="col-span-5 uppercase tracking-tight text-base-content">{{.Driver}}</div>
+                <div class="col-span-1 opacity-40 font-mono {{if eq .Pos "1"}}term-f1-pos1{{end}}">{{.Pos}}</div>
+                <div class="col-span-5 uppercase tracking-tight text-base-content {{if eq .Driver "Colapinto"}}term-f1-colapinto{{end}}">{{.Driver}}</div>
                 <div class="col-span-4 text-[11px] text-base-content/40 font-mono uppercase truncate pr-2">{{.Team}}</div>
                 <div class="col-span-2 text-right font-mono text-base-content">{{.Points}}</div>
             </div>
@@ -24,7 +24,7 @@
 
     <!-- Constructores -->
     <div class="bg-base-200 border border-base-300 rounded-xl p-5">
-        <h3 class="text-sm font-black uppercase tracking-widest mb-6 text-primary flex items-center">
+        <h3 class="term-card-header text-sm font-black uppercase tracking-widest mb-6 text-primary flex items-center">
             <i data-lucide="factory" class="w-4 h-4 mr-2"></i> CONSTRUCTORES
         </h3>
         <div class="space-y-1">

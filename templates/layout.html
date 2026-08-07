@@ -17,6 +17,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;400;600;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Space+Grotesk:wght@300..700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
         .fluid-clock { font-size: clamp(2rem, 8vw, 5rem); }
@@ -263,6 +264,215 @@
             background-color: #000000 !important;
             min-height: 200px !important;
         }
+
+        /* ========== TEMA TERMINAL (solo /test) ========== */
+        [data-theme="terminal"] {
+            --term-bg: #050505;
+            --term-panel: #0a0a0a;
+            --term-line: #1a1a1a;
+            --term-green: #10b981;
+            --term-green-dim: #065f46;
+            --term-text: #d1d5db;
+            --term-bright: #f9fafb;
+            --term-red: #ef4444;
+            --term-amber: #f59e0b;
+            --term-cyan: #22d3ee;
+            --term-dim: #6b7280;
+        }
+
+        [data-theme="terminal"] body {
+            background-color: var(--term-bg) !important;
+            background-image: none !important;
+            color: var(--term-text) !important;
+            font-family: 'JetBrains Mono', monospace !important;
+            padding: 0.75rem !important;
+            overflow-x: hidden;
+        }
+
+        /* Scanlines overlay */
+        [data-theme="terminal"] body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: 9998;
+            pointer-events: none;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(16, 185, 129, 0.04) 0px,
+                rgba(16, 185, 129, 0.04) 1px,
+                transparent 1px,
+                transparent 3px
+            );
+            opacity: 0.3;
+        }
+
+        [data-theme="terminal"] .dashboard-container {
+            gap: 0.5rem !important;
+            padding: 0 !important;
+        }
+
+        [data-theme="terminal"] .bg-base-100 {
+            background-color: var(--term-bg) !important;
+        }
+
+        [data-theme="terminal"] .bg-base-200 {
+            background-color: var(--term-panel) !important;
+            backdrop-filter: none !important;
+            border: 1px solid var(--term-line) !important;
+            border-radius: 0.5rem !important;
+            padding: 1rem !important;
+            box-shadow: none !important;
+        }
+
+        [data-theme="terminal"] .bg-white\/5 {
+            background-color: rgba(16, 185, 129, 0.04) !important;
+            border-color: var(--term-line) !important;
+        }
+
+        [data-theme="terminal"] .border-white\/10,
+        [data-theme="terminal"] .border-base-300,
+        [data-theme="terminal"] .border-white\/5 {
+            border-color: var(--term-line) !important;
+        }
+
+        [data-theme="terminal"] h1,
+        [data-theme="terminal"] h2,
+        [data-theme="terminal"] h3,
+        [data-theme="terminal"] .fluid-clock,
+        [data-theme="terminal"] .fluid-temp {
+            font-family: 'JetBrains Mono', monospace !important;
+            color: var(--term-bright) !important;
+            letter-spacing: 0 !important;
+            text-transform: uppercase !important;
+        }
+
+        [data-theme="terminal"] .text-primary,
+        [data-theme="terminal"] .text-error {
+            color: var(--term-green) !important;
+        }
+
+        [data-theme="terminal"] .text-base-content\/60,
+        [data-theme="terminal"] .text-base-content\/40,
+        [data-theme="terminal"] .text-base-content\/30,
+        [data-theme="terminal"] .text-base-content\/50,
+        [data-theme="terminal"] .text-base-content\/20 {
+            color: var(--term-dim) !important;
+        }
+
+        [data-theme="terminal"] .text-base-content {
+            color: var(--term-text) !important;
+        }
+
+        /* Reloj verde con glow */
+        [data-theme="terminal"] #clock {
+            color: var(--term-green) !important;
+            text-shadow: 0 0 6px rgba(16, 185, 129, 0.6), 0 0 20px rgba(16, 185, 129, 0.3);
+            font-family: 'JetBrains Mono', monospace !important;
+        }
+
+        [data-theme="terminal"] #date {
+            color: var(--term-green) !important;
+        }
+
+        [data-theme="terminal"] #clock-container {
+            border: 1px solid var(--term-green-dim) !important;
+            background-color: var(--term-panel) !important;
+            border-radius: 0.5rem !important;
+            min-height: 200px !important;
+        }
+
+        [data-theme="terminal"] .font-mono,
+        [data-theme="terminal"] .tabular-nums,
+        [data-theme="terminal"] .fluid-clock,
+        [data-theme="terminal"] .fluid-temp {
+            font-variant-numeric: tabular-nums !important;
+        }
+
+        /* Prompt header */
+        [data-theme="terminal"] .terminal-prompt-bar {
+            display: flex !important;
+            align-items: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            padding: 0.5rem 0.75rem;
+            margin-bottom: 0.5rem;
+            background-color: var(--term-panel);
+            border: 1px solid var(--term-line);
+            border-radius: 0.375rem;
+            color: var(--term-text);
+            white-space: nowrap;
+            overflow-x: auto;
+        }
+        [data-theme="terminal"] .terminal-prompt-bar .t-user { color: var(--term-green); font-weight: 700; }
+        [data-theme="terminal"] .terminal-prompt-bar .t-at { color: var(--term-dim); }
+        [data-theme="terminal"] .terminal-prompt-bar .t-host { color: var(--term-cyan); font-weight: 700; }
+        [data-theme="terminal"] .terminal-prompt-bar .t-path { color: var(--term-amber); font-weight: 700; }
+        [data-theme="terminal"] .terminal-prompt-bar .t-cmd { color: var(--term-text); margin-left: 0.5rem; }
+        [data-theme="terminal"] .terminal-prompt-bar .t-caret {
+            display: inline-block;
+            width: 8px;
+            height: 14px;
+            background-color: var(--term-green);
+            margin-left: 0.35rem;
+            animation: term-blink 1s steps(1) infinite;
+        }
+        @keyframes term-blink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0; }
+        }
+
+        /* Headers de tarjetas con prefijo "> " */
+        [data-theme="terminal"] .term-card-header {
+            font-family: 'JetBrains Mono', monospace !important;
+            color: var(--term-green) !important;
+            letter-spacing: 0.08em !important;
+        }
+        [data-theme="terminal"] .term-card-header::before {
+            content: '> ';
+            color: var(--term-green);
+        }
+
+        /* Sismos: rojo, más fuerte ámbar */
+        [data-theme="terminal"] .term-quake-label,
+        [data-theme="terminal"] .term-quake-mag {
+            color: var(--term-red) !important;
+        }
+        [data-theme="terminal"] .term-quake-strong {
+            color: var(--term-amber) !important;
+            text-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+        }
+
+        /* Modales */
+        [data-theme="terminal"] .custom-modal .bg-base-200 {
+            background-color: var(--term-panel) !important;
+            border: 1px solid var(--term-green-dim) !important;
+            border-radius: 0.5rem !important;
+        }
+        [data-theme="terminal"] .custom-modal .bg-base-200 button,
+        [data-theme="terminal"] .custom-modal button {
+            font-family: 'JetBrains Mono', monospace !important;
+        }
+
+        /* Badges de estado */
+        [data-theme="terminal"] .term-live {
+            color: var(--term-red) !important;
+            border-color: var(--term-red) !important;
+        }
+        [data-theme="terminal"] .term-btn {
+            font-family: 'JetBrains Mono', monospace !important;
+            letter-spacing: 0.08em !important;
+        }
+
+        /* F1: posición 1 ámbar, Colapinto cyan glow */
+        [data-theme="terminal"] .term-f1-pos1 {
+            color: var(--term-amber) !important;
+            opacity: 1 !important;
+            font-weight: 700 !important;
+        }
+        [data-theme="terminal"] .term-f1-colapinto {
+            color: var(--term-cyan) !important;
+            text-shadow: 0 0 8px rgba(34, 211, 238, 0.6);
+        }
     </style>
 </head>
 <body class="bg-base-100 text-base-content p-3 md:p-4 transition-all duration-700 select-none">
@@ -272,6 +482,11 @@
             <p class="text-base-content/70">Homedash necesita JavaScript para funcionar.</p>
         </div>
     </noscript>
+
+    <!-- Prompt terminal (solo visible con data-theme="terminal" en /test) -->
+    <div class="terminal-prompt-bar hidden">
+        <span class="t-user">homedash</span><span class="t-at">@</span><span class="t-host">cronix</span><span class="t-at">:~</span><span class="t-path">$</span><span class="t-cmd">uptime --dashboard</span><span class="t-caret"></span>
+    </div>
 
     {{template "content" .}}
 
