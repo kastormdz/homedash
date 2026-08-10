@@ -9,6 +9,33 @@ import (
 	"time"
 )
 
+// getFighterHeadshot consulta el endpoint core de ESPN para obtener la URL real
+// del headshot del peleador. ESPN dejó de incluir athlete.headshot en el
+// scoreboard, y el id del competidor no siempre coincide con el id de la imagen.
+func getFighterHeadshot(ctx context.Context, id string) string {
+	if id == "" {
+		return ""
+	}
+	apiURL := fmt.Sprintf("https://sports.core.api.espn.com/v2/sports/mma/leagues/ufc/athletes/%s", id)
+	resp, err := network.FetchSecureWithContext(ctx, apiURL)
+	if err != nil {
+		return ""
+	}
+	defer resp.Body.Close()
+	var ath struct {
+		Headshot *struct {
+			Href string `json:"href"`
+		} `json:"headshot"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&ath); err != nil {
+		return ""
+	}
+	if ath.Headshot != nil && ath.Headshot.Href != "" {
+		return ath.Headshot.Href
+	}
+	return ""
+}
+
 func fetchLiveUFC(ctx context.Context) UFCMatch {
 	now := time.Now()
 	startDate := now.AddDate(0, 0, -2).Format("20060102")
@@ -64,12 +91,12 @@ func fetchLiveUFC(ctx context.Context) UFCMatch {
 				id2 := comp.Competitors[1].ID
 
 				rawP1 := comp.Competitors[0].Athlete.Headshot
-				if rawP1 == "" && id1 != "" {
-					rawP1 = fmt.Sprintf("https://a.espncdn.com/i/headshots/mma/players/full/%s.png", id1)
+				if rawP1 == "" {
+					rawP1 = getFighterHeadshot(ctx, id1)
 				}
 				rawP2 := comp.Competitors[1].Athlete.Headshot
-				if rawP2 == "" && id2 != "" {
-					rawP2 = fmt.Sprintf("https://a.espncdn.com/i/headshots/mma/players/full/%s.png", id2)
+				if rawP2 == "" {
+					rawP2 = getFighterHeadshot(ctx, id2)
 				}
 
 				// Pasar por el proxy local para cachear imágenes
