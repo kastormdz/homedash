@@ -70,10 +70,12 @@ type F1Standings struct {
 }
 
 type UFCFight struct {
-	P1     string
-	P2     string
-	Winner int    // 1 para P1, 2 para P2, 0 si no hay ganador
-	Status string // "EN VIVO", "FINAL", etc.
+	P1          string
+	P2          string
+	Winner      int    // 1 para P1, 2 para P2, 0 si no hay ganador
+	Status      string // "EN VIVO", "FINAL", etc.
+	P1Headshot  string
+	P2Headshot  string
 }
 
 type UFCMatch struct {
