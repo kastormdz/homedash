@@ -85,29 +85,7 @@ func fetchLiveUFC(ctx context.Context) UFCMatch {
 				winner = 2
 			}
 
-			// Extraer fotos del evento principal (el último en la lista original, ahora el primero en nuestro loop)
-			if i == len(mainEvent.Competitions)-1 {
-				id1 := comp.Competitors[0].ID
-				id2 := comp.Competitors[1].ID
-
-				rawP1 := comp.Competitors[0].Athlete.Headshot
-				if rawP1 == "" {
-					rawP1 = getFighterHeadshot(ctx, id1)
-				}
-				rawP2 := comp.Competitors[1].Athlete.Headshot
-				if rawP2 == "" {
-					rawP2 = getFighterHeadshot(ctx, id2)
-				}
-
-				// Pasar por el proxy local para cachear imágenes
-				if rawP1 != "" {
-					p1Headshot = fmt.Sprintf("/crest?url=%s&name=athlete_%s", rawP1, id1)
-				}
-				if rawP2 != "" {
-					p2Headshot = fmt.Sprintf("/crest?url=%s&name=athlete_%s", rawP2, id2)
-				}
-			}
-
+			// Fotos del evento principal (el último en la lista original, ahora el primero en nuestro loop)
 			fightStatus := ""
 			if comp.Status.Type.State == "in" {
 				fightStatus = "EN VIVO"
@@ -116,11 +94,38 @@ func fetchLiveUFC(ctx context.Context) UFCMatch {
 				fightStatus = "FINAL"
 			}
 
+			id1 := comp.Competitors[0].ID
+			id2 := comp.Competitors[1].ID
+			fightP1Headshot, fightP2Headshot := "", ""
+
+			rawP1 := comp.Competitors[0].Athlete.Headshot
+			if rawP1 == "" {
+				rawP1 = getFighterHeadshot(ctx, id1)
+			}
+			rawP2 := comp.Competitors[1].Athlete.Headshot
+			if rawP2 == "" {
+				rawP2 = getFighterHeadshot(ctx, id2)
+			}
+			if rawP1 != "" {
+				fightP1Headshot = fmt.Sprintf("/crest?url=%s&name=athlete_%s", rawP1, id1)
+			}
+			if rawP2 != "" {
+				fightP2Headshot = fmt.Sprintf("/crest?url=%s&name=athlete_%s", rawP2, id2)
+			}
+
+			// Fotos del evento principal
+			if i == len(mainEvent.Competitions)-1 {
+				p1Headshot = fightP1Headshot
+				p2Headshot = fightP2Headshot
+			}
+
 			fights = append(fights, UFCFight{
-				P1:     p1Name,
-				P2:     p2Name,
-				Winner: winner,
-				Status: fightStatus,
+				P1:         p1Name,
+				P2:         p2Name,
+				Winner:     winner,
+				Status:     fightStatus,
+				P1Headshot: fightP1Headshot,
+				P2Headshot: fightP2Headshot,
 			})
 		}
 	}

@@ -140,13 +140,17 @@
         <div class="flex-1 space-y-0">
             {{range $i, $fight := .NextMatch.UFC.Fights}}{{if lt $i 5}}
             <div class="flex items-center justify-between term-divider py-1.5">
-                <div class="text-xs md:text-sm font-black truncate flex items-center gap-1.5 tracking-tight">
-                    <span class="{{if eq $fight.Winner 1}}text-error{{else}}text-base-content/60{{end}} uppercase">{{$fight.P1}}</span>
-                    <span class="text-[10px] opacity-30">VS</span>
-                    <span class="{{if eq $fight.Winner 2}}text-error{{else}}text-base-content/60{{end}} uppercase">{{$fight.P2}}</span>
-                    {{if $fight.Status}}
-                    <span class="ml-1 px-1 py-0.5 bg-error/20 text-error text-[10px] font-black rounded-[2px] border border-error/30 uppercase tracking-tight">{{$fight.Status}}</span>
-                    {{end}}
+                <div class="flex items-center gap-2 min-w-0">
+                    {{if $fight.P1Headshot}}<img src="{{$fight.P1Headshot}}" class="w-6 h-6 rounded-full border border-error/50 ufc-headshot shrink-0" alt="" loading="lazy">{{end}}
+                    <div class="text-xs md:text-sm font-black truncate flex items-center gap-1.5 tracking-tight">
+                        <span class="{{if eq $fight.Winner 1}}text-error{{else}}text-base-content/60{{end}} uppercase">{{$fight.P1}}</span>
+                        <span class="text-[10px] opacity-30">VS</span>
+                        <span class="{{if eq $fight.Winner 2}}text-error{{else}}text-base-content/60{{end}} uppercase">{{$fight.P2}}</span>
+                        {{if $fight.Status}}
+                        <span class="ml-1 px-1 py-0.5 bg-error/20 text-error text-[10px] font-black rounded-[2px] border border-error/30 uppercase tracking-tight">{{$fight.Status}}</span>
+                        {{end}}
+                    </div>
+                    {{if $fight.P2Headshot}}<img src="{{$fight.P2Headshot}}" class="w-6 h-6 rounded-full border border-error/50 ufc-headshot shrink-0" alt="" loading="lazy">{{end}}
                 </div>
             </div>
             {{end}}{{end}}
@@ -637,13 +641,17 @@
         <div class="flex-1 space-y-1.5 overflow-hidden">
             {{range $i, $fight := .NextMatch.UFC.Fights}}{{if lt $i 5}}
             <div class="flex items-center justify-between border-b border-white/5 pb-1 last:border-0">
-                <div class="text-xs md:text-sm font-black truncate flex items-center gap-1.5 tracking-tight">
-                    <span class="{{if eq $fight.Winner 1}}text-error{{else}}text-base-content/60{{end}} uppercase">{{$fight.P1}}</span>
-                    <span class="text-[10px] opacity-30">VS</span>
-                    <span class="{{if eq $fight.Winner 2}}text-error{{else}}text-base-content/60{{end}} uppercase">{{$fight.P2}}</span>
-                    {{if $fight.Status}}
-                    <span class="ml-1 px-1 py-0.5 bg-error/20 text-error text-[10px] font-black rounded-[2px] border border-error/30 uppercase tracking-tight">{{$fight.Status}}</span>
-                    {{end}}
+                <div class="flex items-center gap-2 min-w-0">
+                    {{if $fight.P1Headshot}}<img src="{{$fight.P1Headshot}}" class="w-6 h-6 rounded-full border border-error/50 ufc-headshot shrink-0" alt="" loading="lazy">{{end}}
+                    <div class="text-xs md:text-sm font-black truncate flex items-center gap-1.5 tracking-tight">
+                        <span class="{{if eq $fight.Winner 1}}text-error{{else}}text-base-content/60{{end}} uppercase">{{$fight.P1}}</span>
+                        <span class="text-[10px] opacity-30">VS</span>
+                        <span class="{{if eq $fight.Winner 2}}text-error{{else}}text-base-content/60{{end}} uppercase">{{$fight.P2}}</span>
+                        {{if $fight.Status}}
+                        <span class="ml-1 px-1 py-0.5 bg-error/20 text-error text-[10px] font-black rounded-[2px] border border-error/30 uppercase tracking-tight">{{$fight.Status}}</span>
+                        {{end}}
+                    </div>
+                    {{if $fight.P2Headshot}}<img src="{{$fight.P2Headshot}}" class="w-6 h-6 rounded-full border border-error/50 ufc-headshot shrink-0" alt="" loading="lazy">{{end}}
                 </div>
             </div>
             {{end}}{{end}}
