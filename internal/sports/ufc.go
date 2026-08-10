@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"homedash/internal/common"
 	"homedash/internal/network"
+	"strings"
 	"time"
 )
 
@@ -56,10 +57,26 @@ func fetchLiveUFC(ctx context.Context) UFCMatch {
 	var mainEvent ESPNEvent
 	found := false
 	for _, event := range sb.Events {
-		if event.Status.Type.State != "post" {
-			mainEvent = event
-			found = true
-			break
+		// Solo eventos numerados (UFC NNN) y UFC Fight Night; se omiten Contender Series y otros.
+		if event.Status.Type.State == "post" {
+			continue
+		}
+		short := event.ShortName
+		if strings.Contains(short, "Contender") || strings.Contains(short, "Noche") {
+			continue
+		}
+		mainEvent = event
+		found = true
+		break
+	}
+	if !found {
+		// Sin próximos eventos aptos: tomar el primero no post, o el primero a secas
+		for _, event := range sb.Events {
+			if event.Status.Type.State != "post" {
+				mainEvent = event
+				found = true
+				break
+			}
 		}
 	}
 	if !found {
