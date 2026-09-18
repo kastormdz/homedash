@@ -54,8 +54,9 @@ func loadTemplates() {
 	})
 	parsed, err := t.ParseGlob(filepath.Join("templates", "*.html"))
 	if err != nil {
-		log.Printf("[ERROR] Fallo al cargar plantillas: %v", err)
-		return
+		// Sin plantillas no hay nada que servir: antes quedaba tmpls == nil y
+		// cada request paniqueaba con nil pointer en vez de fallar el arranque.
+		log.Fatalf("[FATAL] Fallo al cargar plantillas: %v (¿el binario corre desde la raíz del repo? busca templates/*.html)", err)
 	}
 	tmplsLock.Lock()
 	tmpls = parsed
@@ -476,6 +477,7 @@ type WeatherViewModel struct {
 	MoonIcon      string
 	MoonPhaseName string
 	IsAvailable   bool
+	DACC          []weather.DACCForecast // pronóstico oficial de la provincia
 }
 
 func handleWeather(w http.ResponseWriter, r *http.Request) {
@@ -558,6 +560,7 @@ func handleWeather(w http.ResponseWriter, r *http.Request) {
 		MoonIcon:      moonIcon,
 		MoonPhaseName: moonPhase,
 		IsAvailable:   isAvailable,
+		DACC:          weather.GetDACCForecast(r.Context()),
 	}
 
 	var buf bytes.Buffer

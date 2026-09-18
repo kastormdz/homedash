@@ -28,7 +28,8 @@ Homedash es un dashboard minimalista de información útil (y alguna inútil), o
 
 ### 🌦️ Clima y Alertas
 - **Pronóstico de 7 Días:** Datos de **Open-Meteo**. Incluye sensación térmica, humedad, índice UV, visibilidad y probabilidad de lluvia.
-- **Alertas Inteligentes (SMN + Mendoza):** Conexión al RSS del Servicio Meteorológico Nacional para alertas en toda la Argentina. Si estás en Mendoza, se suma el feed de Contingencias Climáticas (DACC) para alertas de granizo o Zonda.
+- **Alertas Meteorológicas (SMN):** Feed CAP oficial del Servicio Meteorológico Nacional. Se listan las alertas vigentes y se muestra la más relevante: cuenta si el punto cae dentro del polígono **o si la alerta pasa a menos de 20 km** (los polígonos del SMN delimitan zonas geográficas, no ciudades, así que sin esa tolerancia una alerta de Zonda podía pasar a 3 km y no verse nunca). Cada alerta muestra su **vigencia** (inicio y fin del fenómeno) y la distancia.
+- **Pronóstico oficial de Mendoza (DACC):** Se suma el pronóstico de la Dirección de Contingencias Climáticas — API JSON del sitio oficial de contingencias (máximas, mínimas y el texto del pronóstico provincial). *Nota: el DACC no publica un feed de alertas consumible (sus tablas de heladas salen vacías y el mapa de riesgo es JS antiguo), por eso las alertas vienen del SMN.*
 - **Calidad del Aire (AQI):** Monitoreo en tiempo real con advertencias visuales si el aire no está para salir a correr.
 - **Fase Lunar:** Algoritmo astronómico interno (escrito en Go) que calcula la fase exacta y la muestra con su icono sin consultar ninguna API externa.
 

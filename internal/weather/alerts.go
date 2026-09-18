@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/xml"
 	"fmt"
+	"homedash/internal/common"
 	"homedash/internal/network"
 	"io"
 	"log"
@@ -37,8 +38,9 @@ type SMNAlert struct {
 	Icon     string
 	Severity string
 	Polys    [][][2]float64 // uno o más polígonos {lat, lon}: una alerta cubre varias zonas
-	At       time.Time
-	Expires  time.Time // fin de vigencia (campo expires del CAP)
+	At       time.Time      // cuándo se EMITIÓ
+	Start    time.Time      // onset: cuándo EMPIEZA el fenómeno
+	Expires  time.Time      // expires: cuándo termina
 }
 
 func StartAlertsLoop() {
@@ -257,6 +259,7 @@ func fetchCAPXML(ctx context.Context, title, link string) (SMNAlert, error) {
 			Event    string `xml:"event"`
 			Severity string `xml:"severity"`
 			Desc     string `xml:"description"`
+			Onset    string `xml:"onset"`
 			Expires  string `xml:"expires"`
 			Area     []struct {
 				Polygon []string `xml:"polygon"`
@@ -286,6 +289,9 @@ func fetchCAPXML(ctx context.Context, title, link string) (SMNAlert, error) {
 	}
 	if t := capTimestamp(link); !t.IsZero() {
 		a.At = t
+	}
+	if t, err := time.Parse(time.RFC3339, strings.TrimSpace(info.Onset)); err == nil {
+		a.Start = t
 	}
 	if exp, err := time.Parse(time.RFC3339, strings.TrimSpace(info.Expires)); err == nil {
 		a.Expires = exp
@@ -382,17 +388,32 @@ func GetSMNAlert(latStr, lonStr string) WeatherAlert {
 	return defaultAlert
 }
 
-// formatAlert arma el texto que ve el usuario. Si distKm > 0 la alerta se dio
-// por cercanía y no por contener el punto exacto.
+// formatAlert separa el fenómeno (línea principal) del detalle: CUÁNDO ocurre y
+// a qué distancia. Antes se mostraba la hora de EMISIÓN, que en avisos con
+// onset futuro ("Zonda el sábado") se presta a confusión.
 func formatAlert(a *SMNAlert, distKm float64) WeatherAlert {
-	text := a.Text
-	if !a.At.IsZero() {
-		text = fmt.Sprintf("%s (%s)", text, a.At.Format("15:04"))
+	var partes []string
+	if v := vigencia(a.Start, a.Expires); v != "" {
+		partes = append(partes, v)
+	} else if !a.At.IsZero() {
+		partes = append(partes, a.At.Format("15:04"))
 	}
 	if distKm > 0 {
-		text = fmt.Sprintf("%s · a %.0f km", text, distKm)
+		partes = append(partes, fmt.Sprintf("a %.0f km", distKm))
 	}
-	return WeatherAlert{Text: text, Icon: a.Icon}
+	return WeatherAlert{Text: a.Text, Icon: a.Icon, Detail: strings.Join(partes, " · ")}
+}
+
+// vigencia arma "sáb 15:00 a 20:59" (o "sáb 15:00 a dom 03:00" si cruza el día).
+func vigencia(start, end time.Time) string {
+	if start.IsZero() || end.IsZero() {
+		return ""
+	}
+	d := common.DaysAbbr[start.Weekday()]
+	if start.YearDay() == end.YearDay() && start.Year() == end.Year() {
+		return fmt.Sprintf("%s %s a %s", d, start.Format("15:04"), end.Format("15:04"))
+	}
+	return fmt.Sprintf("%s %s a %s %s", d, start.Format("15:04"), common.DaysAbbr[end.Weekday()], end.Format("15:04"))
 }
 
 // kmBetween: distancia haversine en km.
@@ -432,8 +453,9 @@ func kmToPolygon(lat, lon float64, poly [][2]float64) float64 {
 }
 
 type WeatherAlert struct {
-	Text string
-	Icon string
+	Text   string
+	Icon   string
+	Detail string // vigencia y distancia (segunda línea, más chica)
 }
 
 func summarizeAlert(title string) WeatherAlert {
