@@ -64,11 +64,9 @@
   /* ---------- CLIMA + PRONOSTICO: una sola barra ---------- */
   .wxbar{display:flex;align-items:stretch;background:var(--panel);border:1px solid var(--line);
     border-radius:10px;overflow:hidden;flex-wrap:wrap}
-  .wx-now{display:flex;align-items:center;gap:14px;padding:13px 18px;min-width:248px}
-  .wx-now .t{font-size:40px;line-height:.9;font-weight:500;letter-spacing:-.04em}
-  .wx-now .t sup{font-size:16px;color:var(--muted);vertical-align:super}
-  .wx-now .m .c{font-size:12.5px;font-weight:600}
-  .wx-now .m .s{font-size:11px;color:var(--dim);margin-top:3px}
+  .wx-cond{display:flex;flex-direction:column;justify-content:center;gap:3px;padding:13px 18px;min-width:196px}
+  .wx-cond .c{font-size:13px;font-weight:600}
+  .wx-cond .s{font-size:11px;color:var(--dim)}
   .wx-metrics{display:flex;align-items:center;padding:10px 2px;border-left:1px solid var(--line);flex-wrap:wrap}
   .wx-metrics div{padding:0 12px;border-left:1px solid var(--line-2);display:flex;flex-direction:column;gap:3px}
   .wx-metrics div:first-child{border-left:0}
@@ -92,8 +90,10 @@
   .sport .main .b{font-size:11.5px;color:var(--dim);margin-top:2px}
   .sport .when{text-align:right;font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--muted);white-space:nowrap}
   .sport .when b{display:block;color:var(--text);font-size:12.5px;font-weight:600}
+  .match{display:flex;align-items:center;gap:10px;min-width:0}
+  .match .crest{flex:none}
+  .match .mname{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .crest{width:42px;height:42px;object-fit:contain}
-  .crest.sm{width:34px;height:34px;vertical-align:middle;margin:0 6px}
   .headshot{width:44px;height:44px;border-radius:50%;object-fit:cover;border:1px solid var(--line);background:#1A212B}
   .headshot.xs{width:30px;height:30px}
   .vs{color:var(--dim);font-size:11px;font-weight:600;letter-spacing:.08em}
@@ -142,8 +142,7 @@
   .sw a.on{background:var(--info);color:#06121E}
   body:has(#dens:checked) .col{padding:14px 18px 30px}
   body:has(#dens:checked) .section{margin-bottom:16px}
-  body:has(#dens:checked) .wx-now{padding:9px 14px;min-width:206px}
-  body:has(#dens:checked) .wx-now .t{font-size:30px}
+  body:has(#dens:checked) .wx-cond{padding:9px 14px;min-width:170px}
   body:has(#dens:checked) .colbar{height:18px}
   body:has(#dens:checked) .sport{padding:8px 0}
   body:has(#dens:checked) .quake,body:has(#dens:checked) .mkt{padding:4px 0}
@@ -193,12 +192,9 @@
     <div class="section">
       <div class="stitle"><span class="lbl">Clima y pronóstico · {{.City}}</span><span class="hr"></span><span class="count">{{.Now.Format "15:04"}}</span></div>
       <div class="wxbar">
-        <div class="wx-now">
-          <div class="t mono">{{printf "%.1f" .Current.Temperature}}<sup>°</sup></div>
-          <div class="m">
-            <div class="c">{{wxcond .Current.WeatherCode}}</div>
-            <div class="s">ST {{printf "%.1f" .Current.ApparentTemp}}° · {{.Sunrise}} ↗ {{.Sunset}}</div>
-          </div>
+        <div class="wx-cond">
+          <div class="c">{{wxcond .Current.WeatherCode}}</div>
+          <div class="s">ST {{printf "%.1f" .Current.ApparentTemp}}° · {{.Sunrise}} ↗ {{.Sunset}}</div>
         </div>
         <div class="wx-metrics">
           <div><span class="lbl">Humedad</span><span class="v">{{.Current.Humidity}}%</span></div>
@@ -223,20 +219,21 @@
       <div class="stitle"><span class="lbl">Deportes</span><span class="hr"></span><span class="count">fútbol · F1 · UFC</span></div>
       {{if .NextMatch.Match.Team}}
       <div class="sport">
-        <div class="dlogo">
-          {{if .NextMatch.Match.TeamCrest}}<img src="{{.NextMatch.Match.TeamCrest}}" class="crest" alt="{{.NextMatch.Match.Team}}" loading="lazy">{{end}}
-        </div>
         <div class="main">
-          <div class="a">{{.NextMatch.Match.Team}} <span class="vs">vs</span>
-            {{if .NextMatch.Match.OpponentCrest}}<img src="{{.NextMatch.Match.OpponentCrest}}" class="crest sm" alt="{{.NextMatch.Match.Opponent}}" loading="lazy">{{end}}
-            {{.NextMatch.Match.Opponent}}</div>
+          <div class="match">
+            {{if .NextMatch.Match.TeamCrest}}<img src="{{.NextMatch.Match.TeamCrest}}" class="crest" alt="{{.NextMatch.Match.Team}}" loading="lazy">{{end}}
+            <span class="mname">{{.NextMatch.Match.Team}}</span>
+            <span class="vs">vs</span>
+            <span class="mname">{{.NextMatch.Match.Opponent}}</span>
+            {{if .NextMatch.Match.OpponentCrest}}<img src="{{.NextMatch.Match.OpponentCrest}}" class="crest" alt="{{.NextMatch.Match.Opponent}}" loading="lazy">{{end}}
+          </div>
           <div class="b">{{if .NextMatch.Match.Tournament}}{{.NextMatch.Match.Tournament}}{{end}}{{if .NextMatch.Match.Stadium}} · {{.NextMatch.Match.Stadium}}{{end}}</div>
         </div>
         <span class="chip next">Próximo</span>
         <span class="when"><b>{{.NextMatch.Match.Time}}</b>{{.NextMatch.Match.Date}}</span>
       </div>
       {{else}}
-      <div class="sport"><div class="dlogo"></div><div class="main"><span class="empty">Sin partidos próximos</span></div></div>
+      <div class="sport"><div class="main"><span class="empty">Sin partidos próximos</span></div></div>
       {{end}}
 
       {{if .NextMatch.F1.Sessions}}
@@ -288,18 +285,24 @@
   <div class="col">
 
     <div class="section">
-      <div class="stitle"><span class="lbl">Cordillera · nieve</span><span class="hr"></span><span class="count">7 días</span></div>
-      {{if .Cuencas}}
-        {{range .Cuencas}}
-        <div class="mkt">
-          <span class="k">{{.Nombre}} <span class="lbl" style="letter-spacing:.06em">{{.Elevacion}} m</span></span>
-          <span><span class="v">{{printf "%.0f" .NieveSemana}}</span><span class="ch" style="color:var(--muted)">cm</span></span>
-        </div>
-        {{end}}
-      {{else}}<span class="empty">Sin datos de nieve</span>{{end}}
+      <div class="stitle"><span class="lbl">Mercados</span><span class="hr"></span><span class="count">live</span></div>
+      <div class="mkt"><span class="k">Bitcoin</span><span><span class="v">{{printf "%.0f" .BTCPrice}}</span><span class="ch {{if lt .BTCChange 0.0}}down{{else}}up{{end}}">{{printf "%+.1f" .BTCChange}}%</span></span></div>
+      <div class="mkt"><span class="k">Ethereum</span><span><span class="v">{{printf "%.0f" .ETHPrice}}</span><span class="ch {{if lt .ETHChange 0.0}}down{{else}}up{{end}}">{{printf "%+.1f" .ETHChange}}%</span></span></div>
+      {{if gt .Dolar.SP500.Price 0.0}}
+      <div class="mkt"><span class="k">S&amp;P 500</span><span><span class="v">{{printf "%.0f" .Dolar.SP500.Price}}</span><span class="ch {{if lt .Dolar.SP500.Change 0.0}}down{{else}}up{{end}}">{{printf "%+.1f" .Dolar.SP500.Change}}%</span></span></div>
+      {{end}}
+      {{if gt .Dolar.Nasdaq.Price 0.0}}
+      <div class="mkt"><span class="k">NASDAQ</span><span><span class="v">{{printf "%.0f" .Dolar.Nasdaq.Price}}</span><span class="ch {{if lt .Dolar.Nasdaq.Change 0.0}}down{{else}}up{{end}}">{{printf "%+.1f" .Dolar.Nasdaq.Change}}%</span></span></div>
+      {{end}}
+      {{if gt .Dolar.RiesgoPais.Price 0.0}}
+      <div class="mkt"><span class="k">Riesgo país</span><span><span class="v">{{printf "%.0f" .Dolar.RiesgoPais.Price}}</span><span class="ch {{if gt .Dolar.RiesgoPais.Change 0.0}}down{{else}}up{{end}}">{{printf "%+.1f" .Dolar.RiesgoPais.Change}}%</span></span></div>
+      {{end}}
+      <div class="mkt"><span class="k">Dólar blue</span><span><span class="v">{{printf "%.0f" .Dolar.Blue.Venta}}</span></span></div>
+      <div class="mkt"><span class="k">Dólar MEP</span><span><span class="v">{{printf "%.0f" .Dolar.MEP.Venta}}</span></span></div>
+      <div class="mkt"><span class="k">Dólar CCL</span><span><span class="v">{{printf "%.0f" .Dolar.CCL.Venta}}</span></span></div>
+      <div class="mkt"><span class="k">Dólar oficial</span><span><span class="v">{{printf "%.0f" .Dolar.Oficial.Venta}}</span></span></div>
     </div>
 
-    <!-- TOP TASAS: los mismos datos que la home principal -->
     <div class="section">
       <div class="stitle"><span class="lbl">Top tasas billeteras</span><span class="hr"></span><span class="count">TNA 30d</span></div>
       {{if .Dolar.Billeteras}}
@@ -317,6 +320,19 @@
     </div>
 
     <div class="section">
+      <div class="stitle"><span class="lbl">Cordillera · nieve</span><span class="hr"></span><span class="count">7 días</span></div>
+      {{if .Cuencas}}
+        {{range .Cuencas}}
+        <div class="mkt">
+          <span class="k">{{.Nombre}} <span class="lbl" style="letter-spacing:.06em">{{.Elevacion}} m</span></span>
+          <span><span class="v">{{printf "%.0f" .NieveSemana}}</span><span class="ch" style="color:var(--muted)">cm</span></span>
+        </div>
+        {{end}}
+      {{else}}<span class="empty">Sin datos de nieve</span>{{end}}
+    </div>
+
+    <!-- TOP TASAS: los mismos datos que la home principal -->
+    <div class="section">
       <div class="stitle"><span class="lbl">Estado · sismos</span><span class="hr"></span><span class="count">últimos 5 de {{len .Earthquakes}}</span></div>
       {{if .Earthquakes}}
         {{range $i, $q := .Earthquakes}}{{if lt $i 5}}
@@ -326,25 +342,6 @@
         </div>
         {{end}}{{end}}
       {{else}}<span class="empty">Sin datos sísmicos</span>{{end}}
-    </div>
-
-    <div class="section">
-      <div class="stitle"><span class="lbl">Mercados</span><span class="hr"></span><span class="count">live</span></div>
-      <div class="mkt"><span class="k">Bitcoin</span><span><span class="v">{{printf "%.0f" .BTCPrice}}</span><span class="ch {{if lt .BTCChange 0.0}}down{{else}}up{{end}}">{{printf "%+.1f" .BTCChange}}%</span></span></div>
-      <div class="mkt"><span class="k">Ethereum</span><span><span class="v">{{printf "%.0f" .ETHPrice}}</span><span class="ch {{if lt .ETHChange 0.0}}down{{else}}up{{end}}">{{printf "%+.1f" .ETHChange}}%</span></span></div>
-      {{if gt .Dolar.SP500.Price 0.0}}
-      <div class="mkt"><span class="k">S&amp;P 500</span><span><span class="v">{{printf "%.0f" .Dolar.SP500.Price}}</span><span class="ch {{if lt .Dolar.SP500.Change 0.0}}down{{else}}up{{end}}">{{printf "%+.1f" .Dolar.SP500.Change}}%</span></span></div>
-      {{end}}
-      {{if gt .Dolar.Nasdaq.Price 0.0}}
-      <div class="mkt"><span class="k">NASDAQ</span><span><span class="v">{{printf "%.0f" .Dolar.Nasdaq.Price}}</span><span class="ch {{if lt .Dolar.Nasdaq.Change 0.0}}down{{else}}up{{end}}">{{printf "%+.1f" .Dolar.Nasdaq.Change}}%</span></span></div>
-      {{end}}
-      {{if gt .Dolar.RiesgoPais.Price 0.0}}
-      <div class="mkt"><span class="k">Riesgo país</span><span><span class="v">{{printf "%.0f" .Dolar.RiesgoPais.Price}}</span><span class="ch {{if gt .Dolar.RiesgoPais.Change 0.0}}down{{else}}up{{end}}">{{printf "%+.1f" .Dolar.RiesgoPais.Change}}%</span></span></div>
-      {{end}}
-      <div class="mkt"><span class="k">Dólar blue</span><span><span class="v">{{printf "%.0f" .Dolar.Blue.Venta}}</span></span></div>
-      <div class="mkt"><span class="k">Dólar MEP</span><span><span class="v">{{printf "%.0f" .Dolar.MEP.Venta}}</span></span></div>
-      <div class="mkt"><span class="k">Dólar CCL</span><span><span class="v">{{printf "%.0f" .Dolar.CCL.Venta}}</span></span></div>
-      <div class="mkt"><span class="k">Dólar oficial</span><span><span class="v">{{printf "%.0f" .Dolar.Oficial.Venta}}</span></span></div>
     </div>
 
     <div class="section">
