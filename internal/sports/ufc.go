@@ -6,9 +6,36 @@ import (
 	"fmt"
 	"homedash/internal/common"
 	"homedash/internal/network"
+	"net/url"
 	"strings"
 	"time"
 )
+
+// headshotSize es el lado en px que se le pide a ESPN. Los headshots se muestran
+// a 44-48 px (y 24 px en la lista): 96 cubre retina 2x con sobra.
+const headshotSize = 96
+
+// crestURLForHeadshot arma la URL del proxy /crest para un headshot, pidiéndole
+// a ESPN que lo entregue YA reducido.
+//
+// ESPN sirve el original en 500x500 (~200 KB) y el panel lo muestra a 44 px; sus
+// 10 headshots eran el 88% del peso de la página (2,2 MB). Su propio CDN lo
+// reescala si se pide por /combiner con w/h: medido, 204.673 B -> 12.313 B
+// (17x menos) en un PNG 96x96 válido, sin gastar CPU acá. El nombre de la caché
+// lleva el tamaño para no seguir sirviendo un archivo de 500x500 ya guardado.
+func crestURLForHeadshot(raw, id string) string {
+	if raw == "" {
+		return ""
+	}
+	if i := strings.Index(raw, "/i/headshots/"); i >= 0 {
+		img := raw[i:] // el combiner quiere el path, sin el host
+		raw = fmt.Sprintf("https://a.espncdn.com/combiner/i?img=%s&w=%d&h=%d", img, headshotSize, headshotSize)
+		return fmt.Sprintf("/crest?url=%s&name=athlete_%s_%d", url.QueryEscape(raw), id, headshotSize)
+	}
+	// Sin patrón reconocido: se proxea tal cual, pero escapado (antes se
+	// concatenaba crudo y un & en la URL rompía el query).
+	return fmt.Sprintf("/crest?url=%s&name=athlete_%s", url.QueryEscape(raw), id)
+}
 
 // getFighterHeadshot consulta el endpoint core de ESPN para obtener la URL real
 // del headshot del peleador. ESPN dejó de incluir athlete.headshot en el
@@ -123,12 +150,8 @@ func fetchLiveUFC(ctx context.Context) UFCMatch {
 			if rawP2 == "" {
 				rawP2 = getFighterHeadshot(ctx, id2)
 			}
-			if rawP1 != "" {
-				fightP1Headshot = fmt.Sprintf("/crest?url=%s&name=athlete_%s", rawP1, id1)
-			}
-			if rawP2 != "" {
-				fightP2Headshot = fmt.Sprintf("/crest?url=%s&name=athlete_%s", rawP2, id2)
-			}
+			fightP1Headshot = crestURLForHeadshot(rawP1, id1)
+			fightP2Headshot = crestURLForHeadshot(rawP2, id2)
 
 			// Fotos del evento principal
 			if i == len(mainEvent.Competitions)-1 {

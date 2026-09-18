@@ -253,37 +253,49 @@ func main() {
 	maxRetries := 5
 	retryDelay := 5 * time.Second
 
-	log.Println("[INIT] Cargando datos iniciales...")
+	log.Println("[INIT] Cargando datos iniciales en segundo plano...")
 
-	// 1. Deportes (Bloqueante hasta éxito o max retries)
-	for i := 0; i < maxRetries; i++ {
-		err := sports.ForceUpdate(context.Background())
-		if err == nil {
-			log.Println("[INIT] Deportes cargados con éxito.")
-			break
+	// La carga inicial NO bloquea el arranque: el listener queda escuchando de
+	// inmediato y los datos se completan solos (los paneles usan la caché de
+	// disco del arranque anterior mientras tanto). Antes esto corría en serie
+	// antes del ListenAndServe, así que el dashboard no respondía NADA durante
+	// los primeros 40-50 s después de cada reinicio: se esperaban los reintentos
+	// de deportes y el fetch de ~180 alertas del SMN.
+	// Es seguro: cada paquete protege su estado (RLock/Lock) y los handlers lo
+	// leen con los getters.
+	go func() {
+		// 1. Deportes (con reintentos)
+		for i := 0; i < maxRetries; i++ {
+			err := sports.ForceUpdate(context.Background())
+			if err == nil {
+				log.Println("[INIT] Deportes cargados con éxito.")
+				break
+			}
+			log.Printf("[INIT] Error cargando deportes (intento %d/%d): %v. Reintentando en %v...\n", i+1, maxRetries, err, retryDelay)
+			time.Sleep(retryDelay)
 		}
-		log.Printf("[INIT] Error cargando deportes (intento %d/%d): %v. Reintentando en %v...\n", i+1, maxRetries, err, retryDelay)
-		time.Sleep(retryDelay)
-	}
 
-	// 2. Crypto y Finanzas (Intentar una vez rápido, si fallan no bloqueamos el inicio pero los lanzamos)
-	if err := crypto.UpdateCrypto(context.Background()); err != nil {
-		log.Printf("[INIT] Aviso: Cripto no se pudo cargar inicialmente: %v\n", err)
-	}
-	if err := finance.UpdateFinance(context.Background()); err != nil {
-		log.Printf("[INIT] Aviso: Finanzas no se pudieron cargar inicialmente: %v\n", err)
-	}
+		// 2. Crypto y Finanzas (si fallan no bloquean el resto)
+		if err := crypto.UpdateCrypto(context.Background()); err != nil {
+			log.Printf("[INIT] Aviso: Cripto no se pudo cargar inicialmente: %v\n", err)
+		}
+		if err := finance.UpdateFinance(context.Background()); err != nil {
+			log.Printf("[INIT] Aviso: Finanzas no se pudieron cargar inicialmente: %v\n", err)
+		}
 
-	// 3. Sismos y Alertas
-	earthquake.ForceUpdate(context.Background())
-	weather.ForceUpdateAlerts(context.Background())
+		// 3. Sismos y Alertas
+		earthquake.ForceUpdate(context.Background())
+		weather.ForceUpdateAlerts(context.Background())
 
-	// Iniciar bucles de actualización en segundo plano
-	sports.StartUpdateLoop()
-	crypto.StartUpdateLoop()
-	finance.StartUpdateLoop()
-	earthquake.StartUpdateLoop()
-	weather.StartAlertsLoop()
+		// Bucles de actualización periódicos
+		sports.StartUpdateLoop()
+		crypto.StartUpdateLoop()
+		finance.StartUpdateLoop()
+		earthquake.StartUpdateLoop()
+		weather.StartAlertsLoop()
+
+		log.Println("[INIT] Carga inicial completa.")
+	}()
 
 	// Si se pasa el argumento "mcp", ejecutar el servidor MCP y salir
 	if len(os.Args) > 1 && os.Args[1] == "mcp" {
