@@ -7,6 +7,7 @@ import (
 	"homedash/internal/network"
 	"io"
 	"log"
+	"math"
 	"regexp"
 	"strconv"
 	"strings"
@@ -15,17 +16,29 @@ import (
 )
 
 var (
-	alertMutex  sync.RWMutex
-	smnAlerts   []SMNAlert
-	cachedLinks = map[string]time.Time{} // link CAP -> última vez que lo vimos
+	alertMutex sync.RWMutex
+	smnAlerts  []SMNAlert
+	// link CAP -> contenido YA PARSEADO. Se guarda el contenido y no sólo el
+	// timestamp para poder reconstruir la lista completa del feed sin volver a
+	// bajar los XML.
+	alertByLink = map[string]SMNAlert{}
+	linkSeen    = map[string]time.Time{} // link CAP -> última vez que lo vimos
 )
+
+// alertRadiusKm es la tolerancia de distancia para dar una alerta por cercana.
+// Los polígonos del SMN delimitan zonas geográficas (Cordillera, Llanura) y no
+// ciudades: medido en producción, la alerta de Viento Zonda del Gran Mendoza
+// pasa a 3,3 km de la Ciudad de Mendoza SIN contenerla. Con match estricto
+// punto-en-polígono el dashboard nunca mostraba una alerta.
+const alertRadiusKm = 20.0
 
 type SMNAlert struct {
 	Text     string
 	Icon     string
 	Severity string
-	Poly     [][2]float64 // {lat, lon}
+	Polys    [][][2]float64 // uno o más polígonos {lat, lon}: una alerta cubre varias zonas
 	At       time.Time
+	Expires  time.Time // fin de vigencia (campo expires del CAP)
 }
 
 func StartAlertsLoop() {
@@ -80,11 +93,10 @@ func updateSMNAlerts(ctx context.Context) bool {
 	}
 
 	var (
-		mu     sync.Mutex
-		wg     sync.WaitGroup
-		alerts []SMNAlert
+		mu       sync.Mutex
+		wg       sync.WaitGroup
+		actuales []SMNAlert
 	)
-	// Sincronizar el mapa de links conocidos fuera de la gorutina principal
 	pruneCachedLinks()
 
 	sem := make(chan struct{}, 10)
@@ -96,41 +108,74 @@ func updateSMNAlerts(ctx context.Context) bool {
 			sem <- struct{}{}
 			defer func() { <-sem }()
 
+			// El feed repite las mismas alertas en cada corrida: si ya tenemos
+			// el contenido parseado se reusa tal cual (sin refetch).
 			alertMutex.RLock()
-			_, seen := cachedLinks[it.link]
+			cached, ok := alertByLink[it.link]
 			alertMutex.RUnlock()
-			if seen {
+			if ok {
+				mu.Lock()
+				actuales = append(actuales, cached)
+				mu.Unlock()
 				return
 			}
 
 			a, err := fetchCAPXML(ctx, it.title, it.link)
-			if err != nil || len(a.Poly) < 3 {
+			if err != nil || len(a.Polys) == 0 {
 				return
 			}
-			mu.Lock()
-			alerts = append(alerts, a)
 			alertMutex.Lock()
-			cachedLinks[it.link] = time.Now()
+			alertByLink[it.link] = a
+			linkSeen[it.link] = time.Now()
 			alertMutex.Unlock()
+			mu.Lock()
+			actuales = append(actuales, a)
 			mu.Unlock()
 		}()
 	}
 	wg.Wait()
 
-	if len(alerts) == 0 {
-		return true
+	if len(actuales) == 0 {
+		return false
 	}
+	// Publicar SIEMPRE la lista completa del feed actual. Antes se asignaban
+	// sólo las alertas NUEVAS: cuando el feed traía una novedad, las otras
+	// vigentes desaparecían (y cuando no traía ninguna, quedaban fantasmas).
 	alertMutex.Lock()
-	smnAlerts = alerts
+	smnAlerts = actuales
 	alertMutex.Unlock()
-	match := 0
-	for _, a := range alerts {
-		if pointInPolygon(-32.89, -68.82, a.Poly) {
-			match++
+
+	exactos, cercanos := contarCobertura(-32.89, -68.82)
+	log.Printf("[ALERTS] %d alertas SMN del feed (%d contienen Mendoza, %d a <=%.0f km)",
+		len(actuales), exactos, cercanos, alertRadiusKm)
+	return true
+}
+
+// contarCobertura cuenta cuántas alertas contienen el punto y cuántas quedan
+// dentro del radio de tolerancia (para el log: es el diagnóstico que faltaba).
+func contarCobertura(lat, lon float64) (exactos, cercanos int) {
+	alertMutex.RLock()
+	defer alertMutex.RUnlock()
+	for _, a := range smnAlerts {
+		cerca := false
+		for _, poly := range a.Polys {
+			if len(poly) < 3 {
+				continue
+			}
+			if pointInPolygon(lat, lon, poly) {
+				exactos++
+				cerca = true
+				break
+			}
+			if kmToPolygon(lat, lon, poly) <= alertRadiusKm {
+				cerca = true
+			}
+		}
+		if cerca {
+			cercanos++
 		}
 	}
-	log.Printf("[ALERTS] %d alertas SMN activas (%d cubren Mendoza)", len(alerts), match)
-	return true
+	return
 }
 
 type capItem struct {
@@ -188,9 +233,10 @@ func capEvent(link string) string {
 func pruneCachedLinks() {
 	alertMutex.Lock()
 	defer alertMutex.Unlock()
-	for link, t := range cachedLinks {
+	for link, t := range linkSeen {
 		if time.Since(t) > 48*time.Hour {
-			delete(cachedLinks, link)
+			delete(linkSeen, link)
+			delete(alertByLink, link)
 		}
 	}
 }
@@ -203,13 +249,17 @@ func fetchCAPXML(ctx context.Context, title, link string) (SMNAlert, error) {
 	}
 	defer resp.Body.Close()
 
+	// Area y polygon son SLICES: una alerta cubre varias zonas y cada zona
+	// puede traer más de un polígono. Con structs simples se perdían todas
+	// menos una, así que el matcheo fallaba para el resto de las zonas.
 	var cap struct {
 		Info []struct {
 			Event    string `xml:"event"`
 			Severity string `xml:"severity"`
 			Desc     string `xml:"description"`
-			Area     struct {
-				Polygon string `xml:"polygon"`
+			Expires  string `xml:"expires"`
+			Area     []struct {
+				Polygon []string `xml:"polygon"`
 			} `xml:"area"`
 		} `xml:"info"`
 	}
@@ -226,9 +276,19 @@ func fetchCAPXML(ctx context.Context, title, link string) (SMNAlert, error) {
 	a.Text = sum.Text
 	a.Icon = sum.Icon
 	a.Severity = info.Severity
-	a.Poly = parsePolygon(info.Area.Polygon)
+	for _, ar := range info.Area {
+		for _, raw := range ar.Polygon {
+			// Cada polígono queda SEPARADO: unirlos rompería el ray casting.
+			if pts := parsePolygon(raw); len(pts) >= 3 {
+				a.Polys = append(a.Polys, pts)
+			}
+		}
+	}
 	if t := capTimestamp(link); !t.IsZero() {
 		a.At = t
+	}
+	if exp, err := time.Parse(time.RFC3339, strings.TrimSpace(info.Expires)); err == nil {
+		a.Expires = exp
 	}
 	if len(a.Text) > 60 {
 		a.Text = a.Text[:57] + "..."
@@ -289,18 +349,86 @@ func GetSMNAlert(latStr, lonStr string) WeatherAlert {
 		return defaultAlert
 	}
 
+	now := time.Now()
 	alertMutex.RLock()
 	defer alertMutex.RUnlock()
-	for _, a := range smnAlerts {
-		if pointInPolygon(lat, lon, a.Poly) {
-			text := a.Text
-			if !a.At.IsZero() {
-				text = fmt.Sprintf("%s (%s)", text, a.At.Format("15:04"))
+
+	var mejor *SMNAlert
+	mejorDist := math.MaxFloat64
+	for i := range smnAlerts {
+		a := &smnAlerts[i]
+		if !a.Expires.IsZero() && now.After(a.Expires) {
+			continue // vencida: el feed puede arrastrarlas un rato
+		}
+		for _, poly := range a.Polys {
+			if len(poly) < 3 {
+				continue
 			}
-			return WeatherAlert{Text: text, Icon: a.Icon}
+			// Match exacto: el punto cae dentro del polígono.
+			if pointInPolygon(lat, lon, poly) {
+				return formatAlert(a, 0)
+			}
+			if d := kmToPolygon(lat, lon, poly); d < mejorDist {
+				mejorDist, mejor = d, a
+			}
 		}
 	}
+	// Sin match exacto: los polígonos del SMN son zonas geográficas amplias y
+	// suelen dejar afuera el centro urbano. Dentro del radio de tolerancia la
+	// alerta aplica igual (se indica la distancia para que se entienda).
+	if mejor != nil && mejorDist <= alertRadiusKm {
+		return formatAlert(mejor, mejorDist)
+	}
 	return defaultAlert
+}
+
+// formatAlert arma el texto que ve el usuario. Si distKm > 0 la alerta se dio
+// por cercanía y no por contener el punto exacto.
+func formatAlert(a *SMNAlert, distKm float64) WeatherAlert {
+	text := a.Text
+	if !a.At.IsZero() {
+		text = fmt.Sprintf("%s (%s)", text, a.At.Format("15:04"))
+	}
+	if distKm > 0 {
+		text = fmt.Sprintf("%s · a %.0f km", text, distKm)
+	}
+	return WeatherAlert{Text: text, Icon: a.Icon}
+}
+
+// kmBetween: distancia haversine en km.
+func kmBetween(lat1, lon1, lat2, lon2 float64) float64 {
+	const r = 6371.0
+	p1, p2 := lat1*math.Pi/180, lat2*math.Pi/180
+	dp := p2 - p1
+	dl := (lon2 - lon1) * math.Pi / 180
+	h := math.Sin(dp/2)*math.Sin(dp/2) + math.Cos(p1)*math.Cos(p2)*math.Sin(dl/2)*math.Sin(dl/2)
+	return 2 * r * math.Asin(math.Sqrt(h))
+}
+
+// kmToPolygon: distancia mínima del punto a alguno de los lados del polígono.
+func kmToPolygon(lat, lon float64, poly [][2]float64) float64 {
+	best := math.MaxFloat64
+	for i := range poly {
+		y1, x1 := poly[i][0], poly[i][1]
+		y2, x2 := poly[(i+1)%len(poly)][0], poly[(i+1)%len(poly)][1]
+		dy, dx := y2-y1, x2-x1
+		var d float64
+		if dx == 0 && dy == 0 {
+			d = kmBetween(lat, lon, y1, x1)
+		} else {
+			t := ((lat-y1)*dy + (lon-x1)*dx) / (dy*dy + dx*dx)
+			if t < 0 {
+				t = 0
+			} else if t > 1 {
+				t = 1
+			}
+			d = kmBetween(lat, lon, y1+t*dy, x1+t*dx)
+		}
+		if d < best {
+			best = d
+		}
+	}
+	return best
 }
 
 type WeatherAlert struct {
