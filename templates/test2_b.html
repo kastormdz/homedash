@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Homedash · test2 · B — NOC operativo</title>
+<style>
+  :root{
+    --bg:#080A0E; --panel:#0E1218; --line:#1B2431; --line-2:#141C26;
+    --text:#E9EEF6; --muted:#95A2B4; --dim:#6E7A8B;
+    --ok:#3BD99E; --warn:#F2A93B; --crit:#FF6157; --info:#5BBCFF;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);
+    font-family:'Adwaita Sans',Inter,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased;font-size:13.5px}
+  .mono{font-family:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,monospace;font-variant-numeric:tabular-nums}
+  .lbl{font-size:9.5px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--dim);
+    font-family:'JetBrains Mono',ui-monospace,monospace}
+  .empty{color:var(--dim);font-size:12px;font-style:italic}
+
+  .bar{display:flex;align-items:center;padding:0 22px;min-height:52px;background:var(--panel);
+    border-bottom:1px solid var(--line);flex-wrap:wrap;gap:4px}
+  .health{display:flex;align-items:center;gap:9px;padding-right:20px;border-right:1px solid var(--line);height:52px}
+  .health .led{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 9px var(--ok)}
+  .health.warn .led{background:var(--warn);box-shadow:0 0 9px var(--warn)}
+  .health b{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ok);
+    font-family:'JetBrains Mono',monospace}
+  .health.warn b{color:var(--warn)}
+  .bar .clock{margin-left:20px;font-size:17px;font-weight:600}
+  .bar .clock span{color:var(--dim);font-size:11px;font-weight:400;margin-left:9px;letter-spacing:.05em;text-transform:uppercase}
+  .kpis{display:flex;margin-left:auto;align-items:center;flex-wrap:wrap}
+  .kpi{padding:8px 18px;border-left:1px solid var(--line);display:flex;flex-direction:column;gap:2px;min-width:92px}
+  .kpi .k{font-size:9px;letter-spacing:.13em;text-transform:uppercase;color:var(--dim);font-family:'JetBrains Mono',monospace}
+  .kpi .v{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:600}
+  .kpi .v small{font-size:10px;color:var(--dim);font-weight:400;margin-left:3px}
+  .dens{display:flex;align-items:center;gap:8px;background:none;border:1px solid var(--line);border-radius:6px;
+    padding:6px 11px;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;
+    letter-spacing:.13em;text-transform:uppercase;cursor:pointer;margin-left:16px}
+  .dens:hover{border-color:var(--info);color:var(--info)}
+  #dens{position:absolute;opacity:0;pointer-events:none}
+
+  .alertband{display:flex;align-items:center;gap:18px;padding:12px 22px;background:rgba(242,169,59,.07);
+    border-bottom:1px solid rgba(242,169,59,.22);flex-wrap:wrap}
+  .alertband.ok{background:rgba(59,217,158,.05);border-bottom-color:rgba(59,217,158,.2)}
+  .alertband .sev{font-size:9.5px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;
+    background:var(--warn);color:#1A1206;padding:3px 8px;border-radius:4px;font-family:'JetBrains Mono',monospace}
+  .alertband.ok .sev{background:var(--ok);color:#04170F}
+  .alertband .t{font-size:12.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--warn)}
+  .alertband.ok .t{color:var(--ok)}
+  .alertband .d{font-size:11.5px;color:var(--muted)}
+  .alertband .r{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--muted)}
+
+  .wrap{display:grid;grid-template-columns:1.55fr 1fr}
+  .col{padding:22px 24px 40px}
+  .col.left{border-right:1px solid var(--line)}
+  .section{margin-bottom:26px}
+  .section:last-child{margin-bottom:0}
+  .stitle{display:flex;align-items:center;gap:12px;margin-bottom:15px}
+  .stitle .lbl{color:var(--muted)}
+  .stitle .hr{flex:1;height:1px;background:var(--line-2)}
+  .stitle .count{font-size:10px;color:var(--dim);font-family:'JetBrains Mono',monospace}
+
+  .hero{display:flex;align-items:flex-start;gap:34px;flex-wrap:wrap}
+  .hero .now{font-size:52px;line-height:.92;font-weight:500;letter-spacing:-.045em}
+  .hero .now sup{font-size:20px;color:var(--muted);vertical-align:super}
+  .hero .meta{display:flex;flex-direction:column;gap:5px;padding-top:6px}
+  .hero .meta .r{display:flex;gap:11px;font-size:12px;color:var(--muted);align-items:baseline}
+  .hero .meta .r b{color:var(--text);font-weight:600;font-family:'JetBrains Mono',monospace}
+  .hsep{color:var(--line)}
+  .days{display:flex;margin-top:24px;border-top:1px solid var(--line-2);padding-top:16px}
+  .days .d{flex:1;display:flex;flex-direction:column;gap:7px;align-items:center;border-left:1px solid var(--line-2)}
+  .days .d:first-child{border-left:0}
+  .days .dn{font-size:9px;letter-spacing:.13em;color:var(--dim);font-family:'JetBrains Mono',monospace}
+  .days .dt{font-size:13px;font-family:'JetBrains Mono',monospace;font-weight:600}
+  .days .dt em{color:var(--dim);font-style:normal;font-weight:400;font-size:11px}
+  .colbar{width:22px;height:38px;position:relative;border-radius:2px;
+    background:linear-gradient(to top,rgba(91,188,255,.55) var(--h),rgba(91,188,255,.06) var(--h))}
+  .colbar::after{content:'';position:absolute;inset:0;border-radius:2px;border:1px solid rgba(91,188,255,.22)}
+
+  .sport{display:flex;align-items:center;gap:16px;padding:13px 0;border-bottom:1px solid var(--line-2)}
+  .sport:last-child{border-bottom:0}
+  .sport .tag{font-size:9.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--dim);
+    min-width:64px;font-family:'JetBrains Mono',monospace}
+  .sport .main{flex:1;min-width:0}
+  .sport .main .a{font-size:14px;font-weight:600}
+  .sport .main .b{font-size:11.5px;color:var(--dim);margin-top:2px}
+  .sport .when{text-align:right;font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--muted);white-space:nowrap}
+  .sport .when b{display:block;color:var(--text);font-size:12.5px;font-weight:600}
+  .chip{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;border-radius:4px;
+    font-family:'JetBrains Mono',monospace;white-space:nowrap}
+  .chip.next{background:rgba(59,217,158,.1);color:var(--ok);border:1px solid rgba(59,217,158,.25)}
+  .chip.info{background:rgba(91,188,255,.1);color:var(--info);border:1px solid rgba(91,188,255,.25)}
+  .fights{display:grid;grid-template-columns:1fr 1fr;gap:4px 22px;margin-top:9px}
+  .fight{display:flex;justify-content:space-between;gap:8px;font-size:11.5px;color:var(--muted);
+    padding:4px 0;border-bottom:1px dashed var(--line-2)}
+  .fight b{color:var(--text);font-weight:500}
+
+  .quake{display:flex;align-items:center;gap:12px;padding:7px 0}
+  .quake .mag{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;min-width:38px}
+  .quake .place{flex:1;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .quake .t{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--dim)}
+  .mag-hi{color:var(--crit)} .mag-mid{color:var(--warn)} .mag-lo{color:var(--muted)}
+  .mkt{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:7px 0;border-bottom:1px solid var(--line-2)}
+  .mkt:last-child{border-bottom:0}
+  .mkt .k{font-size:12px;color:var(--muted)}
+  .mkt .v{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:600}
+  .mkt .ch{font-family:'JetBrains Mono',monospace;font-size:10.5px;margin-left:9px}
+  .up{color:var(--ok)} .down{color:var(--crit)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 22px}
+  .kv{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--line-2);font-size:12px}
+  .kv span:first-child{color:var(--dim)}
+  .kv span:last-child{font-family:'JetBrains Mono',monospace;font-weight:600}
+  .slot{border:1px dashed var(--line);border-radius:8px;padding:14px;text-align:center;color:var(--dim);
+    font-size:10px;letter-spacing:.13em;text-transform:uppercase;font-family:'JetBrains Mono',monospace;margin-top:14px;cursor:pointer}
+  .slot:hover{border-color:var(--info);color:var(--info)}
+
+  .sw{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);display:flex;gap:6px;align-items:center;
+    background:#0D1319;border:1px solid var(--line);border-radius:999px;padding:6px 8px;z-index:50;
+    box-shadow:0 8px 28px rgba(0,0,0,.6)}
+  .sw .t{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);padding:0 8px;font-family:'JetBrains Mono',monospace}
+  .sw a{display:block;padding:6px 13px;border-radius:999px;color:var(--muted);text-decoration:none;font-size:11px;
+    font-weight:700;font-family:'JetBrains Mono',monospace}
+  .sw a:hover{background:#18212C;color:var(--text)}
+  .sw a.on{background:var(--info);color:#06121E}
+  body:has(#dens:checked) .col{padding:14px 18px 30px}
+  body:has(#dens:checked) .section{margin-bottom:16px}
+  body:has(#dens:checked) .hero .now{font-size:40px}
+  body:has(#dens:checked) .days{margin-top:14px;padding-top:10px}
+  body:has(#dens:checked) .quake,body:has(#dens:checked) .mkt{padding:4px 0}
+</style>
+</head>
+<body>
+
+<div class="bar">
+  {{if eq .Alert.Text "Sin alertas actuales"}}
+  <div class="health"><span class="led"></span><b>Operativo</b></div>
+  {{else}}
+  <div class="health warn"><span class="led"></span><b>Aviso activo</b></div>
+  {{end}}
+  <div class="clock mono">{{.Now.Format "15:04"}}<span>{{fechaEs .Now}}</span></div>
+  <div class="kpis">
+    <div class="kpi"><span class="k">Temp</span><span class="v">{{printf "%.1f" .Current.Temperature}}<small>°C</small></span></div>
+    <div class="kpi"><span class="k">Aire</span><span class="v">{{if gt .AQI 50}}<span style="color:var(--warn)">{{.AQI}}</span>{{else}}{{.AQI}}{{end}}<small>AQI</small></span></div>
+    {{if gt .Dolar.RiesgoPais.Price 0.0}}
+    <div class="kpi"><span class="k">Riesgo país</span><span class="v">{{printf "%.0f" .Dolar.RiesgoPais.Price}}<small class="{{if gt .Dolar.RiesgoPais.Change 0.0}}down{{else}}up{{end}}">{{printf "%+.1f" .Dolar.RiesgoPais.Change}}%</small></span></div>
+    {{end}}
+    {{if .Earthquakes}}
+    <div class="kpi"><span class="k">Sismo máx</span><span class="v" style="color:var(--crit)">{{quakemax .Earthquakes}}</span></div>
+    {{end}}
+    {{if .Cuencas}}
+    <div class="kpi"><span class="k">Nieve cord.</span><span class="v">{{printf "%.0f" (index .Cuencas 0).NieveSemana}}<small>cm 7d</small></span></div>
+    {{end}}
+    <input type="checkbox" id="dens">
+    <label class="dens" for="dens">Densidad</label>
+  </div>
+</div>
+
+{{if eq .Alert.Text "Sin alertas actuales"}}
+<div class="alertband ok">
+  <span class="sev">Sin avisos</span>
+  <span class="t">Condiciones normales</span>
+  <span class="d">{{range $i, $d := .DACC}}{{if eq $i 0}}Oficial DACC {{$d.Maxima}}°/{{$d.Minima}}° — {{$d.Pronostico}}{{end}}{{end}}</span>
+</div>
+{{else}}
+<div class="alertband">
+  <span class="sev">Aviso</span>
+  <span class="t">{{.Alert.Text}}</span>
+  <span class="d">{{range $i, $d := .DACC}}{{if eq $i 0}}Oficial DACC {{$d.Maxima}}°/{{$d.Minima}}° — {{$d.Pronostico}}{{end}}{{end}}</span>
+  <span class="r">{{.Alert.Detail}}</span>
+</div>
+{{end}}
+
+<div class="wrap">
+  <div class="col left">
+
+    <div class="section">
+      <div class="stitle"><span class="lbl">Clima · {{.City}}</span><span class="hr"></span><span class="count">{{.Now.Format "15:04"}}</span></div>
+      <div class="hero">
+        <div class="now mono">{{printf "%.1f" .Current.Temperature}}<sup>°</sup></div>
+        <div class="meta">
+          <div class="r"><span>{{wxcond .Current.WeatherCode}}</span></div>
+          <div class="r"><span>Sensación</span><b>{{printf "%.1f" .Current.ApparentTemp}}°</b></div>
+          <div class="r"><span>Humedad</span><b>{{.Current.Humidity}}%</b><span class="hsep">|</span><span>Viento</span><b>{{printf "%.1f" .Current.WindSpeed}} km/h</b></div>
+          <div class="r"><span>Amanecer</span><b>{{.Sunrise}}</b><span class="hsep">|</span><span>Atardecer</span><b>{{.Sunset}}</b></div>
+          <div class="r"><span>Luna</span><b style="font-family:inherit;font-weight:500">{{.MoonPhaseName}}</b></div>
+        </div>
+      </div>
+      <div class="days">
+        {{range .Forecast}}
+        <div class="d">
+          <span class="dn">{{.Date}}</span>
+          <span class="dt">{{printf "%.0f" .Max}}° <em>{{printf "%.0f" .Min}}°</em></span>
+          <span class="colbar" style="--h:{{pct .Max}}%"></span>
+        </div>
+        {{end}}
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="stitle"><span class="lbl">Deportes</span><span class="hr"></span><span class="count">fútbol · F1 · UFC</span></div>
+      {{if .NextMatch.Match.Team}}
+      <div class="sport">
+        <span class="tag">Fútbol</span>
+        <div class="main">
+          <div class="a">{{.NextMatch.Match.Team}} vs {{.NextMatch.Match.Opponent}}</div>
+          <div class="b">{{if .NextMatch.Match.Tournament}}{{.NextMatch.Match.Tournament}}{{end}}{{if .NextMatch.Match.Stadium}} · {{.NextMatch.Match.Stadium}}{{end}}</div>
+        </div>
+        <span class="chip next">Próximo</span>
+        <span class="when"><b>{{.NextMatch.Match.Time}}</b>{{.NextMatch.Match.Date}}</span>
+      </div>
+      {{else}}
+      <div class="sport"><span class="tag">Fútbol</span><div class="main"><span class="empty">Sin partidos próximos</span></div></div>
+      {{end}}
+
+      {{if .NextMatch.F1.Sessions}}
+      <div class="sport" style="align-items:flex-start">
+        <span class="tag">F1</span>
+        <div class="main">
+          <div class="a">{{.NextMatch.F1.GrandPrix}}</div>
+          <div class="fights">
+            {{range .NextMatch.F1.Sessions}}
+            <div class="fight"><b>{{.Name}}</b><span>{{.Date}} {{.Time}}</span></div>
+            {{end}}
+          </div>
+        </div>
+      </div>
+      {{end}}
+
+      {{if .NextMatch.UFC.Fights}}
+      <div class="sport" style="align-items:flex-start">
+        <span class="tag">UFC</span>
+        <div class="main">
+          <div class="a">{{.NextMatch.UFC.EventName}}</div>
+          <div class="b">{{if .NextMatch.UFC.Venue}}{{.NextMatch.UFC.Venue}} · {{end}}{{len .NextMatch.UFC.Fights}} combates</div>
+          <div class="fights">
+            {{range $i, $f := .NextMatch.UFC.Fights}}{{if lt $i 4}}
+            <div class="fight"><b>{{$f.P1}}</b><span>vs {{$f.P2}}</span></div>
+            {{end}}{{end}}
+          </div>
+        </div>
+        <span class="when"><b>{{.NextMatch.UFC.Time}}</b>{{.NextMatch.UFC.Date}}</span>
+      </div>
+      {{end}}
+    </div>
+
+  </div>
+
+  <div class="col">
+
+    <div class="section">
+      <div class="stitle"><span class="lbl">Cordillera · nieve</span><span class="hr"></span><span class="count">7 días</span></div>
+      {{if .Cuencas}}
+        {{range .Cuencas}}
+        <div class="mkt">
+          <span class="k">{{.Nombre}} <span class="lbl" style="letter-spacing:.06em">{{.Elevacion}} m</span></span>
+          <span><span class="v">{{printf "%.0f" .NieveSemana}}</span><span class="ch" style="color:var(--muted)">cm</span></span>
+        </div>
+        {{end}}
+      {{else}}<span class="empty">Sin datos de nieve</span>{{end}}
+    </div>
+
+    <div class="section">
+      <div class="stitle"><span class="lbl">Estado · sismos</span><span class="hr"></span><span class="count">últimos 5 de {{len .Earthquakes}}</span></div>
+      {{if .Earthquakes}}
+        {{range $i, $q := .Earthquakes}}{{if lt $i 5}}
+        <div class="quake">
+          <span class="mag {{magclass $q.Magnitude}}">{{$q.Magnitude}}</span>
+          <span class="place">{{$q.Location}}</span><span class="t">{{$q.Time}}</span>
+        </div>
+        {{end}}{{end}}
+      {{else}}<span class="empty">Sin datos sísmicos</span>{{end}}
+    </div>
+
+    <div class="section">
+      <div class="stitle"><span class="lbl">Mercados</span><span class="hr"></span><span class="count">live</span></div>
+      <div class="mkt"><span class="k">Bitcoin</span><span><span class="v">{{printf "%.0f" .BTCPrice}}</span><span class="ch {{if lt .BTCChange 0.0}}down{{else}}up{{end}}">{{printf "%+.1f" .BTCChange}}%</span></span></div>
+      <div class="mkt"><span class="k">Ethereum</span><span><span class="v">{{printf "%.0f" .ETHPrice}}</span><span class="ch {{if lt .ETHChange 0.0}}down{{else}}up{{end}}">{{printf "%+.1f" .ETHChange}}%</span></span></div>
+      {{if gt .Dolar.SP500.Price 0.0}}
+      <div class="mkt"><span class="k">S&amp;P 500</span><span><span class="v">{{printf "%.0f" .Dolar.SP500.Price}}</span><span class="ch {{if lt .Dolar.SP500.Change 0.0}}down{{else}}up{{end}}">{{printf "%+.1f" .Dolar.SP500.Change}}%</span></span></div>
+      {{end}}
+      {{if gt .Dolar.Nasdaq.Price 0.0}}
+      <div class="mkt"><span class="k">NASDAQ</span><span><span class="v">{{printf "%.0f" .Dolar.Nasdaq.Price}}</span><span class="ch {{if lt .Dolar.Nasdaq.Change 0.0}}down{{else}}up{{end}}">{{printf "%+.1f" .Dolar.Nasdaq.Change}}%</span></span></div>
+      {{end}}
+      <div class="mkt"><span class="k">Dólar blue</span><span><span class="v">{{printf "%.0f" .Dolar.Blue.Venta}}</span></span></div>
+      <div class="mkt"><span class="k">Dólar MEP</span><span><span class="v">{{printf "%.0f" .Dolar.MEP.Venta}}</span></span></div>
+      <div class="mkt"><span class="k">Dólar CCL</span><span><span class="v">{{printf "%.0f" .Dolar.CCL.Venta}}</span></span></div>
+      <div class="mkt"><span class="k">Dólar oficial</span><span><span class="v">{{printf "%.0f" .Dolar.Oficial.Venta}}</span></span></div>
+    </div>
+
+    <div class="section">
+      <div class="stitle"><span class="lbl">Ambiente · agenda</span><span class="hr"></span></div>
+      <div class="grid2">
+        <div class="kv"><span>Aire</span><span>{{.AQI}}</span></div>
+        <div class="kv"><span>UV</span><span>{{printf "%.1f" .Current.UVIndex}}</span></div>
+        <div class="kv"><span>Lluvia</span><span>{{.RainProb}}%</span></div>
+        {{if gt .Dolar.Inflacion.Interanual 0.0}}
+        <div class="kv"><span>Inflación 12m</span><span>{{printf "%.1f" .Dolar.Inflacion.Interanual}}%</span></div>
+        <div class="kv"><span>Inflación mes</span><span style="color:var(--warn)">{{printf "%.1f" .Dolar.Inflacion.Mensual}}%</span></div>
+        {{end}}
+        {{if .Dolar.Billeteras}}
+        <div class="kv"><span>Mejor TNA</span><span style="color:var(--ok)">{{printf "%.1f" (index .Dolar.Billeteras 0).TNA}}%</span></div>
+        {{end}}
+      </div>
+      {{if .Upcoming}}
+        {{$h := index .Upcoming 0}}
+        <div class="kv" style="margin-top:10px;border-bottom:0">
+          <span>Próximo feriado</span><span style="font-family:inherit;font-weight:500">{{$h.Name}} · {{$h.DayName}} {{$h.DateStr}}</span>
+        </div>
+      {{end}}
+      <div class="slot">+ Agregar módulo</div>
+    </div>
+
+  </div>
+</div>
+
+<div class="sw">
+  <span class="t">Variante</span>
+  <a href="/test2?v=a" {{if eq .Variante "a"}}class="on"{{end}}>A · Grilla</a>
+  <a href="/test2?v=b" {{if eq .Variante "b"}}class="on"{{end}}>B · NOC</a>
+  <a href="/test2?v=c" {{if eq .Variante "c"}}class="on"{{end}}>C · Dominios</a>
+</div>
+
+</body>
+</html>

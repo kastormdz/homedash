@@ -16,6 +16,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -26,6 +27,7 @@ import (
 	"homedash/internal/finance"
 	"homedash/internal/holidays"
 	"homedash/internal/network"
+	"homedash/internal/snow"
 	"homedash/internal/sports"
 	"homedash/internal/weather"
 )
@@ -51,6 +53,80 @@ func loadTemplates() {
 			return strings.Contains(strings.ToLower(s), strings.ToLower(substr))
 		},
 		"split": strings.Split,
+		// fechaEs formatea la fecha en castellano: los nombres de mes/día de Go
+		// están en inglés y no hay locale, así que "Monday 2 de January" salía
+		// como "Friday 18 de September".
+		"fechaEs": func(t time.Time) string {
+			dias := []string{"Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"}
+			meses := []string{"enero", "febrero", "marzo", "abril", "mayo", "junio",
+				"julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"}
+			return fmt.Sprintf("%s %d de %s", dias[int(t.Weekday())], t.Day(), meses[int(t.Month())-1])
+		},
+		// quakemax devuelve la magnitud máxima REAL del listado. El feed viene
+		// ordenado por hora, no por magnitud: usar el primero mentía (mostraba
+		// "MÁX 3.3" con un 5.2 más abajo en la lista).
+		"quakemax": func(qs []earthquake.EarthquakeData) string {
+			max := 0.0
+			out := "—"
+			for _, q := range qs {
+				if f, err := strconv.ParseFloat(q.Magnitude, 64); err == nil && f > max {
+					max, out = f, q.Magnitude
+				}
+			}
+			return out
+		},
+		// magclass clasifica una magnitud sísmica por severidad. La magnitud
+		// llega como string desde INPRES, así que compararla en el template
+		// (ge "4.5") sería una comparación lexicográfica: "10.0" < "4.5".
+		"magclass": func(s string) string {
+			f, err := strconv.ParseFloat(s, 64)
+			if err != nil {
+				return "mag-lo"
+			}
+			switch {
+			case f >= 4.5:
+				return "mag-hi"
+			case f >= 3.0:
+				return "mag-mid"
+			}
+			return "mag-lo"
+		},
+		// pct convierte una temperatura (0-40 °C) en ancho de barra para los
+		// mini-medidores de los templates de test2.
+		"pct": func(f float64) int {
+			p := int(f / 40 * 100)
+			if p < 6 {
+				p = 6
+			}
+			if p > 100 {
+				p = 100
+			}
+			return p
+		},
+		// wxcond traduce el código WMO de Open-Meteo a texto en castellano
+		"wxcond": func(code int) string {
+			switch {
+			case code == 0:
+				return "Despejado"
+			case code <= 2:
+				return "Parcialmente nublado"
+			case code == 3:
+				return "Nublado"
+			case code >= 45 && code <= 48:
+				return "Niebla"
+			case code >= 51 && code <= 57:
+				return "Llovizna"
+			case code >= 61 && code <= 67:
+				return "Lluvia"
+			case code >= 71 && code <= 77:
+				return "Nieve"
+			case code >= 80 && code <= 82:
+				return "Chaparrones"
+			case code >= 95:
+				return "Tormenta"
+			}
+			return "Nublado"
+		},
 	})
 	parsed, err := t.ParseGlob(filepath.Join("templates", "*.html"))
 	if err != nil {
@@ -310,6 +386,7 @@ func main() {
 
 	mux.HandleFunc("/", handleIndex)
 	mux.HandleFunc("/test", handleTest)
+	mux.HandleFunc("/test2", handleTest2)
 	mux.HandleFunc("/weather", handleWeather)
 	mux.HandleFunc("/crest", handleCrestProxy)
 	mux.HandleFunc("/settings", handleSettings)
@@ -461,6 +538,44 @@ func handleTest(w http.ResponseWriter, r *http.Request) {
 	w.Write(buf.Bytes())
 }
 
+// Test2ViewModel es el panel de prueba de diseño: el view model completo más lo
+// que sólo necesitan las variantes (nieve en cordillera y feriados próximos).
+type Test2ViewModel struct {
+	WeatherViewModel
+	Variante string // "a" | "b" | "c"
+	Now      time.Time
+	Cuencas  []snow.Cuenca
+	Upcoming []holidays.UpcomingHoliday
+}
+
+func handleTest2(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+
+	v := r.URL.Query().Get("v")
+	if v != "a" && v != "b" && v != "c" {
+		v = "b" // por defecto la variante NOC
+	}
+
+	vm := Test2ViewModel{
+		WeatherViewModel: buildWeatherViewModel(r),
+		Variante:         v,
+		Now:              time.Now(),
+		Cuencas:          snow.GetCordillera(r.Context()),
+		Upcoming:         holidays.GetUpcomingHolidays(time.Now()),
+	}
+
+	var buf bytes.Buffer
+	tmplsLock.RLock()
+	err := tmpls.ExecuteTemplate(&buf, "test2_"+v+".html", vm)
+	tmplsLock.RUnlock()
+	if err != nil {
+		log.Printf("[TEST2] Error renderizando variante %s: %v", v, err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Write(buf.Bytes())
+}
+
 type WeatherViewModel struct {
 	Current       weather.CurrentWeather
 	Forecast      []weather.ForecastItem
@@ -492,8 +607,10 @@ type WeatherViewModel struct {
 	DACC          []weather.DACCForecast // pronóstico oficial de la provincia
 }
 
-func handleWeather(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+// buildWeatherViewModel arma el view model completo del panel. Lo comparten
+// /weather (el panel real) y /test2 (las variantes de diseño), así no se duplica
+// la lógica de carga ni se desincronizan los datos entre las dos vistas.
+func buildWeatherViewModel(r *http.Request) WeatherViewModel {
 	settings := getSettings(r)
 
 	weatherData, errW := weather.GetWeather(r.Context(), settings.Lat, settings.Lon)
@@ -574,6 +691,13 @@ func handleWeather(w http.ResponseWriter, r *http.Request) {
 		IsAvailable:   isAvailable,
 		DACC:          weather.GetDACCForecast(r.Context()),
 	}
+
+	return viewModel
+}
+
+func handleWeather(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+	viewModel := buildWeatherViewModel(r)
 
 	var buf bytes.Buffer
 	tmplsLock.RLock()

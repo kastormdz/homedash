@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"homedash/internal/network"
+	"io"
 	"log"
 	"sort"
 	"strconv"
@@ -30,13 +31,24 @@ type Billetera struct {
 	HasConditions bool    // true si muestra la TNA base y aplica con condiciones
 }
 
+// Inflacion son los últimos datos del INDEC (vía argentinadatos).
+type Inflacion struct {
+	Mensual    float64 // % del último mes
+	Interanual float64 // %
+	Periodo    string  // "2026-08"
+}
+
 type FinanceData struct {
 	Blue       DolarPrice
 	Cripto     DolarPrice
+	MEP        DolarPrice // dólar bolsa
+	CCL        DolarPrice // contado con liquidación
+	Oficial    DolarPrice
 	SP500      AssetData
 	Nasdaq     AssetData
 	RiesgoPais AssetData
 	Billeteras []Billetera
+	Inflacion  Inflacion
 }
 
 var (
@@ -96,7 +108,7 @@ func UpdateFinance(ctx context.Context) error {
 	var newData FinanceData
 	var wg sync.WaitGroup
 	var mu sync.Mutex
-	wg.Add(6)
+	wg.Add(8)
 
 	// P-D. Paralelizar Blue, Cripto y Riesgo País
 	go func() {
@@ -239,9 +251,76 @@ func UpdateFinance(ctx context.Context) error {
 		}
 	}()
 
+	// MEP, CCL y oficial (dolarapi.com: la misma fuente que ya usa Blue/Cripto)
+	go func() {
+		defer wg.Done()
+		type par struct {
+			url    string
+			dest   *DolarPrice
+			nombre string
+		}
+		casas := []par{
+			{"https://dolarapi.com/v1/dolares/bolsa", &newData.MEP, "MEP"},
+			{"https://dolarapi.com/v1/dolares/contadoconliqui", &newData.CCL, "CCL"},
+			{"https://dolarapi.com/v1/dolares/oficial", &newData.Oficial, "Oficial"},
+		}
+		var dwg sync.WaitGroup
+		for _, c := range casas {
+			c := c
+			dwg.Add(1)
+			go func() {
+				defer dwg.Done()
+				resp, err := network.FetchSecureWithContext(ctx, c.url)
+				if err != nil {
+					log.Printf("[FINANCE] %s: %v", c.nombre, err)
+					return
+				}
+				defer resp.Body.Close()
+				var d DolarPrice
+				if err := json.NewDecoder(resp.Body).Decode(&d); err == nil && d.Venta > 0 {
+					mu.Lock()
+					*c.dest = d
+					mu.Unlock()
+				}
+			}()
+		}
+		dwg.Wait()
+	}()
+
+	// Inflación del INDEC (mensual + interanual)
+	go func() {
+		defer wg.Done()
+		var iw sync.WaitGroup
+		iw.Add(2)
+		traer := func(u string, dest *float64) {
+			defer iw.Done()
+			resp, err := network.FetchSecureWithContext(ctx, u)
+			if err != nil {
+				log.Printf("[FINANCE] inflacion %s: %v", u, err)
+				return
+			}
+			defer resp.Body.Close()
+			var serie []struct {
+				Fecha string  `json:"fecha"`
+				Valor float64 `json:"valor"`
+			}
+			if err := json.NewDecoder(io.LimitReader(resp.Body, 2<<20)).Decode(&serie); err != nil || len(serie) == 0 {
+				return
+			}
+			ult := serie[len(serie)-1]
+			mu.Lock()
+			*dest = ult.Valor
+			newData.Inflacion.Periodo = ult.Fecha
+			mu.Unlock()
+		}
+		go traer("https://api.argentinadatos.com/v1/finanzas/indices/inflacion", &newData.Inflacion.Mensual)
+		go traer("https://api.argentinadatos.com/v1/finanzas/indices/inflacionInteranual", &newData.Inflacion.Interanual)
+		iw.Wait()
+	}()
+
 	wg.Wait()
 
-	if newData.Blue.Venta == 0 && newData.Cripto.Venta == 0 && newData.SP500.Price == 0 && newData.Nasdaq.Price == 0 && newData.RiesgoPais.Price == 0 && len(newData.Billeteras) == 0 {
+	if newData.Blue.Venta == 0 && newData.Cripto.Venta == 0 && newData.MEP.Venta == 0 && newData.SP500.Price == 0 && newData.Nasdaq.Price == 0 && newData.RiesgoPais.Price == 0 && len(newData.Billeteras) == 0 {
 		return fmt.Errorf("no se pudieron obtener datos financieros")
 	}
 
@@ -263,6 +342,18 @@ func UpdateFinance(ctx context.Context) error {
 	}
 	if len(newData.Billeteras) > 0 {
 		cachedFinance.Billeteras = newData.Billeteras
+	}
+	if newData.MEP.Venta > 0 {
+		cachedFinance.MEP = newData.MEP
+	}
+	if newData.CCL.Venta > 0 {
+		cachedFinance.CCL = newData.CCL
+	}
+	if newData.Oficial.Venta > 0 {
+		cachedFinance.Oficial = newData.Oficial
+	}
+	if newData.Inflacion.Interanual > 0 {
+		cachedFinance.Inflacion = newData.Inflacion
 	}
 	financeMutex.Unlock()
 	return nil
