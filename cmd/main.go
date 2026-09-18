@@ -91,6 +91,19 @@ func loadTemplates() {
 			}
 			return "mag-lo"
 		},
+		// tnaBar escala una TNA de billetera a ancho de barra. El rango útil es
+		// 15-22 %: con la escala de temperatura (0-40) todas las tasas caerían
+		// en el mismo ~50 % y la barra no distinguiría una de otra.
+		"tnaBar": func(f float64) int {
+			p := int((f - 15) / 7 * 100)
+			if p < 4 {
+				p = 4
+			}
+			if p > 100 {
+				p = 100
+			}
+			return p
+		},
 		// pct convierte una temperatura (0-40 °C) en ancho de barra para los
 		// mini-medidores de los templates de test2.
 		"pct": func(f float64) int {

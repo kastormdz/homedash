@@ -61,40 +61,57 @@
   .stitle .hr{flex:1;height:1px;background:var(--line-2)}
   .stitle .count{font-size:10px;color:var(--dim);font-family:'JetBrains Mono',monospace}
 
-  .hero{display:flex;align-items:flex-start;gap:34px;flex-wrap:wrap}
-  .hero .now{font-size:52px;line-height:.92;font-weight:500;letter-spacing:-.045em}
-  .hero .now sup{font-size:20px;color:var(--muted);vertical-align:super}
-  .hero .meta{display:flex;flex-direction:column;gap:5px;padding-top:6px}
-  .hero .meta .r{display:flex;gap:11px;font-size:12px;color:var(--muted);align-items:baseline}
-  .hero .meta .r b{color:var(--text);font-weight:600;font-family:'JetBrains Mono',monospace}
-  .hsep{color:var(--line)}
-  .days{display:flex;margin-top:24px;border-top:1px solid var(--line-2);padding-top:16px}
-  .days .d{flex:1;display:flex;flex-direction:column;gap:7px;align-items:center;border-left:1px solid var(--line-2)}
-  .days .d:first-child{border-left:0}
-  .days .dn{font-size:9px;letter-spacing:.13em;color:var(--dim);font-family:'JetBrains Mono',monospace}
-  .days .dt{font-size:13px;font-family:'JetBrains Mono',monospace;font-weight:600}
-  .days .dt em{color:var(--dim);font-style:normal;font-weight:400;font-size:11px}
-  .colbar{width:22px;height:38px;position:relative;border-radius:2px;
+  /* ---------- CLIMA + PRONOSTICO: una sola barra ---------- */
+  .wxbar{display:flex;align-items:stretch;background:var(--panel);border:1px solid var(--line);
+    border-radius:10px;overflow:hidden;flex-wrap:wrap}
+  .wx-now{display:flex;align-items:center;gap:14px;padding:13px 18px;min-width:248px}
+  .wx-now .t{font-size:40px;line-height:.9;font-weight:500;letter-spacing:-.04em}
+  .wx-now .t sup{font-size:16px;color:var(--muted);vertical-align:super}
+  .wx-now .m .c{font-size:12.5px;font-weight:600}
+  .wx-now .m .s{font-size:11px;color:var(--dim);margin-top:3px}
+  .wx-metrics{display:flex;align-items:center;padding:10px 2px;border-left:1px solid var(--line);flex-wrap:wrap}
+  .wx-metrics div{padding:0 12px;border-left:1px solid var(--line-2);display:flex;flex-direction:column;gap:3px}
+  .wx-metrics div:first-child{border-left:0}
+  .wx-metrics .v{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600}
+  .wx-days{display:flex;align-items:center;flex:1;min-width:328px;padding:10px 4px;border-left:1px solid var(--line)}
+  .wx-days .d{flex:1;display:flex;flex-direction:column;gap:5px;align-items:center}
+  .wx-days .dn{font-size:9px;letter-spacing:.13em;color:var(--dim);font-family:'JetBrains Mono',monospace}
+  .wx-days .dt{font-size:12px;font-family:'JetBrains Mono',monospace;font-weight:600}
+  .wx-days .dt em{color:var(--dim);font-style:normal;font-weight:400;font-size:11px}
+  .colbar{width:16px;height:24px;position:relative;border-radius:2px;
     background:linear-gradient(to top,rgba(91,188,255,.55) var(--h),rgba(91,188,255,.06) var(--h))}
   .colbar::after{content:'';position:absolute;inset:0;border-radius:2px;border:1px solid rgba(91,188,255,.22)}
 
-  .sport{display:flex;align-items:center;gap:16px;padding:13px 0;border-bottom:1px solid var(--line-2)}
+  .sport{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--line-2)}
   .sport:last-child{border-bottom:0}
-  .sport .tag{font-size:9.5px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:var(--dim);
-    min-width:64px;font-family:'JetBrains Mono',monospace}
+  .sport:first-child{padding-top:2px}
+  .sport .dlogo{width:50px;flex:none;display:flex;align-items:center;justify-content:center;gap:3px}
+  .sport .dlogo img{max-width:50px;max-height:32px;object-fit:contain;opacity:.95}
   .sport .main{flex:1;min-width:0}
   .sport .main .a{font-size:14px;font-weight:600}
   .sport .main .b{font-size:11.5px;color:var(--dim);margin-top:2px}
   .sport .when{text-align:right;font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--muted);white-space:nowrap}
   .sport .when b{display:block;color:var(--text);font-size:12.5px;font-weight:600}
+  .crest{width:42px;height:42px;object-fit:contain}
+  .crest.sm{width:34px;height:34px;vertical-align:middle;margin:0 6px}
+  .headshot{width:44px;height:44px;border-radius:50%;object-fit:cover;border:1px solid var(--line);background:#1A212B}
+  .headshot.xs{width:30px;height:30px}
+  .vs{color:var(--dim);font-size:11px;font-weight:600;letter-spacing:.08em}
   .chip{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;border-radius:4px;
     font-family:'JetBrains Mono',monospace;white-space:nowrap}
   .chip.next{background:rgba(59,217,158,.1);color:var(--ok);border:1px solid rgba(59,217,158,.25)}
   .chip.info{background:rgba(91,188,255,.1);color:var(--info);border:1px solid rgba(91,188,255,.25)}
-  .fights{display:grid;grid-template-columns:1fr 1fr;gap:4px 22px;margin-top:9px}
-  .fight{display:flex;justify-content:space-between;gap:8px;font-size:11.5px;color:var(--muted);
-    padding:4px 0;border-bottom:1px dashed var(--line-2)}
+  .fights{display:grid;grid-template-columns:1fr 1fr;gap:0 22px;margin-top:8px}
+  .fight{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--muted);
+    padding:3px 0;border-bottom:1px dashed var(--line-2)}
   .fight b{color:var(--text);font-weight:500}
+  .f1grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 22px;margin-top:8px}
+  .f1s{display:flex;justify-content:space-between;gap:8px;font-size:11.5px;color:var(--muted);
+    padding:3px 0;border-bottom:1px dashed var(--line-2)}
+  .f1s b{color:var(--text);font-weight:500}
+  .circuit{height:46px;opacity:.9;flex:none}
+  .ratebar{height:2px;background:var(--line-2);border-radius:2px;margin-top:5px;display:block}
+  .ratebar i{display:block;height:100%;border-radius:2px;background:var(--ok);opacity:.7}
 
   .quake{display:flex;align-items:center;gap:12px;padding:7px 0}
   .quake .mag{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;min-width:38px}
@@ -125,8 +142,10 @@
   .sw a.on{background:var(--info);color:#06121E}
   body:has(#dens:checked) .col{padding:14px 18px 30px}
   body:has(#dens:checked) .section{margin-bottom:16px}
-  body:has(#dens:checked) .hero .now{font-size:40px}
-  body:has(#dens:checked) .days{margin-top:14px;padding-top:10px}
+  body:has(#dens:checked) .wx-now{padding:9px 14px;min-width:206px}
+  body:has(#dens:checked) .wx-now .t{font-size:30px}
+  body:has(#dens:checked) .colbar{height:18px}
+  body:has(#dens:checked) .sport{padding:8px 0}
   body:has(#dens:checked) .quake,body:has(#dens:checked) .mkt{padding:4px 0}
 </style>
 </head>
@@ -142,14 +161,11 @@
   <div class="kpis">
     <div class="kpi"><span class="k">Temp</span><span class="v">{{printf "%.1f" .Current.Temperature}}<small>°C</small></span></div>
     <div class="kpi"><span class="k">Aire</span><span class="v">{{if gt .AQI 50}}<span style="color:var(--warn)">{{.AQI}}</span>{{else}}{{.AQI}}{{end}}<small>AQI</small></span></div>
-    {{if gt .Dolar.RiesgoPais.Price 0.0}}
-    <div class="kpi"><span class="k">Riesgo país</span><span class="v">{{printf "%.0f" .Dolar.RiesgoPais.Price}}<small class="{{if gt .Dolar.RiesgoPais.Change 0.0}}down{{else}}up{{end}}">{{printf "%+.1f" .Dolar.RiesgoPais.Change}}%</small></span></div>
-    {{end}}
     {{if .Earthquakes}}
     <div class="kpi"><span class="k">Sismo máx</span><span class="v" style="color:var(--crit)">{{quakemax .Earthquakes}}</span></div>
     {{end}}
     {{if .Cuencas}}
-    <div class="kpi"><span class="k">Nieve cord.</span><span class="v">{{printf "%.0f" (index .Cuencas 0).NieveSemana}}<small>cm 7d</small></span></div>
+    <div class="kpi"><span class="k">Nieve cordillera</span><span class="v">{{printf "%.0f" (index .Cuencas 0).NieveSemana}}<small>cm 7d</small></span></div>
     {{end}}
     <input type="checkbox" id="dens">
     <label class="dens" for="dens">Densidad</label>
@@ -175,25 +191,31 @@
   <div class="col left">
 
     <div class="section">
-      <div class="stitle"><span class="lbl">Clima · {{.City}}</span><span class="hr"></span><span class="count">{{.Now.Format "15:04"}}</span></div>
-      <div class="hero">
-        <div class="now mono">{{printf "%.1f" .Current.Temperature}}<sup>°</sup></div>
-        <div class="meta">
-          <div class="r"><span>{{wxcond .Current.WeatherCode}}</span></div>
-          <div class="r"><span>Sensación</span><b>{{printf "%.1f" .Current.ApparentTemp}}°</b></div>
-          <div class="r"><span>Humedad</span><b>{{.Current.Humidity}}%</b><span class="hsep">|</span><span>Viento</span><b>{{printf "%.1f" .Current.WindSpeed}} km/h</b></div>
-          <div class="r"><span>Amanecer</span><b>{{.Sunrise}}</b><span class="hsep">|</span><span>Atardecer</span><b>{{.Sunset}}</b></div>
-          <div class="r"><span>Luna</span><b style="font-family:inherit;font-weight:500">{{.MoonPhaseName}}</b></div>
+      <div class="stitle"><span class="lbl">Clima y pronóstico · {{.City}}</span><span class="hr"></span><span class="count">{{.Now.Format "15:04"}}</span></div>
+      <div class="wxbar">
+        <div class="wx-now">
+          <div class="t mono">{{printf "%.1f" .Current.Temperature}}<sup>°</sup></div>
+          <div class="m">
+            <div class="c">{{wxcond .Current.WeatherCode}}</div>
+            <div class="s">ST {{printf "%.1f" .Current.ApparentTemp}}° · {{.Sunrise}} ↗ {{.Sunset}}</div>
+          </div>
         </div>
-      </div>
-      <div class="days">
-        {{range .Forecast}}
-        <div class="d">
-          <span class="dn">{{.Date}}</span>
-          <span class="dt">{{printf "%.0f" .Max}}° <em>{{printf "%.0f" .Min}}°</em></span>
-          <span class="colbar" style="--h:{{pct .Max}}%"></span>
+        <div class="wx-metrics">
+          <div><span class="lbl">Humedad</span><span class="v">{{.Current.Humidity}}%</span></div>
+          <div><span class="lbl">Viento</span><span class="v">{{printf "%.1f" .Current.WindSpeed}}</span></div>
+          <div><span class="lbl">Lluvia</span><span class="v">{{.RainProb}}%</span></div>
+          <div><span class="lbl">UV</span><span class="v">{{printf "%.1f" .Current.UVIndex}}</span></div>
+          <div><span class="lbl">Luna</span><span class="v" style="font-size:11px">{{.MoonPhaseName}}</span></div>
         </div>
-        {{end}}
+        <div class="wx-days">
+          {{range .Forecast}}
+          <div class="d">
+            <span class="dn">{{.Date}}</span>
+            <span class="dt">{{printf "%.0f" .Max}}° <em>{{printf "%.0f" .Min}}°</em></span>
+            <span class="colbar" style="--h:{{pct .Max}}%"></span>
+          </div>
+          {{end}}
+        </div>
       </div>
     </div>
 
@@ -201,26 +223,36 @@
       <div class="stitle"><span class="lbl">Deportes</span><span class="hr"></span><span class="count">fútbol · F1 · UFC</span></div>
       {{if .NextMatch.Match.Team}}
       <div class="sport">
-        <span class="tag">Fútbol</span>
+        <div class="dlogo">
+          {{if .NextMatch.Match.TeamCrest}}<img src="{{.NextMatch.Match.TeamCrest}}" class="crest" alt="{{.NextMatch.Match.Team}}" loading="lazy">{{end}}
+        </div>
         <div class="main">
-          <div class="a">{{.NextMatch.Match.Team}} vs {{.NextMatch.Match.Opponent}}</div>
+          <div class="a">{{.NextMatch.Match.Team}} <span class="vs">vs</span>
+            {{if .NextMatch.Match.OpponentCrest}}<img src="{{.NextMatch.Match.OpponentCrest}}" class="crest sm" alt="{{.NextMatch.Match.Opponent}}" loading="lazy">{{end}}
+            {{.NextMatch.Match.Opponent}}</div>
           <div class="b">{{if .NextMatch.Match.Tournament}}{{.NextMatch.Match.Tournament}}{{end}}{{if .NextMatch.Match.Stadium}} · {{.NextMatch.Match.Stadium}}{{end}}</div>
         </div>
         <span class="chip next">Próximo</span>
         <span class="when"><b>{{.NextMatch.Match.Time}}</b>{{.NextMatch.Match.Date}}</span>
       </div>
       {{else}}
-      <div class="sport"><span class="tag">Fútbol</span><div class="main"><span class="empty">Sin partidos próximos</span></div></div>
+      <div class="sport"><div class="dlogo"></div><div class="main"><span class="empty">Sin partidos próximos</span></div></div>
       {{end}}
 
       {{if .NextMatch.F1.Sessions}}
       <div class="sport" style="align-items:flex-start">
-        <span class="tag">F1</span>
+        <div class="dlogo">
+          <img src="/static/assets/logos/f1.svg" alt="F1" loading="lazy">
+          {{if .NextMatch.F1.FlagURL}}<img src="{{.NextMatch.F1.FlagURL}}" alt="" style="max-width:26px" loading="lazy">{{end}}
+        </div>
         <div class="main">
-          <div class="a">{{.NextMatch.F1.GrandPrix}}</div>
-          <div class="fights">
+          <div class="a" style="display:flex;align-items:center;gap:10px">
+            {{.NextMatch.F1.GrandPrix}}
+            {{if .NextMatch.F1.PosterURL}}<img src="{{.NextMatch.F1.PosterURL}}" class="circuit" alt="{{.NextMatch.F1.Circuit}}" loading="lazy">{{end}}
+          </div>
+          <div class="f1grid">
             {{range .NextMatch.F1.Sessions}}
-            <div class="fight"><b>{{.Name}}</b><span>{{.Date}} {{.Time}}</span></div>
+            <div class="f1s"><b>{{.Name}}</b><span>{{.Date}} · {{.Time}}</span></div>
             {{end}}
           </div>
         </div>
@@ -229,13 +261,20 @@
 
       {{if .NextMatch.UFC.Fights}}
       <div class="sport" style="align-items:flex-start">
-        <span class="tag">UFC</span>
+        <div class="dlogo"><img src="/static/assets/logos/ufc.svg" alt="UFC" loading="lazy"></div>
         <div class="main">
           <div class="a">{{.NextMatch.UFC.EventName}}</div>
-          <div class="b">{{if .NextMatch.UFC.Venue}}{{.NextMatch.UFC.Venue}} · {{end}}{{len .NextMatch.UFC.Fights}} combates</div>
+          <div class="b" style="display:flex;align-items:center;gap:6px">
+            {{if .NextMatch.UFC.P1Headshot}}<img src="{{.NextMatch.UFC.P1Headshot}}" class="headshot" alt="" loading="lazy">{{end}}
+            {{if .NextMatch.UFC.P2Headshot}}<img src="{{.NextMatch.UFC.P2Headshot}}" class="headshot" alt="" loading="lazy">{{end}}
+            <span>{{if .NextMatch.UFC.Venue}}{{.NextMatch.UFC.Venue}} · {{end}}{{len .NextMatch.UFC.Fights}} combates</span>
+          </div>
           <div class="fights">
-            {{range $i, $f := .NextMatch.UFC.Fights}}{{if lt $i 4}}
-            <div class="fight"><b>{{$f.P1}}</b><span>vs {{$f.P2}}</span></div>
+            {{range $i, $f := .NextMatch.UFC.Fights}}{{if lt $i 6}}
+            <div class="fight">
+              {{if $f.P1Headshot}}<img src="{{$f.P1Headshot}}" class="headshot xs" alt="" loading="lazy">{{end}}
+              <b>{{$f.P1}}</b><span>vs {{$f.P2}}</span>
+            </div>
             {{end}}{{end}}
           </div>
         </div>
@@ -260,6 +299,23 @@
       {{else}}<span class="empty">Sin datos de nieve</span>{{end}}
     </div>
 
+    <!-- TOP TASAS: los mismos datos que la home principal -->
+    <div class="section">
+      <div class="stitle"><span class="lbl">Top tasas billeteras</span><span class="hr"></span><span class="count">TNA 30d</span></div>
+      {{if .Dolar.Billeteras}}
+        {{range .Dolar.Billeteras}}
+        <div class="mkt" style="align-items:center;flex-direction:column;gap:0">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;width:100%;gap:10px">
+            <span class="k">{{.Fondo}}{{if .HasConditions}} <span class="lbl" style="color:var(--dim)">*</span>{{end}}</span>
+            <span class="v" style="color:var(--ok)">{{printf "%.1f" .TNA}}%</span>
+          </div>
+          <span class="ratebar" style="width:100%"><i style="width:{{tnaBar .TNA}}%"></i></span>
+        </div>
+        {{end}}
+        <div class="lbl" style="margin-top:9px;letter-spacing:.06em">* aplica con condiciones</div>
+      {{else}}<span class="empty">Sin datos de tasas</span>{{end}}
+    </div>
+
     <div class="section">
       <div class="stitle"><span class="lbl">Estado · sismos</span><span class="hr"></span><span class="count">últimos 5 de {{len .Earthquakes}}</span></div>
       {{if .Earthquakes}}
@@ -282,6 +338,9 @@
       {{if gt .Dolar.Nasdaq.Price 0.0}}
       <div class="mkt"><span class="k">NASDAQ</span><span><span class="v">{{printf "%.0f" .Dolar.Nasdaq.Price}}</span><span class="ch {{if lt .Dolar.Nasdaq.Change 0.0}}down{{else}}up{{end}}">{{printf "%+.1f" .Dolar.Nasdaq.Change}}%</span></span></div>
       {{end}}
+      {{if gt .Dolar.RiesgoPais.Price 0.0}}
+      <div class="mkt"><span class="k">Riesgo país</span><span><span class="v">{{printf "%.0f" .Dolar.RiesgoPais.Price}}</span><span class="ch {{if gt .Dolar.RiesgoPais.Change 0.0}}down{{else}}up{{end}}">{{printf "%+.1f" .Dolar.RiesgoPais.Change}}%</span></span></div>
+      {{end}}
       <div class="mkt"><span class="k">Dólar blue</span><span><span class="v">{{printf "%.0f" .Dolar.Blue.Venta}}</span></span></div>
       <div class="mkt"><span class="k">Dólar MEP</span><span><span class="v">{{printf "%.0f" .Dolar.MEP.Venta}}</span></span></div>
       <div class="mkt"><span class="k">Dólar CCL</span><span><span class="v">{{printf "%.0f" .Dolar.CCL.Venta}}</span></span></div>
@@ -297,9 +356,6 @@
         {{if gt .Dolar.Inflacion.Interanual 0.0}}
         <div class="kv"><span>Inflación 12m</span><span>{{printf "%.1f" .Dolar.Inflacion.Interanual}}%</span></div>
         <div class="kv"><span>Inflación mes</span><span style="color:var(--warn)">{{printf "%.1f" .Dolar.Inflacion.Mensual}}%</span></div>
-        {{end}}
-        {{if .Dolar.Billeteras}}
-        <div class="kv"><span>Mejor TNA</span><span style="color:var(--ok)">{{printf "%.1f" (index .Dolar.Billeteras 0).TNA}}%</span></div>
         {{end}}
       </div>
       {{if .Upcoming}}
