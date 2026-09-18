@@ -38,3 +38,6 @@ package-lock.json
 .vscode/
 *.swp
 .DS_Store
+
+# Caché de runtime del proxy /crest (nunca versionar: puede contener datos de respuestas ajenas)
+static/assets/cache/
