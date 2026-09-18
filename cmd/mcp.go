@@ -62,7 +62,7 @@ func handleMCPSSE(w http.ResponseWriter, r *http.Request) {
 
 	// Mantener la conexión abierta
 	<-r.Context().Done()
-	
+
 	sseMutex.Lock()
 	sseResponse = nil
 	sseMutex.Unlock()
@@ -282,4 +282,3 @@ func handleToolCall(id interface{}, name string, args json.RawMessage) {
 		},
 	})
 }
-

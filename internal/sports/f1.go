@@ -13,13 +13,13 @@ import (
 
 func GetCircuitData(circuitName string) string {
 	mapping := map[string]string{
-		"villeneuve":    "gilles_villeneuve",
-		"catalunya":     "barcelona_catalunya",
-		"americas":      "cota",
-		"bahrain":       "sakhir",
-		"rodriguez":     "hermanos_rodriguez",
-		"spa":           "spa_francorchamps",
-		"losail":        "lusail",
+		"villeneuve": "gilles_villeneuve",
+		"catalunya":  "barcelona_catalunya",
+		"americas":   "cota",
+		"bahrain":    "sakhir",
+		"rodriguez":  "hermanos_rodriguez",
+		"spa":        "spa_francorchamps",
+		"losail":     "lusail",
 	}
 	if mapped, ok := mapping[circuitName]; ok {
 		circuitName = mapped
@@ -62,7 +62,7 @@ func getF1Weather(ctx context.Context, lat, long string) map[string]string {
 
 	weatherMap := make(map[string]string)
 	wUrl := fmt.Sprintf("https://api.open-meteo.com/v1/forecast?latitude=%s&longitude=%s&daily=weather_code&timezone=auto", lat, long)
-	
+
 	wResp, wErr := network.FetchSecureWithContext(ctx, wUrl)
 	if wErr != nil {
 		if wResp != nil && wResp.Body != nil {

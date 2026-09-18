@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"homedash/internal/network"
 	"log"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -23,12 +24,19 @@ type AssetData struct {
 	Change float64
 }
 
+type Billetera struct {
+	Fondo         string
+	TNA           float64 // en %
+	HasConditions bool    // true si muestra la TNA base y aplica con condiciones
+}
+
 type FinanceData struct {
 	Blue       DolarPrice
 	Cripto     DolarPrice
 	SP500      AssetData
 	Nasdaq     AssetData
 	RiesgoPais AssetData
+	Billeteras []Billetera
 }
 
 var (
@@ -88,7 +96,7 @@ func UpdateFinance(ctx context.Context) error {
 	var newData FinanceData
 	var wg sync.WaitGroup
 	var mu sync.Mutex
-	wg.Add(5)
+	wg.Add(6)
 
 	// P-D. Paralelizar Blue, Cripto y Riesgo País
 	go func() {
@@ -121,7 +129,7 @@ func UpdateFinance(ctx context.Context) error {
 
 	go func() {
 		defer wg.Done()
-		
+
 		type rpResult struct {
 			val    float64
 			change float64
@@ -210,9 +218,30 @@ func UpdateFinance(ctx context.Context) error {
 		}
 	}()
 
+	// Billeteras remuneradas: top 5 por TNA. Las tasas con fee (Brubank) se
+	// excluyen y las que tienen tiers o condiciones van al relleno marcadas.
+	go func() {
+		defer wg.Done()
+		respF, errF := network.FetchSecureWithContext(ctx, "https://api.argentinadatos.com/v1/finanzas/fci/otros/ultimo")
+		if errF != nil {
+			log.Printf("[FINANCE] Error billeteras: %v", errF)
+			return
+		}
+		defer respF.Body.Close()
+		var fondos []fondoFCI
+		if err := json.NewDecoder(respF.Body).Decode(&fondos); err != nil || len(fondos) == 0 {
+			return
+		}
+		if bs := topBilleteras(fondos); len(bs) > 0 {
+			mu.Lock()
+			newData.Billeteras = bs
+			mu.Unlock()
+		}
+	}()
+
 	wg.Wait()
 
-	if newData.Blue.Venta == 0 && newData.Cripto.Venta == 0 && newData.SP500.Price == 0 && newData.Nasdaq.Price == 0 && newData.RiesgoPais.Price == 0 {
+	if newData.Blue.Venta == 0 && newData.Cripto.Venta == 0 && newData.SP500.Price == 0 && newData.Nasdaq.Price == 0 && newData.RiesgoPais.Price == 0 && len(newData.Billeteras) == 0 {
 		return fmt.Errorf("no se pudieron obtener datos financieros")
 	}
 
@@ -232,6 +261,9 @@ func UpdateFinance(ctx context.Context) error {
 	if newData.RiesgoPais.Price > 0 {
 		cachedFinance.RiesgoPais = newData.RiesgoPais
 	}
+	if len(newData.Billeteras) > 0 {
+		cachedFinance.Billeteras = newData.Billeteras
+	}
 	financeMutex.Unlock()
 	return nil
 }
@@ -240,4 +272,91 @@ func GetCachedFinance() FinanceData {
 	financeMutex.RLock()
 	defer financeMutex.RUnlock()
 	return cachedFinance
+}
+
+// fondoFCI es un fondo de la API de argentinadatos con sus condiciones.
+type fondoFCI struct {
+	Fondo            string  `json:"fondo"`
+	TNA              float64 `json:"tna"`
+	Tope             float64 `json:"tope"`
+	PlazoMinDias     int     `json:"plazoMinDias"`
+	PlazoMaxDias     int     `json:"plazoMaxDias"`
+	Fecha            string  `json:"fecha"`
+	Condiciones      string  `json:"condiciones"`
+	CondicionesCorto string  `json:"condicionesCorto"`
+}
+
+// billeteraCondicionada dice si la tasa tiene tramos por monto/plazo o exige
+// clientela puntual. Esas van al relleno marcadas en vez de encabezar el top.
+func billeteraCondicionada(f fondoFCI) bool {
+	if f.Tope > 0 || f.PlazoMinDias > 0 || f.PlazoMaxDias > 0 {
+		return true
+	}
+	texto := strings.ToLower(f.Condiciones + " " + f.CondicionesCorto)
+	for _, patron := range []string{"solo", "cliente", "sueldo", "persona", "juridica", "jurídica", "acumul", "consumo", "inversi", "operaci", "sumás", "sumas", "desde", "hasta"} {
+		if strings.Contains(texto, patron) {
+			return true
+		}
+	}
+	return false
+}
+
+// fechaRancia descarta datos vencidos (la API deja fondos sin actualizar).
+func fechaRancia(fecha string, maxDias int) bool {
+	t, err := time.Parse("2006-01-02", strings.TrimSpace(fecha))
+	if err != nil {
+		return true
+	}
+	return time.Since(t) > time.Duration(maxDias)*24*time.Hour
+}
+
+// bancoDe agrupa variantes del mismo banco ("UALA PLUS 2" -> "UALA").
+func bancoDe(fondo string) string {
+	if i := strings.Index(fondo, " "); i > 0 {
+		return fondo[:i]
+	}
+	return fondo
+}
+
+// topBilleteras arma el top 5 global por TNA: limpias y, si faltan, una fila
+// por banco condicionado con su TNA base marcada con *.
+func topBilleteras(fondos []fondoFCI) []Billetera {
+	var limpias []Billetera
+	grupos := map[string][]fondoFCI{}
+	for _, f := range fondos {
+		if f.TNA <= 0 || fechaRancia(f.Fecha, 30) {
+			continue
+		}
+		// Brubank excluido: la TNA exige fee mensual y la API no lo aclara.
+		if strings.EqualFold(strings.TrimSpace(f.Fondo), "BRUBANK") {
+			continue
+		}
+		if billeteraCondicionada(f) {
+			banco := bancoDe(f.Fondo)
+			grupos[banco] = append(grupos[banco], f)
+			continue
+		}
+		limpias = append(limpias, Billetera{Fondo: f.Fondo, TNA: f.TNA * 100})
+	}
+	var relleno []Billetera
+	for banco, fs := range grupos {
+		base := fs[0]
+		for _, f := range fs[1:] {
+			if len(f.Fondo) < len(base.Fondo) || (len(f.Fondo) == len(base.Fondo) && f.TNA < base.TNA) {
+				base = f
+			}
+		}
+		relleno = append(relleno, Billetera{Fondo: banco, TNA: base.TNA * 100, HasConditions: true})
+	}
+	top := append(limpias, relleno...)
+	sort.SliceStable(top, func(i, j int) bool {
+		if top[i].TNA == top[j].TNA {
+			return !top[i].HasConditions && top[j].HasConditions
+		}
+		return top[i].TNA > top[j].TNA
+	})
+	if len(top) > 5 {
+		top = top[:5]
+	}
+	return top
 }

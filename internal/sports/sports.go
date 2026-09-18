@@ -41,8 +41,33 @@ func loadSportsCache() {
 		log.Printf("[SPORTS] Error parseando cache: %v", err)
 		return
 	}
+	if n := sanitizeStaleLive(&loaded); n > 0 {
+		log.Printf("[SPORTS] Saneados %d partidos que quedaron LIVE en la cache de disco", n)
+	}
 	cachedData = loaded
 	log.Printf("[SPORTS] Cache cargado desde disco: %d partidos, GP=%s", len(loaded.AllMatches), loaded.F1.GrandPrix)
+}
+
+// liveGrace es cuánto puede sobrevivir un partido "LIVE" después de su hora de
+// inicio. 3h cubre 90' + alargue + penales + entretiempo con margen.
+const liveGrace = 3 * time.Hour
+
+// sanitizeStaleLive cierra los partidos que quedaron "LIVE" para siempre.
+// Pasa cuando la fuente no actualiza el estado (ESPN devolviendo 400, rate
+// limit, etc.) y la cache vieja se conserva: sin esto un partido zombi deja a
+// StartUpdateLoop en modo 1 minuto de forma permanente.
+func sanitizeStaleLive(data *SportsData) int {
+	now := time.Now()
+	fixed := 0
+	for i := range data.AllMatches {
+		m := &data.AllMatches[i]
+		if m.Status == "LIVE" && !m.RawDate.IsZero() && now.Sub(m.RawDate) > liveGrace {
+			m.Status = "FINAL"
+			m.Clock = ""
+			fixed++
+		}
+	}
+	return fixed
 }
 
 func saveSportsCache(data SportsData) {
@@ -110,9 +135,8 @@ func ForceUpdate(ctx context.Context) error {
 		newData.AllMatches = oldData.AllMatches
 		log.Printf("[SPORTS] ESPN sin partidos, conservando %d partidos de la cache anterior", len(oldData.AllMatches))
 	}
-	if len(newData.WorldCup) == 0 && len(oldData.WorldCup) > 0 {
-		newData.WorldCup = oldData.WorldCup
-		log.Printf("[SPORTS] ESPN sin mundial, conservando %d partidos de la cache anterior", len(oldData.WorldCup))
+	if n := sanitizeStaleLive(&newData); n > 0 {
+		log.Printf("[SPORTS] Saneados %d partidos LIVE vencidos (la fuente dejó de actualizar el estado)", n)
 	}
 	cachedData = newData
 	cacheMutex.Unlock()
@@ -168,24 +192,6 @@ func detectReschedules(newData *SportsData, oldData SportsData) {
 			log.Printf("[RESCHEDULE] UFC: %s → %s %s (era %s %s)", newData.UFC.EventName, newData.UFC.Date, newData.UFC.Time, oldData.UFC.Date, oldData.UFC.Time)
 		}
 	}
-
-	// WorldCup: comparar por ID
-	oldWC := make(map[string]WorldCupMatch)
-	for _, m := range oldData.WorldCup {
-		if m.ID != "" {
-			oldWC[m.ID] = m
-		}
-	}
-	for i := range newData.WorldCup {
-		newM := &newData.WorldCup[i]
-		if oldM, ok := oldWC[newM.ID]; ok {
-			if oldM.Date != newM.Date || oldM.Time != newM.Time {
-				newM.WasRescheduled = true
-				newM.RescheduledNote = fmt.Sprintf("Antes: %s %s", oldM.Date, oldM.Time)
-				log.Printf("[RESCHEDULE] Mundial: %s vs %s → %s %s (era %s %s)", newM.Home, newM.Away, newM.Date, newM.Time, oldM.Date, oldM.Time)
-			}
-		}
-	}
 }
 
 func GetSportsData() SportsData {
@@ -197,11 +203,10 @@ func GetSportsData() SportsData {
 func fetchFreshSportsData(ctx context.Context) SportsData {
 	var wg sync.WaitGroup
 	var fetchMu sync.Mutex
-	wg.Add(4)
+	wg.Add(3)
 
 	var f1Data F1Race
 	var ufcData UFCMatch
-	var wcData []WorldCupMatch
 	var promiedosList []PromiedosMatch
 
 	go func() {
@@ -217,14 +222,6 @@ func fetchFreshSportsData(ctx context.Context) SportsData {
 		data := fetchLiveUFC(ctx)
 		fetchMu.Lock()
 		ufcData = data
-		fetchMu.Unlock()
-	}()
-
-	go func() {
-		defer wg.Done()
-		data := fetchWorldCupFixture(ctx)
-		fetchMu.Lock()
-		wcData = data
 		fetchMu.Unlock()
 	}()
 
@@ -249,55 +246,81 @@ func fetchFreshSportsData(ctx context.Context) SportsData {
 	var allMatches []MatchData
 	now := time.Now()
 	later := now.AddDate(0, 0, 15)
-	dateRange := now.Format("20060102") + "-" + later.Format("20060102")
 
-	urls := []string{
-		"https://site.web.api.espn.com/apis/site/v2/sports/soccer/arg.1/scoreboard?lang=es&region=ar&limit=50&dates=" + dateRange,
-		"https://site.web.api.espn.com/apis/site/v2/sports/soccer/arg.2/scoreboard?lang=es&region=ar&limit=50&dates=" + dateRange,
-		"https://site.web.api.espn.com/apis/site/v2/sports/soccer/arg.copa/scoreboard?lang=es&region=ar&limit=50&dates=" + dateRange,
-		"https://site.web.api.espn.com/apis/site/v2/sports/soccer/arg.copa_lpf/scoreboard?lang=es&region=ar&limit=50&dates=" + dateRange,
-		"https://site.web.api.espn.com/apis/site/v2/sports/soccer/conmebol.libertadores/scoreboard?lang=es&region=ar&limit=50&dates=" + dateRange,
-		"https://site.web.api.espn.com/apis/site/v2/sports/soccer/conmebol.sudamericana/scoreboard?lang=es&region=ar&limit=50&dates=" + dateRange,
+	// ESPN acepta SOLO un día (YYYYMMDD) o un mes (YYYYMM) en `dates`: cualquier
+	// rango "A-B" devuelve HTTP 400. Con un rango, el fútbol quedó congelado
+	// días enteros sin que se notara (el fallback conserva la cache vieja).
+	months := []string{now.Format("200601")}
+	if next := later.Format("200601"); next != months[0] {
+		months = append(months, next)
 	}
+	leagues := []string{
+		"arg.1", "arg.2", "arg.copa", "arg.copa_lpf",
+		"conmebol.libertadores", "conmebol.sudamericana",
+	}
+	var urls []string
+	for _, lg := range leagues {
+		for _, mo := range months {
+			urls = append(urls, "https://site.web.api.espn.com/apis/site/v2/sports/soccer/"+lg+
+				"/scoreboard?lang=es&region=ar&limit=200&dates="+mo)
+		}
+	}
+
+	// Pedimos meses enteros: recortamos a la ventana útil (ayer → +15 días).
+	winStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location()).AddDate(0, 0, -1)
+	winEnd := later.AddDate(0, 0, 1)
 
 	var mu sync.Mutex
 	wg.Add(len(urls))
 	for _, u := range urls {
 		go func(url string) {
 			defer wg.Done()
-			if m := fetchLiveMatches(ctx, url); m != nil {
-				for i := range m {
-					pTeam := common.NormalizeName(m[i].Team)
-					pOpp := common.NormalizeName(m[i].Opponent)
-
-					if val, ok := promiedosLookup[pTeam+"|"+pOpp]; ok {
-						if val.Channel != "" {
-							m[i].Channel = val.Channel
-						}
-						if val.HScore != "" {
-							m[i].HomeScore = val.HScore
-						}
-						if val.AScore != "" {
-							m[i].AwayScore = val.AScore
-						}
-						if val.Status != "" {
-							m[i].Status = val.Status
-						}
-						if val.Clock != "" && val.Clock != "0'" {
-							m[i].Clock = val.Clock
-						}
-
-						m[i].Channel = strings.ReplaceAll(m[i].Channel, "Premium", "")
-						m[i].Channel = strings.TrimSpace(m[i].Channel)
-					}
-				}
-				mu.Lock()
-				allMatches = append(allMatches, m...)
-				mu.Unlock()
+			m := fetchLiveMatches(ctx, url)
+			if len(m) == 0 {
+				return
 			}
+			kept := m[:0]
+			for _, match := range m {
+				// Sin fecha parseable no podemos ubicarlo: lo conservamos.
+				if match.RawDate.IsZero() || (!match.RawDate.Before(winStart) && !match.RawDate.After(winEnd)) {
+					kept = append(kept, match)
+				}
+			}
+			m = kept
+			if len(m) == 0 {
+				return
+			}
+			for i := range m {
+				pTeam := common.NormalizeName(m[i].Team)
+				pOpp := common.NormalizeName(m[i].Opponent)
+
+				if val, ok := promiedosLookup[pTeam+"|"+pOpp]; ok {
+					if val.Channel != "" {
+						m[i].Channel = val.Channel
+					}
+					if val.HScore != "" {
+						m[i].HomeScore = val.HScore
+					}
+					if val.AScore != "" {
+						m[i].AwayScore = val.AScore
+					}
+					if val.Status != "" {
+						m[i].Status = val.Status
+					}
+					if val.Clock != "" && val.Clock != "0'" {
+						m[i].Clock = val.Clock
+					}
+
+					m[i].Channel = strings.ReplaceAll(m[i].Channel, "Premium", "")
+					m[i].Channel = strings.TrimSpace(m[i].Channel)
+				}
+			}
+			mu.Lock()
+			allMatches = append(allMatches, m...)
+			mu.Unlock()
 		}(u)
 	}
 	wg.Wait()
 
-	return SportsData{AllMatches: allMatches, F1: f1Data, UFC: ufcData, WorldCup: wcData}
+	return SportsData{AllMatches: allMatches, F1: f1Data, UFC: ufcData}
 }

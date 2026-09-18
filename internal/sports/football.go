@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"homedash/internal/common"
 	"homedash/internal/network"
+	"log"
 	"net/http"
 	"net/url"
 	"strings"
@@ -80,14 +81,19 @@ func fetchLiveMatches(ctx context.Context, url string) []MatchData {
 	req.Header.Set("User-Agent", "Mozilla/5.0")
 	resp, err := network.DefaultClient.Do(req)
 	if err != nil {
+		log.Printf("[ESPN] error de red: %v", err)
 		return nil
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
+		// Sin este log, un 400 masivo de ESPN deja el fútbol congelado de forma
+		// silenciosa: el fallback conserva la cache vieja y nadie se entera.
+		log.Printf("[ESPN] status %d en %s", resp.StatusCode, url)
 		return nil
 	}
 	var sb ESPNScoreboard
 	if err := json.NewDecoder(resp.Body).Decode(&sb); err != nil {
+		log.Printf("[ESPN] JSON invalido: %v", err)
 		return nil
 	}
 	var liveMatches []MatchData
@@ -264,5 +270,5 @@ func GetSportsDataForUser(teamName string) UserSportsData {
 		}
 	}
 
-	return UserSportsData{Match: bestMatch, F1: all.F1, UFC: all.UFC, WorldCup: all.WorldCup}
+	return UserSportsData{Match: bestMatch, F1: all.F1, UFC: all.UFC}
 }

@@ -37,12 +37,6 @@ function toggleModal() {
         modal.classList.toggle('active');
     }
 }
-function toggleFixtureModal() {
-    const modal = document.getElementById('fixture-modal');
-    if (modal) {
-        modal.classList.toggle('active');
-    }
-}
 function togglePartidosModal() {
     const modal = document.getElementById('partidos-modal');
     if (modal) {

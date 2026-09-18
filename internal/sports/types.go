@@ -50,11 +50,11 @@ type F1Race struct {
 }
 
 type F1DriverStanding struct {
-	Pos      string
-	Driver   string
-	Team     string
-	Points   string
-	Wins     string
+	Pos    string
+	Driver string
+	Team   string
+	Points string
+	Wins   string
 }
 
 type F1ConstructorStanding struct {
@@ -70,12 +70,12 @@ type F1Standings struct {
 }
 
 type UFCFight struct {
-	P1          string
-	P2          string
-	Winner      int    // 1 para P1, 2 para P2, 0 si no hay ganador
-	Status      string // "EN VIVO", "FINAL", etc.
-	P1Headshot  string
-	P2Headshot  string
+	P1         string
+	P2         string
+	Winner     int    // 1 para P1, 2 para P2, 0 si no hay ganador
+	Status     string // "EN VIVO", "FINAL", etc.
+	P1Headshot string
+	P2Headshot string
 }
 
 type UFCMatch struct {
@@ -91,38 +91,16 @@ type UFCMatch struct {
 	RescheduledNote string
 }
 
-type WorldCupMatch struct {
-	ID              string
-	Date            string
-	Time            string
-	Home            string
-	Away            string
-	HomeScore       string
-	AwayScore       string
-	HomeLogo        string
-	AwayLogo        string
-	Status          string
-	Stage           string
-	Group           string
-	VenueCity       string
-	VenueCountry    string
-	Tournament      string
-	WasRescheduled  bool
-	RescheduledNote string
-}
-
 type SportsData struct {
 	AllMatches []MatchData
 	F1         F1Race
 	UFC        UFCMatch
-	WorldCup   []WorldCupMatch
 }
 
 type UserSportsData struct {
-	Match    MatchData
-	F1       F1Race
-	UFC      UFCMatch
-	WorldCup []WorldCupMatch
+	Match MatchData
+	F1    F1Race
+	UFC   UFCMatch
 }
 
 type ESPNEvent struct {

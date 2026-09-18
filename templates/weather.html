@@ -70,7 +70,7 @@
     <!-- F1 -->
     {{if .ShowF1}}
     <div class="lg:col-span-4 term-card flex flex-col min-h-[260px] text-base-content">
-        <div class="flex items-center justify-between mb-3 border-b border-white/5 pb-2">
+        <div class="flex items-center justify-between gap-3 mb-3 border-b border-white/5 pb-2">
             <div class="flex items-center space-x-3 shrink-0">
                 <img src="/static/assets/logos/f1.svg" class="h-8 w-auto" alt="F1 Logo">
                 <button hx-get="/f1-standings" hx-target="#f1-content" onclick="toggleF1Modal()" class="term-btn text-[10px] font-black text-error hover:text-white uppercase tracking-widest bg-error/10 px-2 py-0.5 rounded border border-error/20 transition-all flex items-center">
@@ -299,84 +299,97 @@
     <!-- FINANZAS -->
     {{if .ShowFinance}}
     <div class="lg:col-span-3 term-card flex flex-col min-h-[240px] text-base-content">
-        <h3 class="term-card-header text-[11px] font-black uppercase tracking-[0.15em] flex items-center mb-2">
-            <i data-lucide="bitcoin" class="w-3.5 h-3.5 mr-2"></i> FINANZAS
+        <h3 class="term-card-header text-[10px] font-black uppercase tracking-[0.15em] flex items-center mb-1.5">
+            <i data-lucide="bitcoin" class="w-3 h-3 mr-1.5"></i> FINANZAS
         </h3>
-        <div class="grid grid-cols-2 gap-1.5 flex-1">
-            <div class="bg-white/5 rounded-lg p-2 border border-white/5 flex flex-col justify-center relative overflow-hidden">
+        <div class="grid grid-cols-2 gap-1">
+            <div class="bg-white/5 rounded-lg px-1.5 py-1 border border-white/5 flex flex-col justify-center relative overflow-hidden">
                 <div class="flex justify-between items-start mb-0.5 relative z-10">
-                    <div class="text-[10px] font-black uppercase tracking-widest text-base-content/40">BTC</div>
+                    <div class="text-[9px] font-black uppercase tracking-widest text-base-content/40">BTC</div>
                     {{if ne .BTCChange 0.0}}
-                    <span class="text-[10px] font-black tabular-nums {{if ge .BTCChange 0.0}}text-green-500{{else}}text-error{{end}}">
+                    <span class="text-[9px] font-black tabular-nums {{if ge .BTCChange 0.0}}text-green-500{{else}}text-error{{end}}">
                         {{if ge .BTCChange 0.0}}+{{end}}{{printf "%.1f" .BTCChange}}%
                     </span>
                     {{end}}
                 </div>
-                <div class="text-base font-black text-base-content leading-none relative z-10 tabular-nums">U$S {{printf "%.0f" .BTCPrice}}</div>
+                <div class="text-sm font-black text-base-content leading-none relative z-10 tabular-nums">U$S {{printf "%.0f" .BTCPrice}}</div>
             </div>
 
-            <div class="bg-white/5 rounded-lg p-2 border border-white/5 flex flex-col justify-center relative overflow-hidden">
+            <div class="bg-white/5 rounded-lg px-1.5 py-1 border border-white/5 flex flex-col justify-center relative overflow-hidden">
                 <div class="flex justify-between items-start mb-0.5 relative z-10">
-                    <div class="text-[10px] font-black uppercase tracking-widest text-base-content/40">ETH</div>
+                    <div class="text-[9px] font-black uppercase tracking-widest text-base-content/40">ETH</div>
                     {{if ne .ETHChange 0.0}}
-                    <span class="text-[10px] font-black tabular-nums {{if ge .ETHChange 0.0}}text-green-500{{else}}text-error{{end}}">
+                    <span class="text-[9px] font-black tabular-nums {{if ge .ETHChange 0.0}}text-green-500{{else}}text-error{{end}}">
                         {{if ge .ETHChange 0.0}}+{{end}}{{printf "%.1f" .ETHChange}}%
                     </span>
                     {{end}}
                 </div>
-                <div class="text-base font-black text-base-content leading-none relative z-10 tabular-nums">U$S {{printf "%.0f" .ETHPrice}}</div>
+                <div class="text-sm font-black text-base-content leading-none relative z-10 tabular-nums">U$S {{printf "%.0f" .ETHPrice}}</div>
             </div>
 
-            <div class="bg-white/5 rounded-lg p-2 border border-white/5 flex flex-col justify-center relative overflow-hidden">
+            <div class="bg-white/5 rounded-lg px-1.5 py-1 border border-white/5 flex flex-col justify-center relative overflow-hidden">
                 <div class="flex justify-between items-start mb-0.5 relative z-10">
-                    <div class="text-[10px] font-black uppercase tracking-widest text-base-content/40">S&P 500</div>
+                    <div class="text-[9px] font-black uppercase tracking-widest text-base-content/40">S&P 500</div>
                     {{if ne .Dolar.SP500.Change 0.0}}
-                    <span class="text-[10px] font-black tabular-nums {{if ge .Dolar.SP500.Change 0.0}}text-green-500{{else}}text-error{{end}}">
+                    <span class="text-[9px] font-black tabular-nums {{if ge .Dolar.SP500.Change 0.0}}text-green-500{{else}}text-error{{end}}">
                         {{if ge .Dolar.SP500.Change 0.0}}+{{end}}{{printf "%.1f" .Dolar.SP500.Change}}%
                     </span>
                     {{end}}
                 </div>
-                <div class="text-base font-black text-base-content leading-none relative z-10 tabular-nums">U$S {{printf "%.0f" .Dolar.SP500.Price}}</div>
+                <div class="text-sm font-black text-base-content leading-none relative z-10 tabular-nums">U$S {{printf "%.0f" .Dolar.SP500.Price}}</div>
             </div>
 
-            <div class="bg-white/5 rounded-lg p-2 border border-white/5 flex flex-col justify-center relative overflow-hidden">
+            <div class="bg-white/5 rounded-lg px-1.5 py-1 border border-white/5 flex flex-col justify-center relative overflow-hidden">
                 <div class="flex justify-between items-start mb-0.5 relative z-10">
-                    <div class="text-[10px] font-black uppercase tracking-widest text-base-content/40">NASDAQ</div>
+                    <div class="text-[9px] font-black uppercase tracking-widest text-base-content/40">NASDAQ</div>
                     {{if ne .Dolar.Nasdaq.Change 0.0}}
-                    <span class="text-[10px] font-black tabular-nums {{if ge .Dolar.Nasdaq.Change 0.0}}text-green-500{{else}}text-error{{end}}">
+                    <span class="text-[9px] font-black tabular-nums {{if ge .Dolar.Nasdaq.Change 0.0}}text-green-500{{else}}text-error{{end}}">
                         {{if ge .Dolar.Nasdaq.Change 0.0}}+{{end}}{{printf "%.1f" .Dolar.Nasdaq.Change}}%
                     </span>
                     {{end}}
                 </div>
-                <div class="text-base font-black text-base-content leading-none relative z-10 tabular-nums">U$S {{printf "%.0f" .Dolar.Nasdaq.Price}}</div>
+                <div class="text-sm font-black text-base-content leading-none relative z-10 tabular-nums">U$S {{printf "%.0f" .Dolar.Nasdaq.Price}}</div>
             </div>
 
-            <div class="bg-white/5 rounded-lg p-2 border border-white/5 flex flex-col justify-center relative overflow-hidden">
-                <div class="text-[10px] font-black uppercase tracking-widest text-base-content/40 mb-0.5 relative z-10">DÓLAR BLUE</div>
-                <div class="text-base font-black text-base-content leading-none relative z-10 tabular-nums">$ {{if .Dolar.Blue}}{{printf "%.0f" .Dolar.Blue.Venta}}{{else}}---{{end}}</div>
+            <div class="bg-white/5 rounded-lg px-1.5 py-1 border border-white/5 flex flex-col justify-center relative overflow-hidden">
+                <div class="text-[9px] font-black uppercase tracking-widest text-base-content/40 mb-0.5 relative z-10">DÓLAR BLUE</div>
+                <div class="text-sm font-black text-base-content leading-none relative z-10 tabular-nums">$ {{if .Dolar.Blue}}{{printf "%.0f" .Dolar.Blue.Venta}}{{else}}---{{end}}</div>
             </div>
 
-            <div class="bg-white/5 rounded-lg p-2 border border-white/5 flex flex-col justify-center relative overflow-hidden">
-                <div class="text-[10px] font-black uppercase tracking-widest text-base-content/40 mb-0.5 relative z-10">DÓLAR CRIPTO</div>
-                <div class="text-base font-black text-base-content leading-none relative z-10 tabular-nums">$ {{if .Dolar.Cripto}}{{printf "%.0f" .Dolar.Cripto.Venta}}{{else}}---{{end}}</div>
+            <div class="bg-white/5 rounded-lg px-1.5 py-1 border border-white/5 flex flex-col justify-center relative overflow-hidden">
+                <div class="text-[9px] font-black uppercase tracking-widest text-base-content/40 mb-0.5 relative z-10">DÓLAR CRIPTO</div>
+                <div class="text-sm font-black text-base-content leading-none relative z-10 tabular-nums">$ {{if .Dolar.Cripto}}{{printf "%.0f" .Dolar.Cripto.Venta}}{{else}}---{{end}}</div>
             </div>
         </div>
 
-        <div class="mt-2 bg-white/5 rounded-lg px-3 py-1.5 border border-white/5 flex items-center justify-between relative overflow-hidden">
+        <div class="mt-1 bg-white/5 rounded-lg px-2 py-1 border border-white/5 flex items-center justify-between relative overflow-hidden">
             <div class="flex items-center space-x-2 relative z-10">
-                <span class="text-[9px] font-black uppercase tracking-widest text-base-content/40 leading-none">RIESGO PAÍS</span>
-                <span class="text-sm font-black text-base-content leading-none tabular-nums">
+                <span class="text-[8px] font-black uppercase tracking-widest text-base-content/40 leading-none">RIESGO PAÍS</span>
+                <span class="text-xs font-black text-base-content leading-none tabular-nums">
                     {{if gt .Dolar.RiesgoPais.Price 0.0}}{{printf "%.0f" .Dolar.RiesgoPais.Price}}{{else}}---{{end}}
                 </span>
             </div>
             {{if ne .Dolar.RiesgoPais.Change 0.0}}
             <div class="relative z-10">
-                <span class="text-[10px] font-black tabular-nums {{if lt .Dolar.RiesgoPais.Change 0.0}}text-green-500{{else}}text-error{{end}} flex items-center">
+                <span class="text-[9px] font-black tabular-nums {{if lt .Dolar.RiesgoPais.Change 0.0}}text-green-500{{else}}text-error{{end}} flex items-center">
                     {{if gt .Dolar.RiesgoPais.Change 0.0}}+{{end}}{{printf "%.1f" .Dolar.RiesgoPais.Change}}%
                 </span>
             </div>
             {{end}}
         </div>
+
+        {{if .Dolar.Billeteras}}
+        <div class="mt-1 space-y-0.5">
+            <div class="text-[8px] font-black uppercase tracking-widest text-base-content/40 px-2 pt-0.5 leading-none">TOP TASAS BILLETERAS</div>
+            {{range .Dolar.Billeteras}}
+            <div class="bg-white/5 rounded px-2 py-0.5 border border-white/5 flex items-center justify-between relative overflow-hidden">
+                <span class="text-[8px] font-black uppercase tracking-widest text-base-content/40 truncate mr-2 leading-none">{{.Fondo}}{{if .HasConditions}} *{{end}}</span>
+                <span class="text-[10px] font-black text-primary leading-none tabular-nums shrink-0">{{printf "%.1f" .TNA}}%</span>
+            </div>
+            {{end}}
+        </div>
+        <div class="text-[7px] text-base-content/30 px-2 pt-0.5 leading-none">* TNA base, con condiciones</div>
+        {{end}}
     </div>
     {{end}}
 </div>
@@ -662,77 +675,77 @@
     <!-- 3. Finanzas: Cripto, CEDEARs y Dólar (Derecha) -->
     {{if .ShowFinance}}
     <div class="{{if .ShowUFC}}lg:col-span-4{{else}}lg:col-span-6{{end}} bg-base-200 rounded-2xl p-5 border border-base-300 flex flex-col justify-between min-h-[220px] text-base-content">
-        <div class="grid grid-cols-2 gap-2 flex-1">
+        <div class="grid grid-cols-2 gap-1.5 flex-1">
             <!-- Bitcoin -->
-            <div class="bg-white/5 rounded-lg p-3 border border-white/5 flex flex-col justify-center relative overflow-hidden">
-                <div class="flex justify-between items-start mb-1 relative z-10">
-                    <div class="text-[10px] font-black uppercase text-base-content/40 tracking-widest">BITCOIN</div>
+            <div class="bg-white/5 rounded-lg px-2 py-1.5 border border-white/5 flex flex-col justify-center relative overflow-hidden">
+                <div class="flex justify-between items-start mb-0.5 relative z-10">
+                    <div class="text-[9px] font-black uppercase text-base-content/40 tracking-widest">BITCOIN</div>
                     {{if ne .BTCChange 0.0}}
-                    <span class="text-[11px] font-black {{if ge .BTCChange 0.0}}text-green-500{{else}}text-error{{end}}">
+                    <span class="text-[10px] font-black {{if ge .BTCChange 0.0}}text-green-500{{else}}text-error{{end}}">
                         {{if ge .BTCChange 0.0}}+{{end}}{{printf "%.1f" .BTCChange}}%
                     </span>
                     {{end}}
                 </div>
-                <div class="text-lg font-black text-base-content leading-none relative z-10">U$S {{printf "%.0f" .BTCPrice}}</div>
+                <div class="text-sm font-black text-base-content leading-none relative z-10 tabular-nums">U$S {{printf "%.0f" .BTCPrice}}</div>
             </div>
 
             <!-- Ethereum -->
-            <div class="bg-white/5 rounded-lg p-3 border border-white/5 flex flex-col justify-center relative overflow-hidden">
-                <div class="flex justify-between items-start mb-1 relative z-10">
-                    <div class="text-[10px] font-black uppercase text-base-content/40 tracking-widest">ETHEREUM</div>
+            <div class="bg-white/5 rounded-lg px-2 py-1.5 border border-white/5 flex flex-col justify-center relative overflow-hidden">
+                <div class="flex justify-between items-start mb-0.5 relative z-10">
+                    <div class="text-[9px] font-black uppercase text-base-content/40 tracking-widest">ETHEREUM</div>
                     {{if ne .ETHChange 0.0}}
-                    <span class="text-[11px] font-black {{if ge .ETHChange 0.0}}text-green-500{{else}}text-error{{end}}">
+                    <span class="text-[10px] font-black {{if ge .ETHChange 0.0}}text-green-500{{else}}text-error{{end}}">
                         {{if ge .ETHChange 0.0}}+{{end}}{{printf "%.1f" .ETHChange}}%
                     </span>
                     {{end}}
                 </div>
-                <div class="text-lg font-black text-base-content leading-none relative z-10">U$S {{printf "%.0f" .ETHPrice}}</div>
+                <div class="text-sm font-black text-base-content leading-none relative z-10 tabular-nums">U$S {{printf "%.0f" .ETHPrice}}</div>
             </div>
 
             <!-- S&P 500 -->
-            <div class="bg-white/5 rounded-lg p-3 border border-white/5 flex flex-col justify-center relative overflow-hidden">
-                <div class="flex justify-between items-start mb-1 relative z-10">
-                    <div class="text-[10px] font-black uppercase text-base-content/40 tracking-widest">S&P 500</div>
+            <div class="bg-white/5 rounded-lg px-2 py-1.5 border border-white/5 flex flex-col justify-center relative overflow-hidden">
+                <div class="flex justify-between items-start mb-0.5 relative z-10">
+                    <div class="text-[9px] font-black uppercase text-base-content/40 tracking-widest">S&P 500</div>
                     {{if ne .Dolar.SP500.Change 0.0}}
-                    <span class="text-[11px] font-black {{if ge .Dolar.SP500.Change 0.0}}text-green-500{{else}}text-error{{end}}">
+                    <span class="text-[10px] font-black {{if ge .Dolar.SP500.Change 0.0}}text-green-500{{else}}text-error{{end}}">
                         {{if ge .Dolar.SP500.Change 0.0}}+{{end}}{{printf "%.1f" .Dolar.SP500.Change}}%
                     </span>
                     {{end}}
                 </div>
-                <div class="text-lg font-black text-base-content leading-none relative z-10">U$S {{printf "%.0f" .Dolar.SP500.Price}}</div>
+                <div class="text-sm font-black text-base-content leading-none relative z-10 tabular-nums">U$S {{printf "%.0f" .Dolar.SP500.Price}}</div>
             </div>
 
             <!-- NASDAQ -->
-            <div class="bg-white/5 rounded-lg p-3 border border-white/5 flex flex-col justify-center relative overflow-hidden">
-                <div class="flex justify-between items-start mb-1 relative z-10">
-                    <div class="text-[10px] font-black uppercase text-base-content/40 tracking-widest">NASDAQ</div>
+            <div class="bg-white/5 rounded-lg px-2 py-1.5 border border-white/5 flex flex-col justify-center relative overflow-hidden">
+                <div class="flex justify-between items-start mb-0.5 relative z-10">
+                    <div class="text-[9px] font-black uppercase text-base-content/40 tracking-widest">NASDAQ</div>
                     {{if ne .Dolar.Nasdaq.Change 0.0}}
-                    <span class="text-[11px] font-black {{if ge .Dolar.Nasdaq.Change 0.0}}text-green-500{{else}}text-error{{end}}">
+                    <span class="text-[10px] font-black {{if ge .Dolar.Nasdaq.Change 0.0}}text-green-500{{else}}text-error{{end}}">
                         {{if ge .Dolar.Nasdaq.Change 0.0}}+{{end}}{{printf "%.1f" .Dolar.Nasdaq.Change}}%
                     </span>
                     {{end}}
                 </div>
-                <div class="text-lg font-black text-base-content leading-none relative z-10">U$S {{printf "%.0f" .Dolar.Nasdaq.Price}}</div>
+                <div class="text-sm font-black text-base-content leading-none relative z-10 tabular-nums">U$S {{printf "%.0f" .Dolar.Nasdaq.Price}}</div>
             </div>
 
             <!-- Dólar Blue -->
-            <div class="bg-white/5 rounded-lg p-3 border border-white/5 flex flex-col justify-center relative overflow-hidden">
-                <div class="text-[10px] font-black uppercase text-base-content/40 tracking-widest mb-1 relative z-10">DÓLAR BLUE</div>
-                <div class="text-lg font-black text-base-content leading-none relative z-10">$ {{if .Dolar.Blue}}{{printf "%.0f" .Dolar.Blue.Venta}}{{else}}---{{end}}</div>
+            <div class="bg-white/5 rounded-lg px-2 py-1.5 border border-white/5 flex flex-col justify-center relative overflow-hidden">
+                <div class="text-[9px] font-black uppercase text-base-content/40 tracking-widest mb-0.5 relative z-10">DÓLAR BLUE</div>
+                <div class="text-sm font-black text-base-content leading-none relative z-10 tabular-nums">$ {{if .Dolar.Blue}}{{printf "%.0f" .Dolar.Blue.Venta}}{{else}}---{{end}}</div>
             </div>
 
             <!-- Dólar Cripto -->
-            <div class="bg-white/5 rounded-lg p-3 border border-white/5 flex flex-col justify-center relative overflow-hidden">
-                <div class="text-[10px] font-black uppercase text-base-content/40 tracking-widest mb-1 relative z-10">DÓLAR CRIPTO</div>
-                <div class="text-lg font-black text-base-content leading-none relative z-10">$ {{if .Dolar.Cripto}}{{printf "%.0f" .Dolar.Cripto.Venta}}{{else}}---{{end}}</div>
+            <div class="bg-white/5 rounded-lg px-2 py-1.5 border border-white/5 flex flex-col justify-center relative overflow-hidden">
+                <div class="text-[9px] font-black uppercase text-base-content/40 tracking-widest mb-0.5 relative z-10">DÓLAR CRIPTO</div>
+                <div class="text-sm font-black text-base-content leading-none relative z-10 tabular-nums">$ {{if .Dolar.Cripto}}{{printf "%.0f" .Dolar.Cripto.Venta}}{{else}}---{{end}}</div>
             </div>
         </div>
 
         <!-- Riesgo País (Compacto One-line) -->
-        <div class="mt-2 bg-white/5 rounded-lg px-4 py-2 border border-white/5 flex items-center justify-between relative overflow-hidden">
+        <div class="mt-1.5 bg-white/5 rounded-lg px-3 py-1.5 border border-white/5 flex items-center justify-between relative overflow-hidden">
             <div class="flex items-center space-x-3 relative z-10">
-                <span class="text-[10px] font-black uppercase text-base-content/40 tracking-widest leading-none">RIESGO PAÍS</span>
-                <span class="text-base font-black text-base-content leading-none">
+                <span class="text-[9px] font-black uppercase text-base-content/40 tracking-widest leading-none">RIESGO PAÍS</span>
+                <span class="text-sm font-black text-base-content leading-none tabular-nums">
                     {{if gt .Dolar.RiesgoPais.Price 0.0}}
                         {{printf "%.0f" .Dolar.RiesgoPais.Price}}
                     {{else}}
@@ -742,12 +755,26 @@
             </div>
             {{if ne .Dolar.RiesgoPais.Change 0.0}}
             <div class="relative z-10">
-                <span class="text-[11px] font-black {{if lt .Dolar.RiesgoPais.Change 0.0}}text-green-500{{else}}text-error{{end}} flex items-center">
+                <span class="text-[10px] font-black {{if lt .Dolar.RiesgoPais.Change 0.0}}text-green-500{{else}}text-error{{end}} flex items-center">
                     {{if gt .Dolar.RiesgoPais.Change 0.0}}+{{end}}{{printf "%.1f" .Dolar.RiesgoPais.Change}}%
                 </span>
             </div>
             {{end}}
         </div>
+
+        <!-- Billeteras Remuneradas (Top TNA) -->
+        {{if .Dolar.Billeteras}}
+        <div class="mt-1.5 space-y-0.5">
+            <div class="text-[9px] font-black uppercase text-base-content/40 tracking-widest px-3 pt-0.5 leading-none">TOP TASAS BILLETERAS</div>
+            {{range .Dolar.Billeteras}}
+            <div class="bg-white/5 rounded-lg px-3 py-1 border border-white/5 flex items-center justify-between relative overflow-hidden">
+                <span class="text-[9px] font-black uppercase text-base-content/40 tracking-widest truncate mr-2 leading-none">{{.Fondo}}{{if .HasConditions}} *{{end}}</span>
+                <span class="text-xs font-black text-primary leading-none tabular-nums shrink-0">{{printf "%.1f" .TNA}}%</span>
+            </div>
+            {{end}}
+        </div>
+        <div class="text-[8px] text-base-content/30 px-3 pt-0.5 leading-none">* TNA base, con condiciones</div>
+        {{end}}
     </div>
     {{end}}
 </div>

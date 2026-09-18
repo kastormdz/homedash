@@ -16,8 +16,6 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
-	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -119,33 +117,95 @@ type gzipResponseWriter struct {
 	io.Writer
 	http.ResponseWriter
 	wroteHeader bool
+	noBody      bool // 204/304: sin cuerpo, no se comprime ni se cierra el writer
+}
+
+func (w *gzipResponseWriter) start() {
+	if w.wroteHeader {
+		return
+	}
+	w.wroteHeader = true
+	h := w.Header()
+	// http.ServeFile/ServeContent ya declararon un Content-Length del cuerpo SIN
+	// comprimir: si no se borra, el cliente corta la respuesta antes de tiempo y
+	// en los payloads incompresibles el server aborta el stream (PNG de 1986 B
+	// entregado en 15 B).
+	h.Del("Content-Length")
+	h.Set("Content-Encoding", "gzip")
+	h.Add("Vary", "Accept-Encoding")
 }
 
 func (w *gzipResponseWriter) WriteHeader(code int) {
-	if !w.wroteHeader {
-		w.Header().Set("Content-Encoding", "gzip")
+	if code == http.StatusNoContent || code == http.StatusNotModified {
+		w.noBody = true
 		w.wroteHeader = true
+		w.ResponseWriter.WriteHeader(code)
+		return
 	}
+	w.start()
 	w.ResponseWriter.WriteHeader(code)
 }
 
 func (w *gzipResponseWriter) Write(b []byte) (int, error) {
 	if !w.wroteHeader {
-		w.Header().Set("Content-Encoding", "gzip")
-		w.wroteHeader = true
+		// Sniffea los bytes SIN comprimir: Go no setea Content-Type cuando
+		// hay Content-Encoding, y sin esto Firefox muestra el HTML como texto.
+		if w.Header().Get("Content-Type") == "" {
+			w.Header().Set("Content-Type", http.DetectContentType(b))
+		}
+		w.start()
 	}
 	return w.Writer.Write(b)
 }
 
+// Flush expone http.Flusher para que los streams (SSE de /api/mcp) no queden
+// bufferizados: sin este metodo el type-assert del handler falla en silencio.
+func (w *gzipResponseWriter) Flush() {
+	if gz, ok := w.Writer.(*gzip.Writer); ok {
+		_ = gz.Flush()
+	}
+	if f, ok := w.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
+// gzipPool evita allocar ~1 MB de buffers por request solo para comprimir.
+var gzipPool = sync.Pool{
+	New: func() any {
+		w, _ := gzip.NewWriterLevel(io.Discard, gzip.DefaultCompression)
+		return w
+	},
+}
+
+// skipGzip: re-comprimir lo que ya viene comprimido no gana nada y rompia el
+// Content-Length de http.ServeFile. El SSE ademas necesita streaming sin capas.
+func skipGzip(r *http.Request) bool {
+	if strings.HasPrefix(r.URL.Path, "/api/mcp/") || r.URL.Path == "/crest" {
+		return true
+	}
+	switch strings.ToLower(filepath.Ext(r.URL.Path)) {
+	case ".png", ".jpg", ".jpeg", ".gif", ".webp", ".avif", ".ico", ".svgz",
+		".woff", ".woff2", ".mp4", ".webm", ".zip", ".gz", ".br":
+		return true
+	}
+	return false
+}
+
 func gzipMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") || r.Header.Get("Accept") == "text/event-stream" {
+		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") || skipGzip(r) {
 			next.ServeHTTP(w, r)
 			return
 		}
-		gz := gzip.NewWriter(w)
-		defer gz.Close()
+		gz := gzipPool.Get().(*gzip.Writer)
+		gz.Reset(w)
 		gzw := &gzipResponseWriter{Writer: gz, ResponseWriter: w}
+		defer func() {
+			if gzw.wroteHeader && !gzw.noBody {
+				_ = gz.Close()
+			}
+			gzipPool.Put(gz)
+		}()
 		next.ServeHTTP(gzw, r)
 	})
 }
@@ -212,7 +272,7 @@ func main() {
 	if err := finance.UpdateFinance(context.Background()); err != nil {
 		log.Printf("[INIT] Aviso: Finanzas no se pudieron cargar inicialmente: %v\n", err)
 	}
-	
+
 	// 3. Sismos y Alertas
 	earthquake.ForceUpdate(context.Background())
 	weather.ForceUpdateAlerts(context.Background())
@@ -243,7 +303,6 @@ func main() {
 	mux.HandleFunc("/autocomplete/teams", rateLimit(handleAutocompleteTeams))
 	mux.HandleFunc("/autocomplete/cities", rateLimit(handleAutocompleteCities))
 	mux.HandleFunc("/health", handleHealth)
-	mux.HandleFunc("/world-cup-fixture", handleWorldCupFixture)
 	mux.HandleFunc("/f1-standings", handleF1Standings)
 	mux.HandleFunc("/partidos-del-dia", handlePartidosDelDia)
 
@@ -493,7 +552,7 @@ func handleWeather(w http.ResponseWriter, r *http.Request) {
 		ETHChange:     crypto.GetCachedETHChange(),
 		RainProb:      rainProb,
 		Earthquakes:   earthquake.GetLatestEarthquakes(),
-		Alert:         weather.GetSMNAlert(settings.Province, settings.City),
+		Alert:         weather.GetSMNAlert(settings.Lat, settings.Lon),
 		AQI:           aqi,
 		AQIDesc:       aqiDesc,
 		MoonIcon:      moonIcon,
@@ -772,35 +831,6 @@ func handleF1Standings(w http.ResponseWriter, r *http.Request) {
 	w.Write(buf.Bytes())
 }
 
-type TeamStats struct {
-	Name     string
-	Logo     string
-	FlagURL  string // Para coincidir con la plantilla
-	PJ       int
-	Played   int // Para coincidir con la plantilla
-	G        int
-	E        int
-	P        int
-	GF       int
-	GC       int
-	GoalDiff int // Para coincidir con la plantilla
-	Pts      int
-	Points   int // Para coincidir con la plantilla
-	Rank     int
-}
-
-type GroupData struct {
-	Name    string
-	Round   string // Para coincidir con la plantilla en Brackets
-	Teams   []*TeamStats
-	Matches []sports.WorldCupMatch
-}
-
-type WorldCupViewData struct {
-	Groups   []*GroupData
-	Brackets []*GroupData
-}
-
 func handlePartidosDelDia(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
 	settings := getSettings(r)
@@ -834,211 +864,4 @@ func handlePartidosDelDia(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Write(buf.Bytes())
-}
-
-func handleWorldCupFixture(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
-	data := sports.GetSportsData()
-
-	var groups []*GroupData
-	var brackets []*GroupData
-	bracketsMap := make(map[string]*GroupData)
-	var groupMatchesPool []sports.WorldCupMatch
-
-	// Traducciones de etapas para el Mundial
-	stageTranslations := map[string]string{
-		"Group Stage":      "Fase de Grupos",
-		"Round of 32":      "Dieciseisavos",
-		"Round of 16":      "Octavos de final",
-		"Quarter-finals":   "Cuartos de final",
-		"Semi-finals":      "Semifinales",
-		"Final":            "Final",
-		"Third Place Play-off": "Tercer Puesto",
-	}
-
-	for _, m := range data.WorldCup {
-		title := m.Stage
-		if t, ok := stageTranslations[title]; ok {
-			title = t
-		}
-		
-		if title == "Fase de Grupos" || m.Group == "Fase de Grupos" {
-			groupMatchesPool = append(groupMatchesPool, m)
-		} else {
-			g, ok := bracketsMap[title]
-			if !ok {
-				g = &GroupData{Name: title, Round: title, Matches: []sports.WorldCupMatch{m}}
-				bracketsMap[title] = g
-				brackets = append(brackets, g)
-			} else {
-				g.Matches = append(g.Matches, m)
-			}
-		}
-	}
-
-	// Procesar pool de grupos usando componentes conexos
-	if len(groupMatchesPool) > 0 {
-		adj := make(map[string]map[string]bool)
-		matchByTeam := make(map[string][]sports.WorldCupMatch)
-		for _, m := range groupMatchesPool {
-			if adj[m.Home] == nil { adj[m.Home] = make(map[string]bool) }
-			if adj[m.Away] == nil { adj[m.Away] = make(map[string]bool) }
-			adj[m.Home][m.Away] = true
-			adj[m.Away][m.Home] = true
-			matchByTeam[m.Home] = append(matchByTeam[m.Home], m)
-			matchByTeam[m.Away] = append(matchByTeam[m.Away], m)
-		}
-
-		visited := make(map[string]bool)
-		type tempGroup struct {
-			matches []sports.WorldCupMatch
-			firstID string
-			forcedName string
-		}
-		var inferredTGroups []tempGroup
-		
-		var allTeams []string
-		for t := range adj { allTeams = append(allTeams, t) }
-		sort.Strings(allTeams)
-
-		for _, t := range allTeams {
-			if !visited[t] {
-				comp := []string{}
-				q := []string{t}
-				visited[t] = true
-				for len(q) > 0 {
-					curr := q[0]; q = q[1:]
-					comp = append(comp, curr)
-					for neighbor := range adj[curr] {
-						if !visited[neighbor] {
-							visited[neighbor] = true
-							q = append(q, neighbor)
-						}
-					}
-				}
-				
-				mSet := make(map[string]sports.WorldCupMatch)
-				firstID := "9999999999"
-				forcedName := ""
-				for _, ct := range comp {
-					for _, m := range matchByTeam[ct] {
-						mSet[m.ID] = m
-						if m.ID < firstID { firstID = m.ID }
-						if strings.HasPrefix(strings.ToUpper(m.Stage), "GRUPO ") && forcedName == "" {
-							forcedName = m.Stage
-						}
-					}
-				}
-				var mList []sports.WorldCupMatch
-				for _, m := range mSet { mList = append(mList, m) }
-				sort.Slice(mList, func(i, j int) bool { return mList[i].ID < mList[j].ID })
-				inferredTGroups = append(inferredTGroups, tempGroup{matches: mList, firstID: firstID, forcedName: forcedName})
-			}
-		}
-		
-		// Ordenar grupos por cronología (ID del primer partido)
-		sort.Slice(inferredTGroups, func(i, j int) bool { return inferredTGroups[i].firstID < inferredTGroups[j].firstID })
-		
-		letters := []string{"A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"}
-		usedLetters := make(map[string]bool)
-		
-		// Primero asignar nombres forzados si existen
-		for _, tg := range inferredTGroups {
-			if tg.forcedName != "" {
-				parts := strings.Fields(tg.forcedName)
-				if len(parts) >= 2 {
-					usedLetters[parts[len(parts)-1]] = true
-				}
-			}
-		}
-
-		nextLetterIdx := 0
-		for _, tg := range inferredTGroups {
-			name := tg.forcedName
-			if name == "" {
-				for nextLetterIdx < len(letters) && usedLetters[letters[nextLetterIdx]] {
-					nextLetterIdx++
-				}
-				letter := ""
-				if nextLetterIdx < len(letters) { 
-					letter = letters[nextLetterIdx]
-					usedLetters[letter] = true
-					nextLetterIdx++
-				} else {
-					letter = strconv.Itoa(nextLetterIdx + 1)
-					nextLetterIdx++
-				}
-				name = "GRUPO " + letter
-			}
-			
-			g := &GroupData{Name: name, Round: name, Matches: tg.matches}
-			groups = append(groups, g)
-		}
-	}
-
-	// Calcular estadísticas
-	for _, g := range groups {
-		for _, m := range g.Matches {
-			isLiveOrFinal := m.Status == "LIVE" || m.Status == "FINAL"
-			calculateStats(g, m.Home, m.HomeLogo, m.HomeScore, m.AwayScore, isLiveOrFinal)
-			calculateStats(g, m.Away, m.AwayLogo, m.AwayScore, m.HomeScore, isLiveOrFinal)
-		}
-		sort.Slice(g.Teams, func(i, j int) bool {
-			if g.Teams[i].Pts != g.Teams[j].Pts { return g.Teams[i].Pts > g.Teams[j].Pts }
-			diffI := g.Teams[i].GF - g.Teams[i].GC
-			diffJ := g.Teams[j].GF - g.Teams[j].GC
-			return diffI > diffJ
-		})
-		// Asignar Rank y campos extra después de ordenar
-		for i, t := range g.Teams {
-			t.Rank = i + 1
-			t.GoalDiff = t.GF - t.GC
-			t.Played = t.PJ
-			t.Points = t.Pts
-			t.FlagURL = t.Logo
-		}
-	}
-
-	viewData := WorldCupViewData{Groups: groups, Brackets: brackets}
-	var buf bytes.Buffer
-	tmplsLock.RLock()
-	err := tmpls.ExecuteTemplate(&buf, "worldcup.html", viewData)
-	tmplsLock.RUnlock()
-	if err != nil {
-		log.Printf("Error renderizando fixture mundial: %v", err)
-		http.Error(w, "Error renderizando", http.StatusInternalServerError)
-		return
-	}
-	w.Write(buf.Bytes())
-}
-
-func calculateStats(g *GroupData, teamName, teamLogo, scoreStr, oppScoreStr string, isLiveOrFinal bool) {
-	var stats *TeamStats
-	for _, t := range g.Teams {
-		if t.Name == teamName {
-			stats = t
-			break
-		}
-	}
-	if stats == nil {
-		stats = &TeamStats{Name: teamName, Logo: teamLogo}
-		g.Teams = append(g.Teams, stats)
-	}
-
-	if isLiveOrFinal {
-		s, _ := strconv.Atoi(scoreStr)
-		os, _ := strconv.Atoi(oppScoreStr)
-		stats.PJ++
-		stats.GF += s
-		stats.GC += os
-		if s > os {
-			stats.G++
-			stats.Pts += 3
-		} else if s == os {
-			stats.E++
-			stats.Pts += 1
-		} else {
-			stats.P++
-		}
-	}
 }
