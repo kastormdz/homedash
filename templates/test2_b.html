@@ -263,7 +263,7 @@
           {{end}}
         </div>
       </div>
-      {{if .DACC}}{{with index .DACC 0}}<div class="wx-dacc">Oficial DACC {{.Maxima}}°/{{.Minima}}° — {{.Pronostico}}</div>{{end}}{{end}}
+      {{if .DACC}}{{with index .DACC 0}}<div class="wx-dacc" title="Pronóstico oficial DACC: {{.Pronostico}}">Oficial DACC {{.Maxima}}°/{{.Minima}}°</div>{{end}}{{end}}
   </div>
   <div class="tblock">
     <div class="stitle"><span class="lbl">Alertas del clima</span><span class="hr"></span>{{if ne .Alert.Text "Sin alertas actuales"}}<span class="count">activa</span>{{end}}</div>
