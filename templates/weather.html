@@ -1,7 +1,7 @@
 {{$isRaining := or (eq .Current.WeatherCode 51) (eq .Current.WeatherCode 53) (eq .Current.WeatherCode 55) (eq .Current.WeatherCode 61) (eq .Current.WeatherCode 63) (eq .Current.WeatherCode 65) (eq .Current.WeatherCode 66) (eq .Current.WeatherCode 67) (eq .Current.WeatherCode 80) (eq .Current.WeatherCode 81) (eq .Current.WeatherCode 82) (eq .Current.WeatherCode 95) (eq .Current.WeatherCode 96) (eq .Current.WeatherCode 99)}}
 {{$isThunder := or (eq .Current.WeatherCode 95) (eq .Current.WeatherCode 96) (eq .Current.WeatherCode 99)}}
 {{$hasStrongQuake := false}}
-{{range .Earthquakes}}{{if and .IsNew (ge .Magnitude "4.5")}}{{$hasStrongQuake = true}}{{end}}{{end}}
+{{range .Earthquakes}}{{if and .IsNew (eq (magclass .Magnitude) "mag-hi")}}{{$hasStrongQuake = true}}{{end}}{{end}}
 
 {{if eq .Theme "terminal"}}
 <!-- ============ FILA 1: FÚTBOL + F1 + UFC ============ -->

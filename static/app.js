@@ -60,7 +60,7 @@ document.addEventListener('htmx:afterSwap', function(evt) {
 // Actualizar tema dinámicamente al guardar configuración
 document.addEventListener('htmx:afterRequest', function(evt) {
     const form = evt.detail.elt;
-    if (form && form.getAttribute('action') === '/settings' || (form && form.closest('form[action="/settings"]'))) {
+    if (form && (form.getAttribute('action') === '/settings' || form.closest('form[action="/settings"]'))) {
         const themeSelect = form.querySelector('select[name="theme"]');
         if (themeSelect && themeSelect.value) {
             document.documentElement.setAttribute('data-theme', themeSelect.value);

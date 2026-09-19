@@ -70,7 +70,8 @@ func handleMCPSSE(w http.ResponseWriter, r *http.Request) {
 
 func handleMCPMessage(w http.ResponseWriter, r *http.Request) {
 	var req JSONRPCRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	// 1 MB: el POST no tenia tope y un JSON gigante agotaba el contenedor.
+	if err := json.NewDecoder(io.LimitReader(r.Body, 1<<20)).Decode(&req); err != nil {
 		http.Error(w, "Invalid JSON", http.StatusBadRequest)
 		return
 	}

@@ -3,6 +3,7 @@ package network
 import (
 	"context"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -145,5 +146,19 @@ func FetchSecureWithContext(ctx context.Context, targetURL string) (*http.Respon
 		return nil, fmt.Errorf("error HTTP: %d", resp.StatusCode)
 	}
 
+	// Tope al cuerpo: una API comprometida (o un error gigante) podia mandar cientos de
+	// MB y tumbar el contenedor de 128 MB (el proxy /crest copiaba lo que viniera).
+	// Va aca y no en cada llamador porque TODO fetch del proyecto pasa por esta funcion.
+	resp.Body = limitedBody{io.LimitReader(resp.Body, maxRespBytes), resp.Body}
 	return resp, nil
+}
+
+// maxRespBytes es el tope de lectura por respuesta: alcanza de sobra para el JSON mas
+// grande (ESPN) y para las imagenes de escudos/headshots.
+const maxRespBytes = 8 << 20 // 8 MB
+
+// limitedBody limita la lectura sin perder el Close del body original.
+type limitedBody struct {
+	io.Reader
+	io.Closer
 }
