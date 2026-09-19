@@ -77,11 +77,11 @@
 .confetti-wrapper{position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;
   pointer-events:none;z-index:1;border-radius:inherit}
 .confetti{position:absolute;width:4px;height:6px;border-radius:1px;animation:confetti-fall linear infinite}
-.ferbadge{display:inline-flex;align-items:center;gap:6px;background:rgba(245,158,11,.18);
+.ferbadge{display:inline-flex;flex:none;align-items:center;gap:6px;background:rgba(245,158,11,.18);
   border:1px solid rgba(245,158,11,.5);color:var(--warn);border-radius:6px;padding:4px 10px;
   font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;letter-spacing:.1em;
   text-transform:uppercase;white-space:nowrap;position:relative;overflow:hidden}
-.nextfer{display:inline-flex;align-items:center;gap:10px;background:#10151C;border:1px solid var(--line);
+.nextfer{display:inline-flex;flex:none;align-items:center;gap:10px;background:#10151C;border:1px solid var(--line);
   border-radius:6px;padding:5px 13px;font-family:'JetBrains Mono',monospace;font-size:9.5px;
   letter-spacing:.05em;color:var(--muted);white-space:nowrap;max-width:380px}
 .nextfer .et{color:var(--dim);text-transform:uppercase;letter-spacing:.12em}
