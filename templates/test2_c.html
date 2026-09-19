@@ -78,9 +78,6 @@
   .mag-hi{color:var(--crit)} .mag-mid{color:var(--warn)} .mag-lo{color:var(--muted)}
   .mq .place{flex:1;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .mq .t{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--dim)}
-  .slot{border:1px dashed var(--line);border-radius:var(--r);padding:13px;text-align:center;color:var(--dim);
-    font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;font-family:'JetBrains Mono',monospace;cursor:pointer}
-  .slot:hover{border-color:var(--info);color:var(--info)}
     font-weight:700;font-family:'JetBrains Mono',monospace}
   .sw a:hover{background:#1A2230;color:var(--text)}
   .sw a.on{background:var(--info);color:#06121E}
@@ -98,8 +95,9 @@
 </head>
 <body>
 
-<header>
+<header{{if .Holiday}} class="holiday-glow"{{end}}>
   <div class="clock mono">{{.Now.Format "15:04"}}<span>{{fechaEs .Now}}</span></div>
+  {{template "test2_feriado" .}}
   {{if eq .Alert.Text "Sin alertas actuales"}}
   <div class="pill ok"><span class="led"></span> sin avisos activos</div>
   {{else}}
@@ -172,9 +170,6 @@
         <div class="chead"><span class="lbl">Ambiente</span>{{if gt .AQI 50}}<span class="chip w">AIRE {{.AQI}}</span>{{else}}<span class="chip g">AIRE {{.AQI}}</span>{{end}}</div>
         <div class="kv"><span>Amanecer / atardecer</span><span>{{.Sunrise}} / {{.Sunset}}</span></div>
         <div class="kv"><span>Luna</span><span>{{.MoonPhaseName}}</span></div>
-        {{if .Upcoming}}{{$h := index .Upcoming 0}}
-        <div class="kv"><span>Próximo feriado</span><span style="font-family:inherit;font-weight:500">{{$h.Name}} · {{$h.DayName}} {{$h.DateStr}}</span></div>
-        {{end}}
       </div>
 
     </div>
@@ -307,8 +302,6 @@
           {{end}}
         {{else}}<span class="empty">Sin datos de tasas</span>{{end}}
       </div>
-
-      <div class="slot">+ Módulo nuevo</div>
     </div>
   </div>
 

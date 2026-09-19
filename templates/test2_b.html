@@ -51,9 +51,10 @@
   .alertband .d{font-size:11.5px;color:var(--muted)}
   .alertband .r{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--muted)}
 
-  .wrap{display:grid;grid-template-columns:1.55fr 1fr}
+  .wrap{display:grid;grid-template-columns:1.85fr 1fr}
   .col{padding:22px 24px 40px}
   .col.left{border-right:1px solid var(--line)}
+  .col.right{padding:22px 19px 40px}
   .section{margin-bottom:26px}
   .section:last-child{margin-bottom:0}
   .stitle{display:flex;align-items:center;gap:12px;margin-bottom:15px}
@@ -128,9 +129,6 @@
   .kv{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--line-2);font-size:12px}
   .kv span:first-child{color:var(--dim)}
   .kv span:last-child{font-family:'JetBrains Mono',monospace;font-weight:600}
-  .slot{border:1px dashed var(--line);border-radius:8px;padding:14px;text-align:center;color:var(--dim);
-    font-size:10px;letter-spacing:.13em;text-transform:uppercase;font-family:'JetBrains Mono',monospace;margin-top:14px;cursor:pointer}
-  .slot:hover{border-color:var(--info);color:var(--info)}
 
   body:has(#dens:checked) .col{padding:14px 18px 30px}
   body:has(#dens:checked) .section{margin-bottom:16px}
@@ -147,13 +145,14 @@
 </head>
 <body>
 
-<div class="bar">
+<div class="bar{{if .Holiday}} holiday-glow{{end}}">
   {{if eq .Alert.Text "Sin alertas actuales"}}
   <div class="health"><span class="led"></span><b>Operativo</b></div>
   {{else}}
   <div class="health warn"><span class="led"></span><b>Aviso activo</b></div>
   {{end}}
   <div class="clock mono">{{.Now.Format "15:04"}}<span>{{fechaEs .Now}}</span></div>
+  {{template "test2_feriado" .}}
   <div class="kpis">
     <div class="kpi"><span class="k">Temp</span><span class="v">{{printf "%.1f" .Current.Temperature}}<small>°C</small></span></div>
     <div class="kpi"><span class="k">Aire</span><span class="v">{{if gt .AQI 50}}<span style="color:var(--warn)">{{.AQI}}</span>{{else}}{{.AQI}}{{end}}<small>AQI</small></span></div>
@@ -297,7 +296,7 @@
 
   </div>
 
-  <div class="col">
+  <div class="col right">
 
     <div class="section">
       <div class="stitle"><span class="lbl">Mercados</span><span class="hr"></span><span class="count">live</span></div>
@@ -377,7 +376,6 @@
           <span>Próximo feriado</span><span style="font-family:inherit;font-weight:500">{{$h.Name}} · {{$h.DayName}} {{$h.DateStr}}</span>
         </div>
       {{end}}
-      <div class="slot">+ Agregar módulo</div>
     </div>
     {{end}}
 

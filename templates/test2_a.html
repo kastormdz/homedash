@@ -62,9 +62,6 @@
   .days .dt b{font-weight:600} .days .dt em{color:var(--dim);font-style:normal;font-size:10.5px}
   .bar{width:100%;height:2px;background:var(--border);border-radius:2px;margin-top:2px;position:relative}
   .bar i{position:absolute;height:100%;background:var(--info);border-radius:2px;opacity:.75}
-  .slot{border:1px dashed var(--border);border-radius:var(--radius);display:flex;align-items:center;
-    justify-content:center;color:var(--dim);font-size:11px;gap:8px;min-height:58px;
-    font-family:'JetBrains Mono',monospace;letter-spacing:.08em;text-transform:uppercase}
   .metrics{display:flex;flex-direction:column;gap:9px}
   .metrics .mr{display:flex;justify-content:space-between;align-items:baseline}
   .metrics .mv{font-size:15px;font-family:'JetBrains Mono',monospace}
@@ -86,7 +83,6 @@
   body:has(#dens:checked) header{margin-bottom:22px}
   body:has(#dens:checked) .alert{margin-bottom:20px;padding:11px 20px}
   body:has(#dens:checked) .big{font-size:26px}
-  body:has(#dens:checked) .slot{min-height:44px}
 </style>
 <link rel="stylesheet" href="/static/test2.css?v=1">
 <link rel="stylesheet" href="/static/app.css?v=c4203827">
@@ -96,8 +92,9 @@
 </head>
 <body>
 
-<header>
+<header{{if .Holiday}} class="holiday-glow"{{end}}>
   <div class="clock mono">{{.Now.Format "15:04"}}<small>{{fechaEs .Now}}</small></div>
+  {{template "test2_feriado" .}}
   <div class="right">
     <div class="temp-meta">
       <div class="where">{{.City}}</div>
@@ -315,7 +312,6 @@
   </div>
 
   {{end}}
-  <div class="slot" style="grid-column:span 6">+ Agregar módulo · clima, deporte, mercado, homelab — se acomoda en la grilla solo</div>
 
 </div>
 

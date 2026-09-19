@@ -556,6 +556,10 @@ func handleTest(w http.ResponseWriter, r *http.Request) {
 type Test2ViewModel struct {
 	WeatherViewModel
 	Variante string // "a" | "b" | "c"
+	// Holiday es el feriado de HOY (nil si no lo es). Los templates de test2 lo
+	// usan para el glow + confeti de la barra. Ojo: WeatherViewModel tiene
+	// TodayHoliday, que quedo declarado y nunca se setea — no sirve para esto.
+	Holiday  *holidays.Holiday
 	Now      time.Time
 	Team     string // el modal de Ajustes lo necesita (la home lo recibe en su data)
 	Cuencas  []snow.Cuenca
@@ -596,6 +600,7 @@ func handleTest2(w http.ResponseWriter, r *http.Request) {
 		Team:             getSettings(r).Team,
 		Cuencas:          snow.GetCordillera(r.Context()),
 		Upcoming:         holidays.GetUpcomingHolidays(time.Now()),
+		Holiday:          holidays.GetHolidayToday(time.Now()),
 	}
 
 	var buf bytes.Buffer

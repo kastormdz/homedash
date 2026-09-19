@@ -70,3 +70,30 @@
       </div>
     </div>
 {{end}}
+
+{{define "test2_confeti"}}  <div class="confetti" style="left:5%; background:#10b981; animation-duration:3.2s; animation-delay:0.1s;"></div>
+  <div class="confetti" style="left:13%; background:#22d3ee; animation-duration:2.9s; animation-delay:0.4s;"></div>
+  <div class="confetti" style="left:21%; background:#f59e0b; animation-duration:2.5s; animation-delay:2.1s;"></div>
+  <div class="confetti" style="left:29%; background:#ef4444; animation-duration:3.1s; animation-delay:1.2s;"></div>
+  <div class="confetti" style="left:37%; background:#8b5cf6; animation-duration:3.4s; animation-delay:0.7s;"></div>
+  <div class="confetti" style="left:45%; background:#10b981; animation-duration:2.7s; animation-delay:1.8s;"></div>
+  <div class="confetti" style="left:53%; background:#f59e0b; animation-duration:3.6s; animation-delay:0.2s;"></div>
+  <div class="confetti" style="left:61%; background:#22d3ee; animation-duration:2.8s; animation-delay:1.5s;"></div>
+  <div class="confetti" style="left:69%; background:#ef4444; animation-duration:3.3s; animation-delay:2.4s;"></div>
+  <div class="confetti" style="left:77%; background:#8b5cf6; animation-duration:2.6s; animation-delay:0.9s;"></div>
+  <div class="confetti" style="left:85%; background:#10b981; animation-duration:3.0s; animation-delay:1.1s;"></div>
+  <div class="confetti" style="left:93%; background:#f59e0b; animation-duration:3.5s; animation-delay:1.9s;"></div>
+{{end}}
+
+{{define "test2_feriado"}}
+{{- if .Holiday}}
+<span class="ferbadge"><span class="confetti-wrapper">{{template "test2_confeti" .}}</span>
+  <i data-lucide="party-popper" style="width:12px;height:12px"></i>{{.Holiday.Name}}
+  <i data-lucide="party-popper" style="width:12px;height:12px"></i></span>
+{{- else if .Upcoming}}
+{{- with index .Upcoming 0}}
+<span class="nextfer{{if .IsNear}} near{{end}}"><span class="et">Próximo feriado</span>
+  <b>{{.DayName}} {{.DateStr}}</b><span class="nom">{{.Name}}</span></span>
+{{- end}}
+{{- end}}
+{{end}}

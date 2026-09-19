@@ -66,3 +66,29 @@
 .hsep{color:var(--dim)}
 .chip.live .dot{width:6px;height:6px;border-radius:50%;background:var(--crit);
   display:inline-block;animation:pulselive 1.5s infinite;margin-right:1px}
+
+/* ---------- feriados: mismos efectos que la home ---------- */
+@keyframes confetti-fall{0%{transform:translateY(-20px) rotate(0deg);opacity:1}
+  100%{transform:translateY(500px) rotate(720deg);opacity:0}}
+@keyframes subtle-pulse{0%{background:rgba(245,158,11,.05)}50%{background:rgba(245,158,11,.15)}
+  100%{background:rgba(245,158,11,.05)}}
+.holiday-glow{background:linear-gradient(135deg,rgba(245,158,11,.15) 0%,rgba(245,158,11,.05) 100%);
+  border-color:rgba(245,158,11,.6) !important;position:relative}
+.confetti-wrapper{position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;
+  pointer-events:none;z-index:1;border-radius:inherit}
+.confetti{position:absolute;width:4px;height:6px;border-radius:1px;animation:confetti-fall linear infinite}
+.ferbadge{display:inline-flex;align-items:center;gap:6px;background:rgba(245,158,11,.18);
+  border:1px solid rgba(245,158,11,.5);color:var(--warn);border-radius:6px;padding:4px 10px;
+  font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;letter-spacing:.1em;
+  text-transform:uppercase;white-space:nowrap;position:relative;overflow:hidden}
+.nextfer{display:inline-flex;align-items:center;gap:10px;background:#10151C;border:1px solid var(--line);
+  border-radius:6px;padding:5px 13px;font-family:'JetBrains Mono',monospace;font-size:9.5px;
+  letter-spacing:.05em;color:var(--muted);white-space:nowrap;max-width:380px}
+.nextfer .et{color:var(--dim);text-transform:uppercase;letter-spacing:.12em}
+.nextfer b{color:var(--warn);font-weight:800}
+.nextfer .nom{overflow:hidden;text-overflow:ellipsis;max-width:190px;color:#C7D2DE}
+.nextfer.near{border-color:rgba(245,158,11,.45);animation:subtle-pulse 2s infinite ease-in-out}
+@media (prefers-reduced-motion: reduce){
+  .confetti{display:none}
+  .nextfer.near{animation:none}
+}
