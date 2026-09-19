@@ -152,7 +152,29 @@
 <body>
 
 <div class="bar{{if .Holiday}} holiday-glow{{end}}">
-  <div class="toprow">
+  {{if eq .Alert.Text "Sin alertas actuales"}}
+  <div class="health"><span class="led"></span><b>Operativo</b></div>
+  {{else}}
+  <div class="health warn"><span class="led"></span><b>Aviso activo</b></div>
+  {{end}}
+  <div class="clock mono">{{.Now.Format "15:04"}}<span>{{fechaEs .Now}}</span></div>
+  {{template "test2_feriado" .}}
+  <div class="kpis">
+    <div class="kpi"><span class="k">Temp</span><span class="v">{{printf "%.1f" .Current.Temperature}}<small>°C</small></span></div>
+    <div class="kpi"><span class="k">Aire</span><span class="v">{{if gt .AQI 50}}<span style="color:var(--warn)">{{.AQI}}</span>{{else}}{{.AQI}}{{end}}<small>AQI</small></span></div>
+    {{if .Earthquakes}}
+    <div class="kpi"><span class="k">Sismo máx</span><span class="v" style="color:var(--crit)">{{quakemax .Earthquakes}}</span></div>
+    {{end}}
+    {{if .Cuencas}}
+    <div class="kpi"><span class="k">Nieve cordillera</span><span class="v">{{printf "%.0f" (index .Cuencas 0).NieveSemana}}<small>cm 7d</small></span></div>
+    {{end}}
+    <input type="checkbox" id="dens">
+    <label class="dens" for="dens">Densidad</label>
+    <button class="mini-btn" style="margin-left:8px" onclick="toggleModal()" aria-label="Configuración">⚙ Ajustes</button>
+  </div>
+</div>
+
+<div class="toprow">
   <div class="tblock">
     <div class="stitle"><span class="lbl">Clima y pronóstico · {{.City}}</span><span class="hr"></span><span class="count">{{.Now.Format "15:04"}}</span></div>
       <div class="wxbar" hx-get="/test2?v=b" hx-trigger="every 60s, refreshWeather from:body"
