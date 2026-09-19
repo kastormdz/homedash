@@ -42,9 +42,9 @@
   .alert.ok .dot{background:var(--ok);box-shadow:0 0 0 4px rgba(53,211,153,.12)}
   .alert .a-title{font-size:12.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--warn);flex:none}
   .alert.ok .a-title{color:var(--ok)}
-  .alert .a-dacc{font-size:11.5px;color:var(--dim);border-left:1px solid var(--border);padding-left:16px;
-    flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .alert .a-meta{font-size:11.5px;color:var(--muted);margin-left:auto;font-family:'JetBrains Mono',monospace}
+  .alert .a-dacc{font-size:11.5px;color:var(--dim);flex:1;min-width:0;line-height:1.42;text-align:justify}
+  .alert .a-info{display:flex;align-items:center;gap:16px;flex:none}
+  .alert .a-meta{font-size:11.5px;color:var(--muted);font-family:'JetBrains Mono',monospace;flex:none;white-space:nowrap}
 
   .grid{display:grid;grid-template-columns:repeat(6,1fr);gap:var(--gap)}
   .w{display:flex;flex-direction:column;gap:13px;min-height:132px}
@@ -114,16 +114,13 @@
 
 {{if eq .Alert.Text "Sin alertas actuales"}}
 <div class="alert ok">
-  <span class="dot"></span>
-  <span class="a-title">Sin alertas</span>
-  {{if .DACC}}{{with index .DACC 0}}<span class="a-dacc" title="DACC: {{.Maxima}}°/{{.Minima}}° · {{.Pronostico}}">Oficial DACC <b class="mono" style="color:var(--text)">{{.Maxima}}°/{{.Minima}}°</b> · {{.Pronostico}}</span>{{end}}{{end}}
+  {{if .DACC}}{{with index .DACC 0}}<span class="a-dacc">Oficial DACC <b class="mono" style="color:var(--text)">{{.Maxima}}°/{{.Minima}}°</b> · {{.Pronostico}}</span>{{end}}{{end}}
+  <span class="a-info"><span class="dot"></span><span class="a-title">Sin alertas</span></span>
 </div>
 {{else}}
 <div class="alert">
-  <span class="dot"></span>
-  <span class="a-title">{{.Alert.Text}}</span>
-  {{if .DACC}}{{with index .DACC 0}}<span class="a-dacc" title="DACC: {{.Maxima}}°/{{.Minima}}° · {{.Pronostico}}">Oficial DACC <b class="mono" style="color:var(--text)">{{.Maxima}}°/{{.Minima}}°</b> · {{.Pronostico}}</span>{{end}}{{end}}
-  <span class="a-meta">{{.Alert.Detail}}</span>
+  {{if .DACC}}{{with index .DACC 0}}<span class="a-dacc">Oficial DACC <b class="mono" style="color:var(--text)">{{.Maxima}}°/{{.Minima}}°</b> · {{.Pronostico}}</span>{{end}}{{end}}
+  <span class="a-info"><span class="dot"></span><span class="a-title">{{.Alert.Text}}</span><span class="a-meta">{{.Alert.Detail}}</span></span>
 </div>
 {{end}}
 
