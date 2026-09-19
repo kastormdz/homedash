@@ -565,9 +565,28 @@ type Test2ViewModel struct {
 func handleTest2(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
 
-	v := r.URL.Query().Get("v")
+	pedida := r.URL.Query().Get("v")
+	v := pedida
+	if v == "" {
+		if c, err := r.Cookie("hd_test2_variant"); err == nil {
+			v = c.Value
+		}
+	}
 	if v != "a" && v != "b" && v != "c" {
 		v = "b" // por defecto la variante NOC
+	}
+	// Si la variante vino explícita en la URL (p. ej. al elegirla en Ajustes),
+	// queda recordada: /test2 sin parámetro sigue mostrando la última elegida.
+	if pedida == "a" || pedida == "b" || pedida == "c" {
+		http.SetCookie(w, &http.Cookie{
+			Name:     "hd_test2_variant",
+			Value:    pedida,
+			Path:     "/",
+			Expires:  time.Now().AddDate(1, 0, 0),
+			HttpOnly: true,
+			Secure:   r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https",
+			SameSite: http.SameSiteLaxMode,
+		})
 	}
 
 	vm := Test2ViewModel{
@@ -749,6 +768,20 @@ func handleSettings(w http.ResponseWriter, r *http.Request) {
 			if _, ok := validThemes[theme]; ok {
 				s.Theme = theme
 			}
+		}
+
+		// Variante de diseño de /test2: se recuerda en cookie para que
+		// /test2 sin ?v= siga mostrando la última elegida en Ajustes.
+		if variant := r.FormValue("variant"); variant == "a" || variant == "b" || variant == "c" {
+			http.SetCookie(w, &http.Cookie{
+				Name:     "hd_test2_variant",
+				Value:    variant,
+				Path:     "/",
+				Expires:  time.Now().AddDate(1, 0, 0),
+				HttpOnly: true,
+				Secure:   r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https",
+				SameSite: http.SameSiteLaxMode,
+			})
 		}
 
 		city := strings.TrimSpace(r.FormValue("city"))

@@ -16,6 +16,13 @@
             <input id="showUFC" type="checkbox" name="showUFC" {{if .ShowUFC}}checked{{end}}></label>
           <label class="field" for="showFinance"><span>Finanzas</span>
             <input id="showFinance" type="checkbox" name="showFinance" {{if .ShowFinance}}checked{{end}}></label>
+          <div class="lbl" style="margin:18px 0 8px">Diseño del panel</div>
+          <select name="variant" class="inp" onchange="location.href='/test2?v='+this.value">
+            <option value="a" {{if eq .Variante "a"}}selected{{end}}>A · Grilla uniforme</option>
+            <option value="b" {{if eq .Variante "b"}}selected{{end}}>B · NOC operativo</option>
+            <option value="c" {{if eq .Variante "c"}}selected{{end}}>C · Columnas por dominio</option>
+          </select>
+
           <div class="lbl" style="margin:18px 0 8px">Tema</div>
           <select id="theme" name="theme" class="inp">
             <option value="dark" {{if eq .Theme "dark"}}selected{{end}}>Dark</option>

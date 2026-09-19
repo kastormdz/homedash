@@ -70,10 +70,6 @@
   .metrics .mv{font-size:15px;font-family:'JetBrains Mono',monospace}
 
   /* switcher de variantes (links, sin JS) */
-  .sw{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);display:flex;gap:6px;align-items:center;
-    background:#111721;border:1px solid var(--border);border-radius:999px;padding:6px 8px;z-index:50;
-    box-shadow:0 8px 28px rgba(0,0,0,.5)}
-  .sw .t{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);padding:0 8px;
     font-family:'JetBrains Mono',monospace}
   .sw a{display:block;padding:6px 13px;border-radius:999px;color:var(--muted);text-decoration:none;font-size:11px;
     font-weight:700;font-family:'JetBrains Mono',monospace;letter-spacing:.06em}
@@ -300,12 +296,6 @@
 
 </div>
 
-<div class="sw">
-  <span class="t">Variante</span>
-  <a href="/test2?v=a" {{if eq .Variante "a"}}class="on"{{end}}>A · Grilla</a>
-  <a href="/test2?v=b" {{if eq .Variante "b"}}class="on"{{end}}>B · NOC</a>
-  <a href="/test2?v=c" {{if eq .Variante "c"}}class="on"{{end}}>C · Dominios</a>
-</div>
 
 {{template "test2_modales" .}}
 
