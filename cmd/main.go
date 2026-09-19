@@ -42,7 +42,7 @@ var (
 	// Tienen que estar TODOS los que compila tailwind.config.js: si falta uno, el
 	// handler lo descarta en silencio y elegir ese tema no hace nada.
 	validThemes = map[string]struct{}{
-		"dark": {}, "dracula": {}, "synthwave": {}, "cyberpunk": {},
+		"noc": {}, "dark": {}, "dracula": {}, "synthwave": {}, "cyberpunk": {},
 		"retro": {}, "dim": {}, "coffee": {}, "sunset": {}, "night": {},
 		"nothing": {}, "terminal": {},
 	}
@@ -250,7 +250,7 @@ func getDefaultSettings() AppSettings {
 		ShowF1:       true,
 		ShowUFC:      true,
 		ShowFinance:  true,
-		Theme:        "nothing",
+		Theme:        "noc", // el panel NOC es el look por defecto
 	}
 }
 

@@ -40,12 +40,12 @@
     cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;letter-spacing:.16em;
     text-transform:uppercase}
   .btn-save:hover{opacity:.86}
-  .mini-btn{background:rgba(91,188,255,.10);border:1px solid rgba(91,188,255,.38);color:var(--info);
+  .mini-btn{background:oklch(var(--in)/.10);border:1px solid oklch(var(--in)/.38);color:var(--info);
     border-radius:7px;padding:6px 11px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:9.5px;
     font-weight:700;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;transition:background .15s,
     border-color .15s, box-shadow .15s, color .15s}
-  .mini-btn:hover{background:rgba(91,188,255,.22);border-color:var(--info);color:#EAF4FF;
-    box-shadow:0 0 0 3px rgba(91,188,255,.12)}
+  .mini-btn:hover{background:oklch(var(--in)/.22);border-color:var(--info);color:oklch(var(--bc));
+    box-shadow:0 0 0 3px oklch(var(--in)/.12)}
   .mini-btn:active{transform:translateY(1px)}
   .foot{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
     padding:12px 24px 0;margin-top:6px;border-top:1px solid var(--line);color:var(--dim);font-size:10px;
@@ -61,7 +61,7 @@
     font-size:9.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
   .livechip .dot{width:6px;height:6px;border-radius:50%;background:var(--crit);animation:pulselive 1.5s infinite}
   @keyframes pulselive{0%,100%{opacity:1}50%{opacity:.3}}
-  .chip.live{background:rgba(255,97,87,.16);color:var(--crit);border:1px solid rgba(255,97,87,.35)}
+  .chip.live{background:oklch(var(--er)/.16);color:var(--crit);border:1px solid oklch(var(--er)/.35)}
   .chip.fin{background:#1A212B;color:var(--muted);border:1px solid var(--line)}
   .f1s.pasada{opacity:.42}
   .fight .win{color:var(--ok)}
@@ -73,15 +73,15 @@
 /* ---------- feriados: mismos efectos que la home ---------- */
 @keyframes confetti-fall{0%{transform:translateY(-20px) rotate(0deg);opacity:1}
   100%{transform:translateY(500px) rotate(720deg);opacity:0}}
-@keyframes subtle-pulse{0%{background:rgba(245,158,11,.05)}50%{background:rgba(245,158,11,.15)}
-  100%{background:rgba(245,158,11,.05)}}
-.holiday-glow{background:linear-gradient(135deg,rgba(245,158,11,.15) 0%,rgba(245,158,11,.05) 100%);
-  border-color:rgba(245,158,11,.6) !important;position:relative}
+@keyframes subtle-pulse{0%{background:oklch(var(--wa)/.05)}50%{background:oklch(var(--wa)/.15)}
+  100%{background:oklch(var(--wa)/.05)}}
+.holiday-glow{background:linear-gradient(135deg,oklch(var(--wa)/.15) 0%,oklch(var(--wa)/.05) 100%);
+  border-color:oklch(var(--wa)/.6) !important;position:relative}
 .confetti-wrapper{position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;
   pointer-events:none;z-index:1;border-radius:inherit}
 .confetti{position:absolute;width:4px;height:6px;border-radius:1px;animation:confetti-fall linear infinite}
-.ferbadge{display:inline-flex;flex:none;margin-left:14px;align-items:center;gap:6px;background:rgba(245,158,11,.18);
-  border:1px solid rgba(245,158,11,.5);color:var(--warn);border-radius:6px;padding:4px 10px;
+.ferbadge{display:inline-flex;flex:none;margin-left:14px;align-items:center;gap:6px;background:oklch(var(--wa)/.18);
+  border:1px solid oklch(var(--wa)/.5);color:var(--warn);border-radius:6px;padding:4px 10px;
   font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;letter-spacing:.1em;
   text-transform:uppercase;white-space:nowrap;position:relative;overflow:hidden}
 .nextfer{display:inline-flex;flex:none;margin-left:16px;align-items:center;gap:11px;background:#10151C;
@@ -91,7 +91,7 @@
   font-family:'JetBrains Mono',monospace}
 .nextfer b{color:var(--warn);font-weight:700;font-family:'JetBrains Mono',monospace;font-size:12px}
 .nextfer .nom{overflow:hidden;text-overflow:ellipsis;max-width:210px;color:#C7D2DE;font-size:12px}
-.nextfer.near{border-color:rgba(245,158,11,.45);animation:subtle-pulse 2s infinite ease-in-out}
+.nextfer.near{border-color:oklch(var(--wa)/.45);animation:subtle-pulse 2s infinite ease-in-out}
 @media (prefers-reduced-motion: reduce){
   .confetti{display:none}
   .nextfer.near{animation:none}

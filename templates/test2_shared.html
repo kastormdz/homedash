@@ -28,6 +28,7 @@
 
           <div class="lbl" style="margin:18px 0 8px">Tema</div>
           <select id="theme" name="theme" class="inp">
+            <option value="noc" {{if eq $.Theme "noc"}}selected{{end}}>NOC (default)</option>
             <option value="dark" {{if eq $.Theme "dark"}}selected{{end}}>Dark</option>
             <option value="nothing" {{if eq $.Theme "nothing"}}selected{{end}}>Nothing</option>
             <option value="dracula" {{if eq $.Theme "dracula"}}selected{{end}}>Dracula</option>

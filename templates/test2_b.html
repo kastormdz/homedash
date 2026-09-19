@@ -6,10 +6,14 @@
 <link rel="icon" type="image/png" href="/static/favicon.png">
 <title>Homedash · test2 · B — NOC operativo</title>
 <style>
+  /* La paleta del panel se DERIVA del tema de DaisyUI activo (data-theme en <html>):
+     cambiar de tema en Ajustes repinta todo el panel, no solo los modales. Con el tema
+     "noc" (el default) da exactamente los mismos colores que tenia antes. */
   :root{
-    --bg:#080A0E; --panel:#0E1218; --line:#1B2431; --line-2:#141C26;
-    --text:#E9EEF6; --muted:#95A2B4; --dim:#6E7A8B;
-    --ok:#3BD99E; --warn:#F2A93B; --crit:#FF6157; --info:#5BBCFF;
+    --bg:oklch(var(--b1)); --panel:oklch(var(--b2));
+    --line:oklch(var(--b3)); --line-2:oklch(var(--b3)/.62);
+    --text:oklch(var(--bc)); --muted:oklch(var(--bc)/.68); --dim:oklch(var(--bc)/.45);
+    --ok:oklch(var(--su)); --warn:oklch(var(--wa)); --crit:oklch(var(--er)); --info:oklch(var(--in));
   }
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--bg);color:var(--text);
@@ -55,9 +59,9 @@
   .toprow .wx-days .d{justify-content:space-between}
   .toprow .wx-ico{width:23px;height:23px;color:var(--info);opacity:.95;flex:none}
   .toprow .tblock>.stitle{margin-bottom:11px}
-  .alerbox{border:1px solid rgba(242,169,59,.28);background:rgba(242,169,59,.06);border-radius:10px;
+  .alerbox{border:1px solid oklch(var(--wa)/.28);background:oklch(var(--wa)/.06);border-radius:10px;
     padding:11px 14px;display:flex;flex-direction:column;gap:9px}
-  .alerbox.ok{border-color:rgba(59,217,158,.25);background:rgba(59,217,158,.05)}
+  .alerbox.ok{border-color:oklch(var(--su)/.25);background:oklch(var(--su)/.05)}
   .alerhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
   .alerwhen{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)}
   .wx-fore{font-size:11.5px;color:var(--muted);line-height:1.45;text-align:justify}
@@ -94,8 +98,8 @@
   .wx-days .dt{font-size:12px;font-family:'JetBrains Mono',monospace;font-weight:600}
   .wx-days .dt em{color:var(--dim);font-style:normal;font-weight:400;font-size:11px}
   .colbar{width:16px;height:24px;position:relative;border-radius:2px;
-    background:linear-gradient(to top,rgba(91,188,255,.55) var(--h),rgba(91,188,255,.06) var(--h))}
-  .colbar::after{content:'';position:absolute;inset:0;border-radius:2px;border:1px solid rgba(91,188,255,.22)}
+    background:linear-gradient(to top,oklch(var(--in)/.55) var(--h),oklch(var(--in)/.06) var(--h))}
+  .colbar::after{content:'';position:absolute;inset:0;border-radius:2px;border:1px solid oklch(var(--in)/.22)}
 
   .sport{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--line-2)}
   .sport:last-child{border-bottom:0}
@@ -116,8 +120,8 @@
   .vs{color:var(--dim);font-size:11px;font-weight:600;letter-spacing:.08em}
   .chip{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;border-radius:4px;
     font-family:'JetBrains Mono',monospace;white-space:nowrap}
-  .chip.next{background:rgba(59,217,158,.1);color:var(--ok);border:1px solid rgba(59,217,158,.25)}
-  .chip.info{background:rgba(91,188,255,.1);color:var(--info);border:1px solid rgba(91,188,255,.25)}
+  .chip.next{background:oklch(var(--su)/.1);color:var(--ok);border:1px solid oklch(var(--su)/.25)}
+  .chip.info{background:oklch(var(--in)/.1);color:var(--info);border:1px solid oklch(var(--in)/.25)}
   .fights{display:grid;grid-template-columns:1fr 1fr;gap:0 22px;margin-top:8px}
   .fight{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--muted);
     padding:3px 0;border-bottom:1px dashed var(--line-2)}
