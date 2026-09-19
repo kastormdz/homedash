@@ -40,19 +40,22 @@
   .dens:hover{border-color:var(--info);color:var(--info)}
   #dens{position:absolute;opacity:0;pointer-events:none}
 
-  .alertband{display:flex;align-items:center;justify-content:space-between;gap:22px;padding:10px 22px;
-    background:rgba(242,169,59,.07);border-bottom:1px solid rgba(242,169,59,.22)}
-  /* el pronostico ocupa la izquierda y puede fluir en dos lineas sin recortarse */
-  .alertband .wx-fore{flex:1;min-width:0;font-size:11.5px;color:var(--muted);line-height:1.42;text-align:justify}
-  .alertband .alertinfo{display:flex;align-items:center;gap:12px;flex:none}
-  .alertband.ok{background:rgba(59,217,158,.05);border-bottom-color:rgba(59,217,158,.2)}
-  .alertband .sev{font-size:9.5px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;
+  /* ---------- fila de arriba: clima y pronostico | alertas del clima ---------- */
+  .toprow{display:grid;grid-template-columns:1fr 465px;gap:26px;padding:16px 22px 18px;
+    border-bottom:1px solid var(--line)}
+  .toprow .tblock{min-width:0;display:flex;flex-direction:column}
+  .toprow .tblock>.stitle{margin-bottom:11px}
+  .alerbox{border:1px solid rgba(242,169,59,.28);background:rgba(242,169,59,.06);border-radius:10px;
+    padding:11px 14px;display:flex;flex-direction:column;gap:9px}
+  .alerbox.ok{border-color:rgba(59,217,158,.25);background:rgba(59,217,158,.05)}
+  .alerhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .alerwhen{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)}
+  .wx-fore{font-size:11.5px;color:var(--muted);line-height:1.45;text-align:justify}
+  .sev{font-size:9.5px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;flex:none;
     background:var(--warn);color:#1A1206;padding:3px 8px;border-radius:4px;font-family:'JetBrains Mono',monospace}
-  .alertband.ok .sev{background:var(--ok);color:#04170F}
-  .alertband .t{font-size:12.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--warn)}
-  .alertband.ok .t{color:var(--ok)}
-  .alertband .sev,.alertband .t,.alertband .r{flex:none;white-space:nowrap}
-  .alertband .r{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--muted)}
+  .sev.ok{background:var(--ok);color:#04170F}
+  .t{font-size:12.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--warn)}
+  .t.ok{color:var(--ok)}
 
   .wrap{display:grid;grid-template-columns:1.85fr 1fr}
   .col{padding:22px 24px 40px}
@@ -149,45 +152,9 @@
 <body>
 
 <div class="bar{{if .Holiday}} holiday-glow{{end}}">
-  {{if eq .Alert.Text "Sin alertas actuales"}}
-  <div class="health"><span class="led"></span><b>Operativo</b></div>
-  {{else}}
-  <div class="health warn"><span class="led"></span><b>Aviso activo</b></div>
-  {{end}}
-  <div class="clock mono">{{.Now.Format "15:04"}}<span>{{fechaEs .Now}}</span></div>
-  {{template "test2_feriado" .}}
-  <div class="kpis">
-    <div class="kpi"><span class="k">Temp</span><span class="v">{{printf "%.1f" .Current.Temperature}}<small>°C</small></span></div>
-    <div class="kpi"><span class="k">Aire</span><span class="v">{{if gt .AQI 50}}<span style="color:var(--warn)">{{.AQI}}</span>{{else}}{{.AQI}}{{end}}<small>AQI</small></span></div>
-    {{if .Earthquakes}}
-    <div class="kpi"><span class="k">Sismo máx</span><span class="v" style="color:var(--crit)">{{quakemax .Earthquakes}}</span></div>
-    {{end}}
-    {{if .Cuencas}}
-    <div class="kpi"><span class="k">Nieve cordillera</span><span class="v">{{printf "%.0f" (index .Cuencas 0).NieveSemana}}<small>cm 7d</small></span></div>
-    {{end}}
-    <input type="checkbox" id="dens">
-    <label class="dens" for="dens">Densidad</label>
-    <button class="mini-btn" style="margin-left:8px" onclick="toggleModal()" aria-label="Configuración">⚙ Ajustes</button>
-  </div>
-</div>
-
-{{if eq .Alert.Text "Sin alertas actuales"}}
-<div class="alertband ok">
-  {{if .DACC}}{{with index .DACC 0}}<span class="wx-fore">Oficial DACC {{.Maxima}}°/{{.Minima}}° — {{.Pronostico}}</span>{{end}}{{end}}
-  <span class="alertinfo"><span class="sev">Sin avisos</span><span class="t">Condiciones normales</span></span>
-</div>
-{{else}}
-<div class="alertband">
-  {{if .DACC}}{{with index .DACC 0}}<span class="wx-fore">Oficial DACC {{.Maxima}}°/{{.Minima}}° — {{.Pronostico}}</span>{{end}}{{end}}
-  <span class="alertinfo"><span class="sev">Aviso</span><span class="t">{{.Alert.Text}}</span><span class="r">{{.Alert.Detail}}</span></span>
-</div>
-{{end}}
-
-<div class="wrap">
-  <div class="col left">
-
-    <div class="section">
-      <div class="stitle"><span class="lbl">Clima y pronóstico · {{.City}}</span><span class="hr"></span><span class="count">{{.Now.Format "15:04"}}</span></div>
+  <div class="toprow">
+  <div class="tblock">
+    <div class="stitle"><span class="lbl">Clima y pronóstico · {{.City}}</span><span class="hr"></span><span class="count">{{.Now.Format "15:04"}}</span></div>
       <div class="wxbar" hx-get="/test2?v=b" hx-trigger="every 60s, refreshWeather from:body"
            hx-select=".wxbar" hx-swap="outerHTML">
         <div class="wx-cond">
@@ -211,7 +178,24 @@
           {{end}}
         </div>
       </div>
+  </div>
+  <div class="tblock">
+    <div class="stitle"><span class="lbl">Alertas del clima</span><span class="hr"></span>{{if ne .Alert.Text "Sin alertas actuales"}}<span class="count">activa</span>{{end}}</div>
+    <div class="alerbox{{if eq .Alert.Text "Sin alertas actuales"}} ok{{end}}">
+      {{if eq .Alert.Text "Sin alertas actuales"}}
+      <div class="alerhead"><span class="sev ok">Sin avisos</span><span class="t ok">Condiciones normales</span></div>
+      {{else}}
+      <div class="alerhead"><span class="sev">Aviso</span><span class="t">{{.Alert.Text}}</span></div>
+      {{if .Alert.Detail}}<div class="alerwhen">{{.Alert.Detail}}</div>{{end}}
+      {{end}}
+      {{if .DACC}}{{with index .DACC 0}}<div class="wx-fore">Oficial DACC {{.Maxima}}°/{{.Minima}}° — {{.Pronostico}}</div>{{end}}{{end}}
     </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="col left">
+
 
     <div class="section">
       <div class="stitle"><span class="lbl">Deportes</span><span class="hr"></span>
