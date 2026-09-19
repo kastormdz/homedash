@@ -6,7 +6,10 @@
           <h2 id="modal-title">Ajustes</h2>
           <button class="modal-close" onclick="toggleModal()" aria-label="Cerrar">✕</button>
         </div>
-        <form hx-post="/settings" hx-swap="none">
+        <!-- POST nativo (no hx-post): handleSettings redirige, asi la recarga es del
+             navegador y funciona aunque htmx no dispare. Con hx-post los toggles se
+             guardaban pero la vista no cambiaba hasta recargar a mano. -->
+        <form method="post" action="/settings">
           <div class="lbl" style="margin-bottom:10px">Módulos visibles</div>
           <label class="field" for="showFootball"><span>Fútbol</span>
             <input id="showFootball" type="checkbox" name="showFootball" {{if .ShowFootball}}checked{{end}}></label>

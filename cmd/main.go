@@ -882,9 +882,19 @@ func handleSettings(w http.ResponseWriter, r *http.Request) {
 			SameSite: http.SameSiteLaxMode,
 		})
 
-		// Trigger para refrescar solo el clima inmediatamente sin recargar toda la página
-		w.Header().Set("HX-Trigger", "refreshWeather")
-		w.WriteHeader(http.StatusOK)
+		// Si vino por htmx (fetch) avisamos con un trigger y cortamos. Si es el POST de
+		// un formulario normal, redirigimos: el navegador recarga y los cambios se ven.
+		// Antes sólo devolvía 200 y la vista quedaba vieja: los toggles parecían no hacer nada.
+		if r.Header.Get("HX-Request") == "true" {
+			w.Header().Set("HX-Trigger", "refreshWeather")
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		destino := "/test2"
+		if v := r.FormValue("variant"); v == "a" || v == "b" || v == "c" {
+			destino = "/test2?v=" + v
+		}
+		http.Redirect(w, r, destino, http.StatusSeeOther)
 		return
 	}
 	http.Error(w, "Método no permitido", http.StatusMethodNotAllowed)

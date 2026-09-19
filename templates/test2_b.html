@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es" data-theme="dark">
+<html lang="es" data-theme="{{if .Theme}}{{.Theme}}{{else}}dark{{end}}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -44,6 +44,12 @@
   .toprow{display:grid;grid-template-columns:1fr 465px;gap:26px;padding:16px 22px 18px;
     border-bottom:1px solid var(--line)}
   .toprow .tblock{min-width:0;display:flex;flex-direction:column}
+  /* el clima se estira a lo alto de la fila: si la alerta trae mucho texto, el
+     pronostico ocupa ese espacio en vez de dejar un hueco abajo */
+  .toprow .tblock>.wxbar{flex:1}
+  .toprow .wx-days{align-items:stretch}
+  .toprow .wx-days .d{justify-content:space-between}
+  .toprow .colbar{flex:1;height:auto;min-height:22px}
   .toprow .tblock>.stitle{margin-bottom:11px}
   .alerbox{border:1px solid rgba(242,169,59,.28);background:rgba(242,169,59,.06);border-radius:10px;
     padding:11px 14px;display:flex;flex-direction:column;gap:9px}
