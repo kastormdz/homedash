@@ -64,7 +64,8 @@
   .alerbox.ok{border-color:oklch(var(--su)/.25);background:oklch(var(--su)/.05)}
   .alerhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
   .alerwhen{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)}
-  .wx-fore{font-size:11.5px;color:var(--muted);line-height:1.45;text-align:justify}
+  .wx-dacc{font-size:11.5px;color:var(--muted);line-height:1.45;margin-top:10px;padding-top:9px;
+    border-top:1px solid var(--line-2)}
   .sev{font-size:9.5px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;flex:none;
     background:var(--warn);color:#1A1206;padding:3px 8px;border-radius:4px;font-family:'JetBrains Mono',monospace}
   .sev.ok{background:var(--ok);color:#04170F}
@@ -104,25 +105,27 @@
   .sport{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--line-2)}
   .sport:last-child{border-bottom:0}
   .sport:first-child{padding-top:2px}
-  .sport .dlogo{width:50px;flex:none;display:flex;align-items:center;justify-content:center;gap:3px}
-  .sport .dlogo img{max-width:50px;max-height:32px;object-fit:contain;opacity:.95}
+  .sport .dlogo{width:64px;flex:none;display:flex;align-items:center;justify-content:center;gap:3px}
+  .sport .dlogo img{max-width:64px;max-height:42px;object-fit:contain;opacity:.95}
   .sport .main{flex:1;min-width:0}
   .sport .main .a{font-size:14px;font-weight:600}
-  .sport .main .b{font-size:11.5px;color:var(--dim);margin-top:2px}
+  .sport .main .b{font-size:11.5px;color:var(--dim);margin-top:7px}
   .sport .when{text-align:right;font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--muted);white-space:nowrap}
   .sport .when b{display:block;color:var(--text);font-size:12.5px;font-weight:600}
   .match{display:flex;align-items:center;gap:10px;min-width:0}
   .match .crest{flex:none}
   .match .mname{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .crest{width:42px;height:42px;object-fit:contain}
+  .crest{width:54px;height:54px;object-fit:contain}
   .headshot{width:44px;height:44px;border-radius:50%;object-fit:cover;border:1px solid var(--line);background:#1A212B}
-  .headshot.xs{width:30px;height:30px}
+  .headshot.xs{width:36px;height:36px}
   .vs{color:var(--dim);font-size:11px;font-weight:600;letter-spacing:.08em}
   .chip{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;border-radius:4px;
     font-family:'JetBrains Mono',monospace;white-space:nowrap}
   .chip.next{background:oklch(var(--su)/.1);color:var(--ok);border:1px solid oklch(var(--su)/.25)}
   .chip.info{background:oklch(var(--in)/.1);color:var(--info);border:1px solid oklch(var(--in)/.25)}
-  .fights{display:grid;grid-template-columns:1fr 1fr;gap:0 22px;margin-top:8px}
+  /* separacion clara entre el titulo del evento y la cartelera */
+  .fights{display:grid;grid-template-columns:1fr 1fr;gap:0 22px;margin-top:16px;padding-top:14px;
+    border-top:1px solid var(--line-2)}
   .fight{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--muted);
     padding:3px 0;border-bottom:1px dashed var(--line-2)}
   .fight b{color:var(--text);font-weight:500}
@@ -144,6 +147,13 @@
   .quake .mag{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;min-width:38px}
   .quake .place{flex:1;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .quake .t{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--dim)}
+  /* sismo recien detectado (< 90 min): late unas veces y queda resaltado */
+  @keyframes quakepulse{0%,100%{background:oklch(var(--er)/.08)}50%{background:oklch(var(--er)/.28)}}
+  .quake.nuevo{background:oklch(var(--er)/.08);border-left:2px solid var(--crit);padding-left:10px;
+    border-radius:0 5px 5px 0;animation:quakepulse 2.2s ease-out 3}
+  .quake.nuevo .mag{color:var(--crit)}
+  .kpi.quake-new{background:oklch(var(--er)/.08);animation:quakepulse 2.2s ease-out 3}
+  .kpi.quake-new .k{color:var(--crit);font-weight:700}
   .mag-hi{color:var(--crit)} .mag-mid{color:var(--warn)} .mag-lo{color:var(--muted)}
   .mkt{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:7px 0;border-bottom:1px solid var(--line-2)}
   .mkt:last-child{border-bottom:0}
@@ -211,7 +221,12 @@
     <div class="kpi"><span class="k">Temp</span><span class="v">{{printf "%.1f" .Current.Temperature}}<small>°C</small></span></div>
     <div class="kpi"><span class="k">Aire</span><span class="v">{{if gt .AQI 50}}<span style="color:var(--warn)">{{.AQI}}</span>{{else}}{{.AQI}}{{end}}<small>AQI</small></span></div>
     {{if .Earthquakes}}
-    <div class="kpi"><span class="k">Sismo máx</span><span class="v" style="color:var(--crit)">{{quakemax .Earthquakes}}</span></div>
+    {{$q := index .Earthquakes 0}}
+    <div class="kpi{{if quakeNuevo $q.FullTime}} quake-new{{end}}"
+         title="Último sismo: {{$q.Magnitude}} · {{$q.Location}} · {{$q.Date}} {{$q.Time}}">
+      <span class="k">Último sismo</span>
+      <span class="v" style="color:var(--crit)">{{$q.Magnitude}}<small>{{$q.Time}}</small></span>
+    </div>
     {{end}}
     {{if .Cuencas}}
     <div class="kpi"><span class="k">Nieve cordillera</span><span class="v">{{printf "%.0f" (index .Cuencas 0).NieveSemana}}<small>cm 7d</small></span></div>
@@ -248,6 +263,7 @@
           {{end}}
         </div>
       </div>
+      {{if .DACC}}{{with index .DACC 0}}<div class="wx-dacc">Oficial DACC {{.Maxima}}°/{{.Minima}}° — {{.Pronostico}}</div>{{end}}{{end}}
   </div>
   <div class="tblock">
     <div class="stitle"><span class="lbl">Alertas del clima</span><span class="hr"></span>{{if ne .Alert.Text "Sin alertas actuales"}}<span class="count">activa</span>{{end}}</div>
@@ -258,7 +274,6 @@
       <div class="alerhead"><span class="sev">Aviso</span><span class="t">{{.Alert.Text}}</span></div>
       {{if .Alert.Detail}}<div class="alerwhen">{{.Alert.Detail}}</div>{{end}}
       {{end}}
-      {{if .DACC}}{{with index .DACC 0}}<div class="wx-fore">Oficial DACC {{.Maxima}}°/{{.Minima}}° — {{.Pronostico}}</div>{{end}}{{end}}
     </div>
   </div>
 </div>
@@ -409,7 +424,7 @@
       <div class="stitle"><span class="lbl">Estado · sismos</span><span class="hr"></span><span class="count">últimos 5 de {{len .Earthquakes}}</span></div>
       {{if .Earthquakes}}
         {{range $i, $q := .Earthquakes}}{{if lt $i 5}}
-        <div class="quake">
+        <div class="quake{{if quakeNuevo $q.FullTime}} nuevo{{end}}">
           <span class="mag {{magclass $q.Magnitude}}">{{$q.Magnitude}}</span>
           <span class="place">{{$q.Location}}</span><span class="t">{{$q.Time}}</span>
         </div>

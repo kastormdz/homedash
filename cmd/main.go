@@ -110,12 +110,20 @@ func wxicon(code int) string {
 	return "cloud"
 }
 
+// quakeNuevo marca los sismos recien detectados. El campo IsNew del paquete son 24 horas
+// (demasiado amplio: a esa altura ya hay varios), asi que para el highlight de la barra
+// y de la lista se usan 90 minutos.
+func quakeNuevo(t time.Time) bool {
+	return !t.IsZero() && time.Since(t) < 90*time.Minute
+}
+
 func loadTemplates() {
 
 	t := template.New("").Funcs(template.FuncMap{
 		// assetv evita el ?v= hardcodeado: ver assetVersion.
-		"assetv": assetVersion,
-		"wxicon": wxicon,
+		"assetv":     assetVersion,
+		"wxicon":     wxicon,
+		"quakeNuevo": quakeNuevo,
 		"add": func(a, b int) int {
 			return a + b
 		},
