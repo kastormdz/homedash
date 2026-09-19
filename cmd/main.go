@@ -476,6 +476,7 @@ func main() {
 	mux.Handle("/static/", http.StripPrefix("/static/", cacheMiddleware(fs)))
 
 	mux.HandleFunc("/", handleIndex)
+	mux.HandleFunc("/clasico", handleClasico)
 	mux.HandleFunc("/test", handleTest)
 	mux.HandleFunc("/test2", handleTest2)
 	mux.HandleFunc("/weather", handleWeather)
@@ -534,11 +535,9 @@ func main() {
 	}
 }
 
-func handleIndex(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/" {
-		http.NotFound(w, r)
-		return
-	}
+// handleClasico sirve la home anterior (la del reloj gigante). Quedo accesible en
+// /clasico para no perderla, pero la home ahora es el panel NOC.
+func handleClasico(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
 	settings := getSettings(r)
 	now := time.Now()
@@ -644,6 +643,17 @@ type Test2ViewModel struct {
 	Upcoming []holidays.UpcomingHoliday
 }
 
+// handleIndex sirve la HOME: el panel NOC (lo que era /test2 variante b).
+// Las variantes a y c siguen disponibles en /test2 para comparar.
+func handleIndex(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/" {
+		http.NotFound(w, r)
+		return
+	}
+	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+	renderPanel(w, r, "b")
+}
+
 func handleTest2(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
 
@@ -671,6 +681,12 @@ func handleTest2(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
+	renderPanel(w, r, v)
+}
+
+// renderPanel arma el view model y renderiza una variante del panel. Lo comparten
+// handleIndex (la home, que sirve el panel NOC) y handleTest2 (las variantes de prueba).
+func renderPanel(w http.ResponseWriter, r *http.Request, v string) {
 	vm := Test2ViewModel{
 		WeatherViewModel: buildWeatherViewModel(r),
 		Variante:         v,
@@ -686,7 +702,7 @@ func handleTest2(w http.ResponseWriter, r *http.Request) {
 	err := tmpls.ExecuteTemplate(&buf, "test2_"+v+".html", vm)
 	tmplsLock.RUnlock()
 	if err != nil {
-		log.Printf("[TEST2] Error renderizando variante %s: %v", v, err)
+		log.Printf("[PANEL] Error renderizando variante %s: %v", v, err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

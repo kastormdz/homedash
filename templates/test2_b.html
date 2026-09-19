@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" type="image/png" href="/static/favicon.png">
-<title>Homedash · test2 · B — NOC operativo</title>
+<title>HomeDash{{if ne .Variante "b"}} · variante {{.Variante}}{{end}}</title>
 <style>
   /* La paleta del panel se DERIVA del tema de DaisyUI activo (data-theme en <html>):
      cambiar de tema en Ajustes repinta todo el panel, no solo los modales. Con el tema
@@ -240,7 +240,7 @@
 <div class="toprow">
   <div class="tblock">
     <div class="stitle"><span class="lbl">Clima y pronóstico · {{.City}}</span><span class="hr"></span></div>
-      <div class="wxbar" hx-get="/test2?v=b" hx-trigger="every 60s, refreshWeather from:body"
+      <div class="wxbar" hx-get="/" hx-trigger="every 60s, refreshWeather from:body"
            hx-select=".wxbar" hx-swap="outerHTML">
         <div class="wx-cond">
           <div class="c">{{wxcond .Current.WeatherCode}}</div>
