@@ -205,7 +205,7 @@
       {{if .ShowF1}}{{if .NextMatch.F1.Sessions}}
         {{range $i, $s := .NextMatch.F1.Sessions}}{{if lt $i 4}}
         <div class="rowline {{if $s.Passed}}pasada{{end}}"><span class="n">{{$s.Name}}</span>
-          <span class="m" style="display:flex;align-items:center;gap:6px">{{if $s.WeatherIcon}}<i data-lucide="{{$s.WeatherIcon}}" style="width:12px;height:12px;color:var(--info)"></i>{{end}}{{$s.Date}} {{$s.Time}}</span></div>
+          <span class="m" style="display:flex;align-items:center;gap:6px">{{if $s.WeatherIcon}}<i data-lucide="{{$s.WeatherIcon}}" style="width:15px;height:15px;color:var(--info)"></i>{{end}}{{$s.Date}} {{$s.Time}}</span></div>
         {{end}}{{end}}
       {{else}}<span class="empty">Sin GP próximo</span>{{end}}{{end}}
     </div>
