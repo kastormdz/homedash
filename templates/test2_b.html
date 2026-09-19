@@ -27,8 +27,11 @@
   .health b{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ok);
     font-family:'JetBrains Mono',monospace}
   .health.warn b{color:var(--warn)}
-  .bar .clock{margin-left:14px;font-size:16px;font-weight:600}
-  .bar .clock span{color:var(--dim);font-size:10.5px;font-weight:400;margin-left:7px;letter-spacing:.05em;text-transform:uppercase}
+  /* reloj y fecha en sans (antes mono): se lee mas limpio en la barra */
+  .bar .clock{margin-left:18px;font-family:'Adwaita Sans',system-ui,-apple-system,sans-serif;font-size:18px;
+    font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.015em;color:var(--text)}
+  .bar .clock span{color:var(--dim);font-size:11px;font-weight:500;margin-left:10px;letter-spacing:.07em;
+    text-transform:uppercase;font-family:'Adwaita Sans',system-ui,-apple-system,sans-serif}
   .kpis{display:flex;margin-left:auto;align-items:center;flex-wrap:wrap}
   .kpi{padding:8px 14px;border-left:1px solid var(--line);display:flex;flex-direction:column;gap:2px;min-width:80px}
   .kpi .k{font-size:9px;letter-spacing:.13em;text-transform:uppercase;color:var(--dim);font-family:'JetBrains Mono',monospace}
@@ -118,10 +121,16 @@
   .fight{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--muted);
     padding:3px 0;border-bottom:1px dashed var(--line-2)}
   .fight b{color:var(--text);font-weight:500}
-  .f1grid{display:grid;grid-template-columns:1fr 1fr;gap:2px 22px;margin-top:8px}
-  .f1s{display:flex;justify-content:space-between;gap:8px;font-size:11.5px;color:var(--muted);
-    padding:3px 0;border-bottom:1px dashed var(--line-2)}
-  .f1s b{color:var(--text);font-weight:500}
+  .f1grid{display:grid;grid-template-columns:1fr 1fr;gap:0 22px;margin-top:8px}
+  /* encabezado del dia: las sesiones se agrupan debajo de su fecha */
+  .f1day{grid-column:1/-1;font-family:'JetBrains Mono',monospace;font-size:9.5px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--dim);padding:10px 0 6px;border-bottom:1px solid var(--line-2)}
+  .f1day:first-child{padding-top:3px}
+  .f1s{display:flex;align-items:center;gap:10px;font-size:11.5px;color:var(--muted);padding:5px 0}
+  .f1s b{color:var(--text);font-weight:600;min-width:44px}
+  .f1s .f1-ico{width:15px;height:15px;color:var(--info);flex:none}
+  .f1s .f1-time{font-family:'JetBrains Mono',monospace}
+  .f1s.pasada{opacity:.42}
   .circuit{height:46px;opacity:.9;flex:none}
   .ratebar{height:2px;background:var(--line-2);border-radius:2px;margin-top:5px;display:block}
   .ratebar i{display:block;height:100%;border-radius:2px;background:var(--ok);opacity:.7}
@@ -148,7 +157,40 @@
   body:has(#dens:checked) .colbar{height:18px}
   body:has(#dens:checked) .sport{padding:8px 0}
   body:has(#dens:checked) .quake,body:has(#dens:checked) .mkt{padding:4px 0}
-</style>
+
+  /* ---------- MOBILE ----------
+     El panel es de dos columnas fijas y la barra de KPIs no envuelve: sin esto en
+     el telefono se ve todo roto (columnas de 300px, textos encimados). */
+  @media (max-width:1100px){
+    .toprow{grid-template-columns:1fr;gap:16px;padding:14px 16px}
+  }
+  @media (max-width:860px){
+    .bar{flex-wrap:wrap;gap:8px;padding:10px 14px;min-height:0}
+    .bar .clock{margin-left:0;font-size:17px}
+    .nextfer{margin-left:0;max-width:100%;white-space:normal}
+    .kpis{margin-left:0;width:100%;justify-content:flex-start;gap:2px}
+    .kpi{min-width:62px;padding:6px 12px 6px 0;border-left:0}
+    .wrap{grid-template-columns:1fr}
+    .col{padding:16px 16px 28px}
+    .col.left{border-right:0;border-bottom:1px solid var(--line)}
+    .wxbar{flex-direction:column;align-items:stretch}
+    .wx-cond{min-width:0}
+    .wx-metrics{border-left:0;border-top:1px solid var(--line);padding:9px 0;justify-content:space-between}
+    .wx-metrics div{padding:0 10px}
+    .wx-days{border-left:0;border-top:1px solid var(--line);min-width:0;gap:6px;flex-wrap:wrap;
+      justify-content:space-between}
+    .wx-days .d{min-width:52px}
+    /* en mobile los nombres largos se envuelven en vez de cortarse con puntos */
+    .match{flex-wrap:wrap;gap:7px}
+    .match .mname{white-space:normal;overflow:visible;text-overflow:clip}
+    .fights,.f1grid,.grid2{grid-template-columns:1fr}
+    .sport{flex-wrap:wrap;gap:10px}
+    .sport .dlogo{width:auto}
+    .circuit{height:34px}
+    .modal-card{padding:20px 18px}
+    .modal-full{width:100vw;height:100vh;border-radius:0;padding:16px}
+  }
+  </style>
 <link rel="stylesheet" href="/static/test2.css?v={{assetv "test2.css"}}">
 <link rel="stylesheet" href="/static/app.css?v={{assetv "app.css"}}">
 <script src="https://unpkg.com/htmx.org@1.9.10" integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC" crossorigin="anonymous"></script>
@@ -158,12 +200,7 @@
 <body>
 
 <div class="bar{{if .Holiday}} holiday-glow{{end}}">
-  {{if eq .Alert.Text "Sin alertas actuales"}}
-  <div class="health"><span class="led"></span><b>Operativo</b></div>
-  {{else}}
-  <div class="health warn"><span class="led"></span><b>Aviso activo</b></div>
-  {{end}}
-  <div class="clock mono">{{.Now.Format "15:04"}}<span>{{fechaEs .Now}}</span></div>
+  <div class="clock">{{.Now.Format "15:04"}}<span>{{fechaEs .Now}}</span></div>
   {{template "test2_feriado" .}}
   <div class="kpis">
     <div class="kpi"><span class="k">Temp</span><span class="v">{{printf "%.1f" .Current.Temperature}}<small>°C</small></span></div>
@@ -182,7 +219,7 @@
 
 <div class="toprow">
   <div class="tblock">
-    <div class="stitle"><span class="lbl">Clima y pronóstico · {{.City}}</span><span class="hr"></span><span class="count">{{.Now.Format "15:04"}}</span></div>
+    <div class="stitle"><span class="lbl">Clima y pronóstico · {{.City}}</span><span class="hr"></span></div>
       <div class="wxbar" hx-get="/test2?v=b" hx-trigger="every 60s, refreshWeather from:body"
            hx-select=".wxbar" hx-swap="outerHTML">
         <div class="wx-cond">
@@ -266,12 +303,16 @@
             {{if .NextMatch.F1.PosterURL}}<img src="{{.NextMatch.F1.PosterURL}}" class="circuit" alt="{{.NextMatch.F1.Circuit}}" loading="lazy">{{end}}
           </div>
           <div class="f1grid">
+            {{$dia := ""}}
             {{range .NextMatch.F1.Sessions}}
+            {{if ne .Date $dia}}
+            <div class="f1day">{{.Date}}</div>
+            {{$dia = .Date}}
+            {{end}}
             <div class="f1s {{if .Passed}}pasada{{end}}">
               <b>{{.Name}}</b>
-              <span style="display:flex;align-items:center;gap:7px">
-                {{if .WeatherIcon}}<i data-lucide="{{.WeatherIcon}}" style="width:16px;height:16px;color:var(--info)"></i>{{end}}
-                {{.Date}} · {{.Time}}</span>
+              {{if .WeatherIcon}}<i data-lucide="{{.WeatherIcon}}" class="f1-ico"></i>{{end}}
+              <span class="f1-time">{{.Time}}</span>
             </div>
             {{end}}
           </div>

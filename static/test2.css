@@ -84,12 +84,13 @@
   border:1px solid rgba(245,158,11,.5);color:var(--warn);border-radius:6px;padding:4px 10px;
   font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;letter-spacing:.1em;
   text-transform:uppercase;white-space:nowrap;position:relative;overflow:hidden}
-.nextfer{display:inline-flex;flex:none;margin-left:14px;align-items:center;gap:10px;background:#10151C;border:1px solid var(--line);
-  border-radius:6px;padding:5px 13px;font-family:'JetBrains Mono',monospace;font-size:9.5px;
-  letter-spacing:.05em;color:var(--muted);white-space:nowrap;max-width:380px}
-.nextfer .et{color:var(--dim);text-transform:uppercase;letter-spacing:.12em}
-.nextfer b{color:var(--warn);font-weight:800}
-.nextfer .nom{overflow:hidden;text-overflow:ellipsis;max-width:190px;color:#C7D2DE}
+.nextfer{display:inline-flex;flex:none;margin-left:16px;align-items:center;gap:11px;background:#10151C;
+  border:1px solid var(--line);border-radius:7px;padding:6px 14px;color:var(--muted);white-space:nowrap;
+  max-width:380px;font-family:'Adwaita Sans',system-ui,-apple-system,sans-serif;font-size:12px}
+.nextfer .et{color:var(--dim);text-transform:uppercase;letter-spacing:.14em;font-size:9.5px;font-weight:700;
+  font-family:'JetBrains Mono',monospace}
+.nextfer b{color:var(--warn);font-weight:700;font-family:'JetBrains Mono',monospace;font-size:12px}
+.nextfer .nom{overflow:hidden;text-overflow:ellipsis;max-width:210px;color:#C7D2DE;font-size:12px}
 .nextfer.near{border-color:rgba(245,158,11,.45);animation:subtle-pulse 2s infinite ease-in-out}
 @media (prefers-reduced-motion: reduce){
   .confetti{display:none}
