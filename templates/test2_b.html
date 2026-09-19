@@ -49,7 +49,7 @@
   .toprow .tblock>.wxbar{flex:1}
   .toprow .wx-days{align-items:stretch}
   .toprow .wx-days .d{justify-content:space-between}
-  .toprow .colbar{flex:1;height:auto;min-height:22px}
+  .toprow .wx-ico{width:23px;height:23px;color:var(--info);opacity:.95;flex:none}
   .toprow .tblock>.stitle{margin-bottom:11px}
   .alerbox{border:1px solid rgba(242,169,59,.28);background:rgba(242,169,59,.06);border-radius:10px;
     padding:11px 14px;display:flex;flex-direction:column;gap:9px}
@@ -200,8 +200,8 @@
           {{range .Forecast}}
           <div class="d">
             <span class="dn">{{.Date}}</span>
+            <i data-lucide="{{wxicon .Code}}" class="wx-ico" title="{{wxcond .Code}}"></i>
             <span class="dt">{{printf "%.0f" .Max}}° <em>{{printf "%.0f" .Min}}°</em></span>
-            <span class="colbar" style="--h:{{pct .Max}}%"></span>
           </div>
           {{end}}
         </div>

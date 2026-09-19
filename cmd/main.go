@@ -80,11 +80,40 @@ func assetVersion(name string) string {
 	return "0"
 }
 
+// wxicon mapea el código WMO de Open-Meteo (el mismo que interpreta wxcond) al nombre
+// de un icono lucide, para mostrar el pronóstico día por día en el panel.
+// La home usa PNGs de openweathermap.org con sus propios códigos; acá van SVG inline
+// (coherentes con el resto del panel y sin requests externos).
+func wxicon(code int) string {
+	switch {
+	case code == 0:
+		return "sun"
+	case code <= 2:
+		return "cloud-sun"
+	case code == 3:
+		return "cloud"
+	case code >= 45 && code <= 48:
+		return "cloud-fog"
+	case code >= 51 && code <= 57:
+		return "cloud-drizzle"
+	case code >= 61 && code <= 67:
+		return "cloud-rain"
+	case code >= 71 && code <= 77:
+		return "cloud-snow"
+	case code >= 80 && code <= 82:
+		return "cloud-rain"
+	case code >= 95:
+		return "cloud-lightning"
+	}
+	return "cloud"
+}
+
 func loadTemplates() {
 
 	t := template.New("").Funcs(template.FuncMap{
 		// assetv evita el ?v= hardcodeado: ver assetVersion.
 		"assetv": assetVersion,
+		"wxicon": wxicon,
 		"add": func(a, b int) int {
 			return a + b
 		},
