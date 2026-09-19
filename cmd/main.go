@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"crypto/sha256"
 	"crypto/tls"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"html/template"
@@ -44,8 +46,45 @@ var (
 	}
 )
 
+// assetVersion devuelve un hash corto del contenido de un archivo de static/, para
+// usar como ?v= en los <link>/<script>.
+//
+// Por qué: /static/ se sirve con Cache-Control de 24h. Con un ?v= fijo (estaba
+// "?v=1" a mano), el navegador seguía usando el CSS viejo durante un día entero y
+// los cambios no llegaban nunca — el chip nuevo se veía como texto plano pegado.
+// Con el hash, la URL cambia sola cuando cambia el archivo, así que el cache largo
+// es seguro. El hash se calcula una vez por proceso: el deploy reinicia el server.
+var (
+	assetHashes     = map[string]string{}
+	assetHashesOnce sync.Once
+)
+
+func assetVersion(name string) string {
+	assetHashesOnce.Do(func() {
+		files, err := filepath.Glob(filepath.Join("static", "*"))
+		if err != nil {
+			return
+		}
+		for _, f := range files {
+			b, err := os.ReadFile(f)
+			if err != nil {
+				continue
+			}
+			sum := sha256.Sum256(b)
+			assetHashes[filepath.Base(f)] = hex.EncodeToString(sum[:])[:8]
+		}
+	})
+	if v, ok := assetHashes[name]; ok {
+		return v
+	}
+	return "0"
+}
+
 func loadTemplates() {
+
 	t := template.New("").Funcs(template.FuncMap{
+		// assetv evita el ?v= hardcodeado: ver assetVersion.
+		"assetv": assetVersion,
 		"add": func(a, b int) int {
 			return a + b
 		},
