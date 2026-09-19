@@ -28,11 +28,17 @@
 
           <div class="lbl" style="margin:18px 0 8px">Tema</div>
           <select id="theme" name="theme" class="inp">
-            <option value="dark" {{if eq .Theme "dark"}}selected{{end}}>Dark</option>
-            <option value="nothing" {{if eq .Theme "nothing"}}selected{{end}}>Nothing</option>
-            <option value="dracula" {{if eq .Theme "dracula"}}selected{{end}}>Dracula</option>
-            <option value="synthwave" {{if eq .Theme "synthwave"}}selected{{end}}>Synthwave</option>
-            <option value="cyberpunk" {{if eq .Theme "cyberpunk"}}selected{{end}}>Cyberpunk</option>
+            <option value="dark" {{if eq $.Theme "dark"}}selected{{end}}>Dark</option>
+            <option value="nothing" {{if eq $.Theme "nothing"}}selected{{end}}>Nothing</option>
+            <option value="dracula" {{if eq $.Theme "dracula"}}selected{{end}}>Dracula</option>
+            <option value="synthwave" {{if eq $.Theme "synthwave"}}selected{{end}}>Synthwave</option>
+            <option value="cyberpunk" {{if eq $.Theme "cyberpunk"}}selected{{end}}>Cyberpunk</option>
+            <option value="retro" {{if eq $.Theme "retro"}}selected{{end}}>Retro</option>
+            <option value="dim" {{if eq $.Theme "dim"}}selected{{end}}>Dim</option>
+            <option value="coffee" {{if eq $.Theme "coffee"}}selected{{end}}>Coffee</option>
+            <option value="sunset" {{if eq $.Theme "sunset"}}selected{{end}}>Sunset</option>
+            <option value="night" {{if eq $.Theme "night"}}selected{{end}}>Night</option>
+            <option value="terminal" {{if eq $.Theme "terminal"}}selected{{end}}>Terminal (verde)</option>
           </select>
           <div class="lbl" style="margin-bottom:8px">Equipo</div>
           <input id="team" type="text" name="team" list="teams-list" placeholder="Boca" value="{{.Team}}"
