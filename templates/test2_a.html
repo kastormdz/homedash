@@ -36,13 +36,14 @@
   .sep{width:1px;height:34px;background:var(--border)}
 
   .alert{display:flex;align-items:center;gap:16px;background:linear-gradient(90deg,rgba(240,166,46,.10),rgba(240,166,46,.02));
-    border-left:2px solid var(--warn);padding:15px 22px;border-radius:0 var(--radius) var(--radius) 0;margin-bottom:34px;flex-wrap:wrap}
+    border-left:2px solid var(--warn);padding:15px 22px;border-radius:0 var(--radius) var(--radius) 0;margin-bottom:34px;flex-wrap:nowrap}
   .alert.ok{background:rgba(53,211,153,.05);border-left-color:var(--ok)}
   .alert .dot{width:7px;height:7px;border-radius:50%;background:var(--warn);box-shadow:0 0 0 4px rgba(240,166,46,.14);flex:none}
   .alert.ok .dot{background:var(--ok);box-shadow:0 0 0 4px rgba(53,211,153,.12)}
-  .alert .a-title{font-size:12.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--warn)}
+  .alert .a-title{font-size:12.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--warn);flex:none}
   .alert.ok .a-title{color:var(--ok)}
-  .alert .a-dacc{font-size:11.5px;color:var(--dim);border-left:1px solid var(--border);padding-left:16px}
+  .alert .a-dacc{font-size:11.5px;color:var(--dim);border-left:1px solid var(--border);padding-left:16px;
+    flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .alert .a-meta{font-size:11.5px;color:var(--muted);margin-left:auto;font-family:'JetBrains Mono',monospace}
 
   .grid{display:grid;grid-template-columns:repeat(6,1fr);gap:var(--gap)}
@@ -115,13 +116,13 @@
 <div class="alert ok">
   <span class="dot"></span>
   <span class="a-title">Sin alertas</span>
-  <span class="a-dacc">{{range $i, $d := .DACC}}{{if eq $i 0}}Oficial DACC <b class="mono" style="color:var(--text)">{{$d.Maxima}}°/{{$d.Minima}}°</b> · {{$d.Pronostico}}{{end}}{{end}}</span>
+  {{if .DACC}}{{with index .DACC 0}}<span class="a-dacc" title="DACC: {{.Maxima}}°/{{.Minima}}° · {{.Pronostico}}">Oficial DACC <b class="mono" style="color:var(--text)">{{.Maxima}}°/{{.Minima}}°</b> · {{.Pronostico}}</span>{{end}}{{end}}
 </div>
 {{else}}
 <div class="alert">
   <span class="dot"></span>
   <span class="a-title">{{.Alert.Text}}</span>
-  <span class="a-dacc">{{range $i, $d := .DACC}}{{if eq $i 0}}Oficial DACC <b class="mono" style="color:var(--text)">{{$d.Maxima}}°/{{$d.Minima}}°</b> · {{$d.Pronostico}}{{end}}{{end}}</span>
+  {{if .DACC}}{{with index .DACC 0}}<span class="a-dacc" title="DACC: {{.Maxima}}°/{{.Minima}}° · {{.Pronostico}}">Oficial DACC <b class="mono" style="color:var(--text)">{{.Maxima}}°/{{.Minima}}°</b> · {{.Pronostico}}</span>{{end}}{{end}}
   <span class="a-meta">{{.Alert.Detail}}</span>
 </div>
 {{end}}
