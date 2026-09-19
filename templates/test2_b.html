@@ -226,14 +226,17 @@
           <div class="match">
             {{if .NextMatch.Match.TeamCrest}}<img src="{{.NextMatch.Match.TeamCrest}}" class="crest" alt="{{.NextMatch.Match.Team}}" loading="lazy">{{end}}
             <span class="mname">{{.NextMatch.Match.Team}}</span>
-            <span class="vs">vs</span>
+            {{if or (eq .NextMatch.Match.Status "LIVE") (eq .NextMatch.Match.Status "FINAL")}}
+            <span class="score">{{.NextMatch.Match.HomeScore}}–{{.NextMatch.Match.AwayScore}}</span>
+            {{else}}<span class="vs">vs</span>{{end}}
             <span class="mname">{{.NextMatch.Match.Opponent}}</span>
             {{if .NextMatch.Match.OpponentCrest}}<img src="{{.NextMatch.Match.OpponentCrest}}" class="crest" alt="{{.NextMatch.Match.Opponent}}" loading="lazy">{{end}}
           </div>
           <div class="b">{{if .NextMatch.Match.Tournament}}{{.NextMatch.Match.Tournament}}{{end}}{{if .NextMatch.Match.Stadium}} · {{.NextMatch.Match.Stadium}}{{end}}</div>
         </div>
-        <span class="chip next">Próximo</span>
-        <span class="when"><b>{{.NextMatch.Match.Time}}</b>{{.NextMatch.Match.Date}}</span>
+        {{if eq .NextMatch.Match.Status "LIVE"}}<span class="chip live"><span class="dot"></span>EN VIVO {{.NextMatch.Match.Clock}}</span>
+        {{else if eq .NextMatch.Match.Status "FINAL"}}<span class="chip fin">Final</span>{{end}}
+        {{if ne .NextMatch.Match.Status "LIVE"}}<span class="when"><b>{{.NextMatch.Match.Time}}</b>{{.NextMatch.Match.Date}}</span>{{end}}
       </div>
       {{else}}
       <div class="sport"><div class="main"><span class="empty">Sin partidos próximos</span></div></div>
@@ -253,7 +256,12 @@
           </div>
           <div class="f1grid">
             {{range .NextMatch.F1.Sessions}}
-            <div class="f1s"><b>{{.Name}}</b><span>{{.Date}} · {{.Time}}</span></div>
+            <div class="f1s {{if .Passed}}pasada{{end}}">
+              <b>{{.Name}}</b>
+              <span style="display:flex;align-items:center;gap:7px">
+                {{if .WeatherIcon}}<i data-lucide="{{.WeatherIcon}}" style="width:13px;height:13px;color:var(--info)"></i>{{end}}
+                {{.Date}} · {{.Time}}</span>
+            </div>
             {{end}}
           </div>
         </div>
@@ -274,7 +282,10 @@
             {{range $i, $f := .NextMatch.UFC.Fights}}{{if lt $i 6}}
             <div class="fight">
               {{if $f.P1Headshot}}<img src="{{$f.P1Headshot}}" class="headshot xs" alt="" loading="lazy">{{end}}
-              <b>{{$f.P1}}</b><span>vs {{$f.P2}}</span>
+              <b class="{{if eq $f.Winner 1}}win{{else if eq $f.Winner 2}}loser{{end}}">{{$f.P1}}</b>
+              <span style="color:var(--dim)">vs</span>
+              <b class="{{if eq $f.Winner 2}}win{{else if eq $f.Winner 1}}loser{{end}}">{{$f.P2}}</b>
+              {{if $f.Status}}<span class="chip {{if eq $f.Status "EN VIVO"}}live{{else}}fin{{end}}" style="margin-left:auto">{{$f.Status}}</span>{{end}}
             </div>
             {{end}}{{end}}
           </div>
