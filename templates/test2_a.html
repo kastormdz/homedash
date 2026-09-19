@@ -94,6 +94,7 @@
 
 <header{{if .Holiday}} class="holiday-glow"{{end}}>
   <div class="clock mono">{{.Now.Format "15:04"}}<small>{{fechaEs .Now}}</small></div>
+  {{template "test2_feriado" .}}
   <div class="right">
     <div class="temp-meta">
       <div class="where">{{.City}}</div>
@@ -108,7 +109,6 @@
     <button class="mini-btn" hx-get="/partidos-del-dia" hx-target="#partidos-content" hx-swap="innerHTML" onclick="togglePartidosModal()">Partidos del día</button>
     <button class="mini-btn" hx-get="/f1-standings" hx-target="#f1-content" hx-swap="innerHTML" onclick="toggleF1Modal()">Posiciones</button>
   </div>
-  {{template "test2_feriado" .}}
 </header>
 
 {{if eq .Alert.Text "Sin alertas actuales"}}

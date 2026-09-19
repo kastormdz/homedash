@@ -152,6 +152,7 @@
   <div class="health warn"><span class="led"></span><b>Aviso activo</b></div>
   {{end}}
   <div class="clock mono">{{.Now.Format "15:04"}}<span>{{fechaEs .Now}}</span></div>
+  {{template "test2_feriado" .}}
   <div class="kpis">
     <div class="kpi"><span class="k">Temp</span><span class="v">{{printf "%.1f" .Current.Temperature}}<small>°C</small></span></div>
     <div class="kpi"><span class="k">Aire</span><span class="v">{{if gt .AQI 50}}<span style="color:var(--warn)">{{.AQI}}</span>{{else}}{{.AQI}}{{end}}<small>AQI</small></span></div>
@@ -165,7 +166,6 @@
     <label class="dens" for="dens">Densidad</label>
     <button class="mini-btn" style="margin-left:8px" onclick="toggleModal()" aria-label="Configuración">⚙ Ajustes</button>
   </div>
-  {{template "test2_feriado" .}}
 </div>
 
 {{if eq .Alert.Text "Sin alertas actuales"}}

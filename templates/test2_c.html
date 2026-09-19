@@ -97,6 +97,7 @@
 
 <header{{if .Holiday}} class="holiday-glow"{{end}}>
   <div class="clock mono">{{.Now.Format "15:04"}}<span>{{fechaEs .Now}}</span></div>
+  {{template "test2_feriado" .}}
   {{if eq .Alert.Text "Sin alertas actuales"}}
   <div class="pill ok"><span class="led"></span> sin avisos activos</div>
   {{else}}
@@ -108,7 +109,6 @@
     <label class="dens" for="dens">Densidad</label>
     <button class="mini-btn" onclick="toggleModal()">⚙ Ajustes</button>
   </div>
-  {{template "test2_feriado" .}}
 </header>
 
 <div class="cols">
