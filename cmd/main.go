@@ -557,6 +557,7 @@ type Test2ViewModel struct {
 	WeatherViewModel
 	Variante string // "a" | "b" | "c"
 	Now      time.Time
+	Team     string // el modal de Ajustes lo necesita (la home lo recibe en su data)
 	Cuencas  []snow.Cuenca
 	Upcoming []holidays.UpcomingHoliday
 }
@@ -573,6 +574,7 @@ func handleTest2(w http.ResponseWriter, r *http.Request) {
 		WeatherViewModel: buildWeatherViewModel(r),
 		Variante:         v,
 		Now:              time.Now(),
+		Team:             getSettings(r).Team,
 		Cuencas:          snow.GetCordillera(r.Context()),
 		Upcoming:         holidays.GetUpcomingHolidays(time.Now()),
 	}

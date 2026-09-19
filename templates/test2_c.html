@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es">
+<html lang="es" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -96,6 +96,11 @@
   body:has(#dens:checked) .cols{gap:14px}
   body:has(#dens:checked) .row,body:has(#dens:checked) .mq{padding:5px 0}
 </style>
+<link rel="stylesheet" href="/static/test2.css?v=1">
+<link rel="stylesheet" href="/static/app.css?v=c4203827">
+<script src="https://unpkg.com/htmx.org@1.9.10" integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/lucide@0.475.0/dist/umd/lucide.min.js" integrity="sha384-prOTt12iGU6/k2uoXJ3az4BWS2qoxykgxJb6pjfmRK7MYOMnMe7bWWBMPZqxwVks" crossorigin="anonymous"></script>
+<script src="/static/app.js?v=5d6f49ff"></script>
 </head>
 <body>
 
@@ -110,6 +115,7 @@
     <div class="temp mono">{{printf "%.1f" .Current.Temperature}}<sup>°</sup></div>
     <input type="checkbox" id="dens">
     <label class="dens" for="dens">Densidad</label>
+    <button class="mini-btn" onclick="toggleModal()">⚙ Ajustes</button>
   </div>
 </header>
 
@@ -129,7 +135,8 @@
         <div class="muted" style="margin-top:5px">Fuente SMN · polígono más cercano a tu ubicación</div>
       </div>
 
-      <div class="card">
+      <div class="card" id="wx-live" hx-get="/test2?v=c" hx-trigger="every 60s, refreshWeather from:body"
+           hx-select="#wx-live" hx-swap="outerHTML">
         <div class="chead"><span class="lbl">Clima ahora</span><span class="chip i">ST {{printf "%.1f" .Current.ApparentTemp}}°</span></div>
         <div style="font-size:15px;font-weight:600">{{wxcond .Current.WeatherCode}}</div>
         <div style="display:flex;gap:14px;margin-top:13px">
@@ -185,32 +192,49 @@
     <div class="stack">
 
       <div class="card">
-        <div class="chead"><span class="lbl">Fútbol</span><span class="chip g">{{.NextMatch.Match.Date}}</span></div>
-        {{if .NextMatch.Match.Team}}
-        <div style="font-size:15.5px;font-weight:600">{{.NextMatch.Match.Team}} <span class="dim">vs</span> {{.NextMatch.Match.Opponent}}</div>
+        <div class="chead"><span class="lbl">Fútbol</span><span class="chip g">{{.NextMatch.Match.Date}}</span>
+          <button class="mini-btn" hx-get="/partidos-del-dia" hx-target="#partidos-content" hx-swap="innerHTML" onclick="togglePartidosModal()">Partidos</button></div>
+        {{if .ShowFootball}}{{if .NextMatch.Match.Team}}
+        <div class="match" style="display:flex;align-items:center;gap:10px">
+          {{if .NextMatch.Match.TeamCrest}}<img src="{{.NextMatch.Match.TeamCrest}}" style="width:38px;height:38px;object-fit:contain;flex:none" alt="" loading="lazy">{{end}}
+          <span style="font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{.NextMatch.Match.Team}}</span>
+          <span class="dim" style="font-size:11px">vs</span>
+          <span style="font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{.NextMatch.Match.Opponent}}</span>
+          {{if .NextMatch.Match.OpponentCrest}}<img src="{{.NextMatch.Match.OpponentCrest}}" style="width:38px;height:38px;object-fit:contain;flex:none" alt="" loading="lazy">{{end}}
+        </div>
         <div class="muted" style="margin-top:5px">{{if .NextMatch.Match.Tournament}}{{.NextMatch.Match.Tournament}} · {{end}}{{.NextMatch.Match.Time}}</div>
         {{if .NextMatch.Match.Stadium}}<div class="dim" style="margin-top:3px">{{.NextMatch.Match.Stadium}}</div>{{end}}
-        {{else}}<span class="empty">Sin partidos próximos</span>{{end}}
+        {{else}}<span class="empty">Sin partidos próximos</span>{{end}}{{end}}
       </div>
 
       <div class="card">
-        <div class="chead"><span class="lbl">F1 · {{.NextMatch.F1.GrandPrix}}</span></div>
-        {{if .NextMatch.F1.Sessions}}
+        <div class="chead"><span class="lbl" style="display:flex;align-items:center;gap:8px">
+          <img src="/static/assets/logos/f1.svg" style="height:14px;width:auto" alt="F1" loading="lazy">
+          {{if .NextMatch.F1.FlagURL}}<img src="{{.NextMatch.F1.FlagURL}}" style="width:18px;border-radius:2px" alt="" loading="lazy">{{end}}
+          F1 · {{.NextMatch.F1.GrandPrix}}</span>
+          <button class="mini-btn" hx-get="/f1-standings" hx-target="#f1-content" hx-swap="innerHTML" onclick="toggleF1Modal()">Posiciones</button></div>
+        {{if .ShowF1}}{{if .NextMatch.F1.Sessions}}
           {{range .NextMatch.F1.Sessions}}
           <div class="row"><span class="n">{{.Name}}</span><span class="m">{{.Date}} · {{.Time}}</span></div>
           {{end}}
-        {{else}}<span class="empty">Sin GP próximo</span>{{end}}
+        {{else}}<span class="empty">Sin GP próximo</span>{{end}}{{end}}
       </div>
 
       <div class="card">
-        <div class="chead"><span class="lbl">{{if .NextMatch.UFC.EventName}}{{.NextMatch.UFC.EventName}}{{else}}UFC{{end}}</span>
+        <div class="chead"><span class="lbl" style="display:flex;align-items:center;gap:8px">
+          <img src="/static/assets/logos/ufc.svg" style="height:14px;width:auto" alt="UFC" loading="lazy">
+          {{if .NextMatch.UFC.EventName}}{{.NextMatch.UFC.EventName}}{{else}}UFC{{end}}</span>
           <span class="chip g">{{.NextMatch.UFC.Date}}</span></div>
-        {{if .NextMatch.UFC.Fights}}
+        {{if .ShowUFC}}{{if .NextMatch.UFC.Fights}}
           {{if .NextMatch.UFC.Venue}}<div class="dim" style="margin-bottom:9px">{{.NextMatch.UFC.Venue}}</div>{{end}}
           {{range $i, $f := .NextMatch.UFC.Fights}}{{if lt $i 6}}
-          <div class="row"><span class="n">{{$f.P1}}</span><span class="m">vs {{$f.P2}}</span></div>
+          <div class="row" style="align-items:center">
+            <span class="n" style="display:flex;align-items:center;gap:7px;min-width:0">
+              {{if $f.P1Headshot}}<img src="{{$f.P1Headshot}}" style="width:22px;height:22px;border-radius:50%;object-fit:cover;flex:none;border:1px solid var(--line)" alt="" loading="lazy">{{end}}
+              {{$f.P1}}</span>
+            <span class="m">vs {{$f.P2}}</span></div>
           {{end}}{{end}}
-        {{else}}<span class="empty">Sin cartelera</span>{{end}}
+        {{else}}<span class="empty">Sin cartelera</span>{{end}}{{end}}
       </div>
 
       <div class="card">
@@ -292,6 +316,13 @@
   <a href="/test2?v=a" {{if eq .Variante "a"}}class="on"{{end}}>A · Grilla</a>
   <a href="/test2?v=b" {{if eq .Variante "b"}}class="on"{{end}}>B · NOC</a>
   <a href="/test2?v=c" {{if eq .Variante "c"}}class="on"{{end}}>C · Dominios</a>
+</div>
+
+{{template "test2_modales" .}}
+
+<div class="foot">
+  <span>HOMEDASH BY KASTOR · MÓDULOS: {{if .ShowFootball}}FÚTBOL {{end}}{{if .ShowF1}}/ F1 {{end}}{{if .ShowUFC}}/ UFC {{end}}{{if .ShowFinance}}/ FINANZAS{{end}}</span>
+  <span>clima cada 60s · datos vía /api/v1</span>
 </div>
 
 </body>

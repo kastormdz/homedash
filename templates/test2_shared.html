@@ -1,0 +1,65 @@
+{{define "test2_modales"}}
+    <!-- Modal de Configuración: mismas opciones que la home -->
+    <div id="modal" class="custom-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal-card">
+        <div class="modal-head">
+          <h2 id="modal-title">Ajustes</h2>
+          <button class="modal-close" onclick="toggleModal()" aria-label="Cerrar">✕</button>
+        </div>
+        <form hx-post="/settings" hx-swap="none">
+          <div class="lbl" style="margin-bottom:10px">Módulos visibles</div>
+          <label class="field" for="showFootball"><span>Fútbol</span>
+            <input id="showFootball" type="checkbox" name="showFootball" {{if .ShowFootball}}checked{{end}}></label>
+          <label class="field" for="showF1"><span>F1</span>
+            <input id="showF1" type="checkbox" name="showF1" {{if .ShowF1}}checked{{end}}></label>
+          <label class="field" for="showUFC"><span>UFC</span>
+            <input id="showUFC" type="checkbox" name="showUFC" {{if .ShowUFC}}checked{{end}}></label>
+          <label class="field" for="showFinance"><span>Finanzas</span>
+            <input id="showFinance" type="checkbox" name="showFinance" {{if .ShowFinance}}checked{{end}}></label>
+          <div class="lbl" style="margin:18px 0 8px">Tema</div>
+          <select id="theme" name="theme" class="inp">
+            <option value="dark" {{if eq .Theme "dark"}}selected{{end}}>Dark</option>
+            <option value="nothing" {{if eq .Theme "nothing"}}selected{{end}}>Nothing</option>
+            <option value="dracula" {{if eq .Theme "dracula"}}selected{{end}}>Dracula</option>
+            <option value="synthwave" {{if eq .Theme "synthwave"}}selected{{end}}>Synthwave</option>
+            <option value="cyberpunk" {{if eq .Theme "cyberpunk"}}selected{{end}}>Cyberpunk</option>
+          </select>
+          <div class="lbl" style="margin-bottom:8px">Equipo</div>
+          <input id="team" type="text" name="team" list="teams-list" placeholder="Boca" value="{{.Team}}"
+                 hx-get="/autocomplete/teams" hx-trigger="keyup changed delay:300ms" hx-target="#teams-list" class="inp">
+          <datalist id="teams-list"></datalist>
+          <div class="lbl" style="margin-bottom:8px">Ciudad</div>
+          <input id="city" type="text" name="city" list="cities-list" placeholder="Mendoza" value="{{.City}}"
+                 hx-get="/autocomplete/cities" hx-trigger="keyup changed delay:500ms" hx-target="#cities-list" class="inp">
+          <datalist id="cities-list"></datalist>
+          <button type="submit" class="btn-save" onclick="setTimeout(() => toggleModal(), 150)">Guardar configuración</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal Partidos del Día -->
+    <div id="partidos-modal" class="custom-modal" role="dialog" aria-modal="true">
+      <div class="modal-full">
+        <div class="modal-head">
+          <h2>Partidos del día</h2>
+          <button class="modal-close" onclick="togglePartidosModal()" aria-label="Cerrar">✕</button>
+        </div>
+        <div id="partidos-content" class="custom-scrollbar">
+          <div style="display:flex;align-items:center;justify-content:center;height:200px;color:var(--dim);font-size:11px;letter-spacing:.2em;text-transform:uppercase">Buscando partidos…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Posiciones F1 -->
+    <div id="f1-modal" class="custom-modal" role="dialog" aria-modal="true">
+      <div class="modal-full">
+        <div class="modal-head">
+          <h2>Posiciones F1</h2>
+          <button class="modal-close" onclick="toggleF1Modal()" aria-label="Cerrar">✕</button>
+        </div>
+        <div id="f1-content" class="custom-scrollbar">
+          <div style="display:flex;align-items:center;justify-content:center;height:200px;color:var(--dim);font-size:11px;letter-spacing:.2em;text-transform:uppercase">Recuperando ranking…</div>
+        </div>
+      </div>
+    </div>
+{{end}}

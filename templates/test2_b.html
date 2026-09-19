@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es">
+<html lang="es" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -132,14 +132,6 @@
     font-size:10px;letter-spacing:.13em;text-transform:uppercase;font-family:'JetBrains Mono',monospace;margin-top:14px;cursor:pointer}
   .slot:hover{border-color:var(--info);color:var(--info)}
 
-  .sw{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);display:flex;gap:6px;align-items:center;
-    background:#0D1319;border:1px solid var(--line);border-radius:999px;padding:6px 8px;z-index:50;
-    box-shadow:0 8px 28px rgba(0,0,0,.6)}
-  .sw .t{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);padding:0 8px;font-family:'JetBrains Mono',monospace}
-  .sw a{display:block;padding:6px 13px;border-radius:999px;color:var(--muted);text-decoration:none;font-size:11px;
-    font-weight:700;font-family:'JetBrains Mono',monospace}
-  .sw a:hover{background:#18212C;color:var(--text)}
-  .sw a.on{background:var(--info);color:#06121E}
   body:has(#dens:checked) .col{padding:14px 18px 30px}
   body:has(#dens:checked) .section{margin-bottom:16px}
   body:has(#dens:checked) .wx-cond{padding:9px 14px;min-width:170px}
@@ -147,6 +139,11 @@
   body:has(#dens:checked) .sport{padding:8px 0}
   body:has(#dens:checked) .quake,body:has(#dens:checked) .mkt{padding:4px 0}
 </style>
+<link rel="stylesheet" href="/static/test2.css?v=1">
+<link rel="stylesheet" href="/static/app.css?v=c4203827">
+<script src="https://unpkg.com/htmx.org@1.9.10" integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/lucide@0.475.0/dist/umd/lucide.min.js" integrity="sha384-prOTt12iGU6/k2uoXJ3az4BWS2qoxykgxJb6pjfmRK7MYOMnMe7bWWBMPZqxwVks" crossorigin="anonymous"></script>
+<script src="/static/app.js?v=5d6f49ff"></script>
 </head>
 <body>
 
@@ -168,6 +165,7 @@
     {{end}}
     <input type="checkbox" id="dens">
     <label class="dens" for="dens">Densidad</label>
+    <button class="mini-btn" style="margin-left:8px" onclick="toggleModal()" aria-label="Configuración">⚙ Ajustes</button>
   </div>
 </div>
 
@@ -191,7 +189,8 @@
 
     <div class="section">
       <div class="stitle"><span class="lbl">Clima y pronóstico · {{.City}}</span><span class="hr"></span><span class="count">{{.Now.Format "15:04"}}</span></div>
-      <div class="wxbar">
+      <div class="wxbar" hx-get="/test2?v=b" hx-trigger="every 60s, refreshWeather from:body"
+           hx-select=".wxbar" hx-swap="outerHTML">
         <div class="wx-cond">
           <div class="c">{{wxcond .Current.WeatherCode}}</div>
           <div class="s">ST {{printf "%.1f" .Current.ApparentTemp}}° · {{.Sunrise}} ↗ {{.Sunset}}</div>
@@ -216,7 +215,11 @@
     </div>
 
     <div class="section">
-      <div class="stitle"><span class="lbl">Deportes</span><span class="hr"></span><span class="count">fútbol · F1 · UFC</span></div>
+      <div class="stitle"><span class="lbl">Deportes</span><span class="hr"></span>
+        <button class="mini-btn" hx-get="/partidos-del-dia" hx-target="#partidos-content" hx-swap="innerHTML"
+                onclick="togglePartidosModal()">Partidos del día</button>
+        <span class="count">fútbol · F1 · UFC</span></div>
+      {{if .ShowFootball}}
       {{if .NextMatch.Match.Team}}
       <div class="sport">
         <div class="main">
@@ -235,16 +238,17 @@
       {{else}}
       <div class="sport"><div class="main"><span class="empty">Sin partidos próximos</span></div></div>
       {{end}}
+      {{end}}
 
-      {{if .NextMatch.F1.Sessions}}
+      {{if .ShowF1}}{{if .NextMatch.F1.Sessions}}
       <div class="sport" style="align-items:flex-start">
-        <div class="dlogo">
-          <img src="/static/assets/logos/f1.svg" alt="F1" loading="lazy">
-          {{if .NextMatch.F1.FlagURL}}<img src="{{.NextMatch.F1.FlagURL}}" alt="" style="max-width:26px" loading="lazy">{{end}}
-        </div>
+        <div class="dlogo"><img src="/static/assets/logos/f1.svg" alt="F1" loading="lazy"></div>
         <div class="main">
-          <div class="a" style="display:flex;align-items:center;gap:10px">
+          <div class="a" style="display:flex;align-items:center;gap:11px">
+            {{if .NextMatch.F1.FlagURL}}<img src="{{.NextMatch.F1.FlagURL}}" alt="" style="width:26px;border-radius:2px;flex:none" loading="lazy">{{end}}
             {{.NextMatch.F1.GrandPrix}}
+            <button class="mini-btn" hx-get="/f1-standings" hx-target="#f1-content" hx-swap="innerHTML"
+                    onclick="toggleF1Modal()" style="margin-left:auto">Posiciones</button>
             {{if .NextMatch.F1.PosterURL}}<img src="{{.NextMatch.F1.PosterURL}}" class="circuit" alt="{{.NextMatch.F1.Circuit}}" loading="lazy">{{end}}
           </div>
           <div class="f1grid">
@@ -254,9 +258,9 @@
           </div>
         </div>
       </div>
-      {{end}}
+      {{end}}{{end}}
 
-      {{if .NextMatch.UFC.Fights}}
+      {{if .ShowUFC}}{{if .NextMatch.UFC.Fights}}
       <div class="sport" style="align-items:flex-start">
         <div class="dlogo"><img src="/static/assets/logos/ufc.svg" alt="UFC" loading="lazy"></div>
         <div class="main">
@@ -277,7 +281,7 @@
         </div>
         <span class="when"><b>{{.NextMatch.UFC.Time}}</b>{{.NextMatch.UFC.Date}}</span>
       </div>
-      {{end}}
+      {{end}}{{end}}
     </div>
 
   </div>
@@ -331,6 +335,7 @@
       {{else}}<span class="empty">Sin datos de nieve</span>{{end}}
     </div>
 
+    {{if .ShowFinance}}
     <!-- TOP TASAS: los mismos datos que la home principal -->
     <div class="section">
       <div class="stitle"><span class="lbl">Estado · sismos</span><span class="hr"></span><span class="count">últimos 5 de {{len .Earthquakes}}</span></div>
@@ -363,9 +368,17 @@
       {{end}}
       <div class="slot">+ Agregar módulo</div>
     </div>
+    {{end}}
 
   </div>
 </div>
+
+<div class="foot">
+  <span>HOMEDASH BY KASTOR · MÓDULOS: {{if .ShowFootball}}FÚTBOL {{end}}{{if .ShowF1}}/ F1 {{end}}{{if .ShowUFC}}/ UFC {{end}}{{if .ShowFinance}}/ FINANZAS{{end}}</span>
+  <span>clima cada 60s · datos del panel vía /api/v1</span>
+</div>
+
+{{template "test2_modales" .}}
 
 <div class="sw">
   <span class="t">Variante</span>
