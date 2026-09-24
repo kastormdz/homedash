@@ -211,7 +211,7 @@
           <button class="mini-btn" hx-get="/f1-standings" hx-target="#f1-content" hx-swap="innerHTML" onclick="toggleF1Modal()">Posiciones</button></div>
         {{if .ShowF1}}{{if .NextMatch.F1.Sessions}}
           {{range .NextMatch.F1.Sessions}}
-          <div class="row {{if .Passed}}pasada{{end}}"><span class="n">{{.Name}}</span>
+          <div class="row {{if pasada .}}pasada{{end}}"><span class="n">{{.Name}}</span>
             <span class="m" style="display:flex;align-items:center;gap:6px">{{if .WeatherIcon}}<i data-lucide="{{.WeatherIcon}}" style="width:15px;height:15px;color:var(--info)"></i>{{end}}{{.Date}} · {{.Time}}</span></div>
           {{end}}
         {{else}}<span class="empty">Sin GP próximo</span>{{end}}{{end}}

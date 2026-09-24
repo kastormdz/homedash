@@ -64,6 +64,56 @@ func getFighterHeadshot(ctx context.Context, id string) string {
 	return ""
 }
 
+// searchFighterID busca el ID de un peleador por su nombre en el buscador de ESPN. Hace
+// falta porque en la cartelera los peleadores que debutan vienen sin $ref y sin ID, asi
+// que getFighterHeadshot no tiene a quien preguntarle y la foto queda vacia.
+func searchFighterID(ctx context.Context, name string) string {
+	if name == "" || name == "TBD" {
+		return ""
+	}
+	u := "https://site.web.api.espn.com/apis/common/v3/search?query=" +
+		url.QueryEscape(name) + "&limit=5&type=player"
+	resp, err := network.FetchSecureWithContext(ctx, u)
+	if err != nil {
+		return ""
+	}
+	defer resp.Body.Close()
+	var d struct {
+		Items []struct {
+			ID          string `json:"id"`
+			DisplayName string `json:"displayName"`
+		} `json:"items"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&d); err != nil {
+		return ""
+	}
+	norm := func(s string) string { return strings.ToLower(strings.Join(strings.Fields(s), " ")) }
+	want := norm(name)
+	// 1) nombre exacto (el buscador devuelve homonimos y otros deportes)
+	for _, it := range d.Items {
+		if it.ID != "" && norm(it.DisplayName) == want {
+			return it.ID
+		}
+	}
+	// 2) todas las palabras presentes: ESPN suele agregar el apodo o el segundo nombre
+	for _, it := range d.Items {
+		if it.ID == "" {
+			continue
+		}
+		ok := true
+		for _, w := range strings.Fields(want) {
+			if !strings.Contains(norm(it.DisplayName), w) {
+				ok = false
+				break
+			}
+		}
+		if ok {
+			return it.ID
+		}
+	}
+	return ""
+}
+
 func fetchLiveUFC(ctx context.Context) UFCMatch {
 	now := time.Now()
 	startDate := now.AddDate(0, 0, -2).Format("20060102")
@@ -144,10 +194,16 @@ func fetchLiveUFC(ctx context.Context) UFCMatch {
 
 			rawP1 := comp.Competitors[0].Athlete.Headshot
 			if rawP1 == "" {
+				if id1 == "" {
+					id1 = searchFighterID(ctx, p1Name) // debuta: viene sin ID
+				}
 				rawP1 = getFighterHeadshot(ctx, id1)
 			}
 			rawP2 := comp.Competitors[1].Athlete.Headshot
 			if rawP2 == "" {
+				if id2 == "" {
+					id2 = searchFighterID(ctx, p2Name)
+				}
 				rawP2 = getFighterHeadshot(ctx, id2)
 			}
 			fightP1Headshot = crestURLForHeadshot(rawP1, id1)

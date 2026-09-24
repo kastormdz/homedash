@@ -146,6 +146,7 @@ func fetchLiveF1(ctx context.Context) F1Race {
 		if p, err := parseToArgentina(d + "T" + t); err == nil {
 			s.Date = common.DaysAbbr[p.Weekday()] + " " + p.Format("02/01")
 			s.Time = p.Format("15:04")
+			s.Start = p // el template decide si ya paso (ver pasada en main.go)
 			s.Passed = p.Add(2 * time.Hour).Before(time.Now())
 		} else {
 			s.Date = d

@@ -23,6 +23,10 @@ import (
 	"sync"
 	"syscall"
 	"time"
+	// Embebe la base de zonas horarias en el binario. El runtime es distroless
+	// (static-debian12) y NO trae /usr/share/zoneinfo: sin esto time.LoadLocation
+	// falla y todas las horas del panel salen en UTC (ver parseToArgentina).
+	_ "time/tzdata"
 
 	"homedash/internal/crypto"
 	"homedash/internal/earthquake"
@@ -124,6 +128,26 @@ func loadTemplates() {
 		"assetv":     assetVersion,
 		"wxicon":     wxicon,
 		"quakeNuevo": quakeNuevo,
+		// pasada: una sesion de F1 termino (2h despues de su inicio). Se calcula al
+		// RENDERIZAR y no se usa el Passed del feed: el feed se cachea 15 minutos, asi
+		// que una sesion que arrancaba seguia mostrandose pendiente hasta el refresco.
+		// ini: iniciales para el placeholder cuando ESPN no tiene la foto del peleador.
+		"ini": func(n string) string {
+			ps := strings.Fields(n)
+			if len(ps) == 0 {
+				return "?"
+			}
+			r := []rune(ps[0])
+			out := string(r[:1])
+			if len(ps) > 1 {
+				r2 := []rune(ps[len(ps)-1])
+				out += string(r2[:1])
+			}
+			return strings.ToUpper(out)
+		},
+		"pasada": func(s sports.F1Session) bool {
+			return !s.Start.IsZero() && s.Start.Add(2*time.Hour).Before(time.Now())
+		},
 		"add": func(a, b int) int {
 			return a + b
 		},

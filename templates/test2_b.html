@@ -117,6 +117,10 @@
   .match .mname{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .crest{width:54px;height:54px;object-fit:contain}
   .headshot{width:44px;height:44px;border-radius:50%;object-fit:cover;border:1px solid var(--line);background:#1A212B}
+  /* cuando ESPN no tiene la foto, iniciales en vez de un hueco */
+  .headshot.vacio{display:inline-flex;align-items:center;justify-content:center;flex:none;
+    background:#212A36;color:var(--muted);font-size:13px;font-weight:700;letter-spacing:.5px}
+  .headshot.xs.vacio{font-size:11px}
   .headshot.xs{width:36px;height:36px}
   .vs{color:var(--dim);font-size:11px;font-weight:600;letter-spacing:.08em}
   .chip{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;border-radius:4px;
@@ -329,7 +333,7 @@
             <div class="f1day">{{.Date}}</div>
             {{$dia = .Date}}
             {{end}}
-            <div class="f1s {{if .Passed}}pasada{{end}}">
+            <div class="f1s {{if pasada .}}pasada{{end}}">
               <b>{{.Name}}</b>
               {{if .WeatherIcon}}<i data-lucide="{{.WeatherIcon}}" class="f1-ico"></i>{{end}}
               <span class="f1-time">{{.Time}}</span>
@@ -353,7 +357,8 @@
           <div class="fights">
             {{range $i, $f := .NextMatch.UFC.Fights}}{{if lt $i 6}}
             <div class="fight">
-              {{if $f.P1Headshot}}<img src="{{$f.P1Headshot}}" class="headshot xs" alt="" loading="lazy">{{end}}
+              {{if $f.P1Headshot}}<img src="{{$f.P1Headshot}}" class="headshot xs" alt="" loading="lazy">{{else}}<span class="headshot xs vacio" title="{{$f.P1}}">{{ini $f.P1}}</span>{{end}}
+                {{if $f.P2Headshot}}<img src="{{$f.P2Headshot}}" class="headshot xs" alt="" loading="lazy">{{else}}<span class="headshot xs vacio" title="{{$f.P2}}">{{ini $f.P2}}</span>{{end}}
               <b class="{{if eq $f.Winner 1}}win{{else if eq $f.Winner 2}}loser{{end}}">{{$f.P1}}</b>
               <span style="color:var(--dim)">vs</span>
               <b class="{{if eq $f.Winner 2}}win{{else if eq $f.Winner 1}}loser{{end}}">{{$f.P2}}</b>

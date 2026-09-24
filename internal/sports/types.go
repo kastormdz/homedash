@@ -2,6 +2,7 @@ package sports
 
 import (
 	"fmt"
+	"log"
 	"time"
 )
 
@@ -34,6 +35,7 @@ type F1Session struct {
 	Name            string
 	Date            string
 	Time            string
+	Start           time.Time // inicio real (en hora argentina): el template decide si ya paso
 	WeatherIcon     string
 	Passed          bool
 	WasRescheduled  bool
@@ -234,9 +236,13 @@ func parseToArgentina(utcStr string) (time.Time, error) {
 		return time.Time{}, err
 	}
 
-	loc, _ := time.LoadLocation("America/Argentina/Buenos_Aires")
-	if loc == nil {
-		return t, nil // Fallback a UTC si no se puede cargar la loc
+	loc, err := time.LoadLocation("America/Argentina/Buenos_Aires")
+	if err != nil || loc == nil {
+		// Si la imagen no trae tzdata (distroless) esto falla y TODO sale en UTC, en
+		// silencio. El binario embebe las zonas con `import _ "time/tzdata"` en cmd/main.go;
+		// si este log aparece en produccion, ese import se perdio.
+		log.Printf("[TZ] no se pudo cargar America/Argentina/Buenos_Aires: %v — las horas salen en UTC", err)
+		return t, nil
 	}
 	return t.In(loc), nil
 }
