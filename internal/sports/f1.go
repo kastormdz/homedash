@@ -6,10 +6,23 @@ import (
 	"fmt"
 	"homedash/internal/common"
 	"homedash/internal/network"
+	"log"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 )
+
+// assetEnDisco dice si un asset existe realmente. Los estaticos se sirven con
+// http.FileServer(http.Dir("static")) desde el cwd, asi que la misma ruta relativa sirve
+// para chequearlo. Existe para no pintar un <img> roto cuando el feed pide un circuito o
+// una bandera que no tenemos: paso con sepang (temporada nueva, hay 24 trazados y ese no
+// estaba) y con la bandera un.svg de un pais sin mapear.
+func assetEnDisco(rel string) bool {
+	_, err := os.Stat(filepath.Join("static", strings.TrimPrefix(rel, "/static/")))
+	return err == nil
+}
 
 func GetCircuitData(circuitName string) string {
 	mapping := map[string]string{
@@ -24,7 +37,12 @@ func GetCircuitData(circuitName string) string {
 	if mapped, ok := mapping[circuitName]; ok {
 		circuitName = mapped
 	}
-	return "/static/assets/circuits/" + circuitName + ".svg"
+	rel := "/static/assets/circuits/" + circuitName + ".svg"
+	if !assetEnDisco(rel) {
+		log.Printf("[F1] no tengo el trazado del circuito %q (%s): se omite la imagen", circuitName, rel)
+		return ""
+	}
+	return rel
 }
 
 func GetFlagURL(country string) string {
@@ -41,7 +59,12 @@ func GetFlagURL(country string) string {
 	if code, ok := mapping[country]; ok {
 		iso = code
 	}
-	return "/static/assets/flags/" + iso + ".svg"
+	rel := "/static/assets/flags/" + iso + ".svg"
+	if !assetEnDisco(rel) {
+		log.Printf("[F1] no tengo la bandera de %q (%s): se omite", country, rel)
+		return ""
+	}
+	return rel
 }
 
 var (
