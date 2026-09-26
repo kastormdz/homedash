@@ -7,64 +7,57 @@ import (
 	"homedash/internal/common"
 	"homedash/internal/network"
 	"log"
-	"os"
-	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 )
 
-// assetEnDisco dice si un asset existe realmente. Los estaticos se sirven con
-// http.FileServer(http.Dir("static")) desde el cwd, asi que la misma ruta relativa sirve
-// para chequearlo. Existe para no pintar un <img> roto cuando el feed pide un circuito o
-// una bandera que no tenemos: paso con sepang (temporada nueva, hay 24 trazados y ese no
-// estaba) y con la bandera un.svg de un pais sin mapear.
-func assetEnDisco(rel string) bool {
-	_, err := os.Stat(filepath.Join("static", strings.TrimPrefix(rel, "/static/")))
-	return err == nil
+// circuitosAlias traduce el id del circuito que manda el feed al nombre del archivo que
+// tenemos en static/assets/circuits. Los que no estan aca se buscan tal cual.
+var circuitosAlias = map[string]string{
+	"villeneuve": "gilles_villeneuve",
+	"catalunya":  "barcelona_catalunya",
+	"americas":   "cota",
+	"bahrain":    "sakhir",
+	"rodriguez":  "hermanos_rodriguez",
+	"spa":        "spa_francorchamps",
+	"losail":     "lusail",
 }
 
+// GetCircuitData devuelve la URL del trazado. Si no lo tenemos en el repo, lo BAJA de
+// julesr0y/f1-circuits-svg (la misma fuente y estilo que los que ya estan) y lo deja en
+// la cache. Solo devuelve "" si no se pudo traer, y en ese caso el template lo omite:
+// nunca una URL que sabemos que da 404, porque el Cache-Control de /static/ es de 24h y
+// el navegador se guardaria tambien el 404.
 func GetCircuitData(circuitName string) string {
-	mapping := map[string]string{
-		"villeneuve": "gilles_villeneuve",
-		"catalunya":  "barcelona_catalunya",
-		"americas":   "cota",
-		"bahrain":    "sakhir",
-		"rodriguez":  "hermanos_rodriguez",
-		"spa":        "spa_francorchamps",
-		"losail":     "lusail",
-	}
-	if mapped, ok := mapping[circuitName]; ok {
+	if mapped, ok := circuitosAlias[circuitName]; ok {
 		circuitName = mapped
 	}
-	rel := "/static/assets/circuits/" + circuitName + ".svg"
-	if !assetEnDisco(rel) {
-		log.Printf("[F1] no tengo el trazado del circuito %q (%s): se omite la imagen", circuitName, rel)
-		return ""
-	}
-	return rel
+	return asegurar("circuits", circuitName+".svg", func() bool { return traerTrazado(circuitName) })
 }
 
+// paisesISO mapea el pais que manda el feed a su codigo ISO 3166-1 alpha-2, que es lo que
+// usan los nombres de archivo y flagcdn.
+var paisesISO = map[string]string{
+	"australia": "au", "austria": "at", "azerbaijan": "az", "bahrain": "bh",
+	"belgium": "be", "brazil": "br", "canada": "ca", "china": "cn",
+	"hungary": "hu", "italy": "it", "japan": "jp", "malaysia": "my",
+	"mexico": "mx", "monaco": "mc", "netherlands": "nl", "qatar": "qa",
+	"saudi arabia": "sa", "singapore": "sg", "south africa": "za", "spain": "es",
+	"uae": "ae", "uk": "gb", "usa": "us",
+	"united arab emirates": "ae", "united kingdom": "gb", "united states": "us",
+}
+
+// GetFlagURL devuelve la URL de la bandera. Si no esta en el repo la baja de flagcdn y la
+// cachea. Un pais sin mapear devuelve "": no hay bandera generica que sirva (antes caia en
+// la de la ONU, que ademas no existia en el repo).
 func GetFlagURL(country string) string {
-	country = strings.ToLower(strings.TrimSpace(country))
-	iso := "un" // Unknown
-	mapping := map[string]string{
-		"australia": "au", "austria": "at", "azerbaijan": "az", "belgium": "be",
-		"brazil": "br", "canada": "ca", "china": "cn", "hungary": "hu",
-		"italy": "it", "japan": "jp", "monaco": "mc", "mexico": "mx",
-		"netherlands": "nl", "qatar": "qa", "saudi arabia": "sa", "singapore": "sg",
-		"spain": "es", "uae": "ae", "uk": "gb", "usa": "us", "bahrain": "bh",
-		"united kingdom": "gb", "united states": "us",
-	}
-	if code, ok := mapping[country]; ok {
-		iso = code
-	}
-	rel := "/static/assets/flags/" + iso + ".svg"
-	if !assetEnDisco(rel) {
-		log.Printf("[F1] no tengo la bandera de %q (%s): se omite", country, rel)
+	iso, ok := paisesISO[strings.ToLower(strings.TrimSpace(country))]
+	if !ok {
+		log.Printf("[F1] pais sin mapear %q: se omite la bandera", country)
 		return ""
 	}
-	return rel
+	return asegurar("flags", iso+".svg", func() bool { return traerBandera(iso) })
 }
 
 var (
