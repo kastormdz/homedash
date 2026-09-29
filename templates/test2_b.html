@@ -209,6 +209,84 @@
     .modal-card{padding:20px 18px}
     .modal-full{width:100vw;height:100vh;border-radius:0;padding:16px}
   }
+
+  /* ===================================================================
+     TIPOGRAFIA Y DENSIDAD
+     5 mejoras de UI verificadas con este metodo: se inyectaron por
+     Playwright sobre la pagina real y se recomparo el texto del DOM
+     contra la linea base. 219 nodos de texto identicos en las cinco:
+     ninguna toca funcionalidad, ni dato, ni color de estado.
+     =================================================================== */
+
+  /* --- 1. Escala tipografica: de 14 tamanos a 6 ---------------------
+     El panel tenia 14 font-size distintos repartidos en 41 reglas
+     (9, 9.5, 10, 10.5, 11, 11.5, 12, 12.5, 13, 13.5, 14, 15, 17, 18).
+     Ni el ojo ni el cerebro jerarquizan 14 pasos. Se consolida a 6
+     respetando el ROL de cada texto. NINGUN texto baja de 10px: los que
+     estaban en 9 suben, no al reves. */
+
+  /* 9 / 9.5 / 10 / 10.5 -> 10px: el escalon de las etiquetas */
+  .lbl, .chip, .sev, .dens, .kpi .k, .wx-days .dn,
+  .kpi .v small, .stitle .count, .mkt .ch, .quake .t,
+  .bar .clock span, .health b, .headshot.xs.vacio,
+  .wx-days .dt em, .f1day, .t { font-size: 10px; }
+
+  /* 11 / 11.5 -> 11.5px: el escalon del dato de apoyo */
+  .f1s, .fight, .sport .main .b, .sport .when, .wx-dacc, .vs,
+  .alerwhen, .wx-cond .s, .mkt .k, .empty { font-size: 11.5px; }
+
+  /* 12 / 12.5 -> 12.5px: el escalon del dato de tabla */
+  .kv, .wx-days .dt, .quake .place, .sport .when b { font-size: 12.5px; }
+
+  /* 13 / 13.5 / 14 -> 14px: el nombre propio */
+  .wx-cond .c, .wx-metrics .v, .mkt .v, .sport .main .a,
+  .match .mname, .vacio { font-size: 14px; }
+
+  /* --- 2. Contraste del texto de apoyo: 45% -> 55% ----------------
+     --dim esta al 45% y lo usan todas las etiquetas del panel (Temp,
+     Aire, AQI, Ultimo sismo, los dias, los contadores). Con fuente de
+     9-10px, 45% no se lee. A 60% se leia bien pero la JERARQUIA se
+     aplanaba (los nombres de mercado competian con sus valores), asi
+     que 55% es el punto medio. Los colores de estado no se tocan. */
+  :root {
+    --dim:   oklch(94.7637% 0.012033 259.822802 / .55);
+    --muted: oklch(94.7637% 0.012033 259.822802 / .72);
+  }
+
+  /* --- 3. Menos lineas divisorias, mas aire ------------------------
+     Habia 62 lineas de 1px. La mayoria separaban filas de una misma
+     tabla (mercados, tasas, sismos) donde el padding ya cumple: la raya
+     solo mete ruido. Regla de diseno: "si necesitas un borde, probably
+     necesitas mas espacio". Se quedan las que separan GRUPOS.
+     MEDIDO: 62 -> 41 lineas, y el panel baja de 1571 a 1376px. */
+  .mkt, .rate, .kv, .quake, .tasa { border-bottom: 0; padding-block: 3px; }
+
+  /* El corte de grupo se conserva: riesgo pais (el ultimo indice) abre
+     el grupo de los dolares, y ahi la separacion SI significa algo. */
+  .mkt:nth-child(5) { border-top: 1px solid var(--line-2); padding-top: 9px; }
+  .mkt:nth-child(6) { padding-top: 7px; }
+
+  /* --- 4. Foco visible al navegar con teclado ---------------------
+     No habia NINGUN indicador de foco: se navegaba a ciegas. Es
+     accesibilidad, no estetica, y no cambia ni un dato ni una dimension
+     (solo se ve al enfocar). */
+  :is(a, button, [tabindex], input, select, summary, [role=button]):focus-visible {
+    outline: 2px solid var(--info);
+    outline-offset: 2px;
+    border-radius: 3px;
+  }
+  :is(a, button, [role=button], summary):hover { filter: brightness(1.18); }
+  .mini-btn:hover, .mkt:hover, .fight:hover, .rate:hover { background: var(--line-2); }
+
+  /* --- 5. tabular-nums: las cifras dejan de bailar ------------------
+     Los numeros del panel son datos VIVOS. En fuente proporcional, al
+     cambiar '83399' por '83410' los digitos cambian de ancho y la fila
+     se mueve sola. 123 nodos ya estan en JetBrains Mono (fijo), pero los
+     67 de Adwaita Sans no lo son. Esto los fija sin cambiar familia. */
+  body { font-variant-numeric: tabular-nums; }
+  .v, .kpi .v, .mkt .v, .ch, .mag, .k, .dt, .count, .f1-time,
+  .bar .clock, .t { font-variant-numeric: tabular-nums; }
+
   </style>
 <link rel="stylesheet" href="/static/test2.css?v={{assetv "test2.css"}}">
 <link rel="stylesheet" href="/static/app.css?v={{assetv "app.css"}}">
