@@ -296,6 +296,13 @@
 </head>
 <body>
 
+<!-- Todo lo que se refresca vive dentro de #live. htmx pide "/" y con hx-select="#live"
+     trae SOLO este fragmento (antes la pagina entera: 33 KB cada 60s) y lo reescribe.
+     Los modales quedan FUERA a proposito: refrescarlos cerraria el que este abierto. -->
+<div id="live"
+     hx-get="/" hx-trigger="every 60s, refreshWeather from:body"
+     hx-select="#live" hx-swap="outerHTML">
+
 <div class="bar{{if .Holiday}} holiday-glow{{end}}">
   <div class="clock">{{.Now.Format "15:04"}}<span>{{fechaEs .Now}}</span></div>
   {{template "test2_feriado" .}}
@@ -322,8 +329,7 @@
 <div class="toprow">
   <div class="tblock">
     <div class="stitle"><span class="lbl">Clima y pronóstico · {{.City}}</span><span class="hr"></span></div>
-      <div class="wxbar" hx-get="/" hx-trigger="every 60s, refreshWeather from:body"
-           hx-select=".wxbar" hx-swap="outerHTML">
+      <div class="wxbar">
         <div class="wx-cond">
           <div class="c">{{wxcond .Current.WeatherCode}}</div>
           <div class="s">ST {{printf "%.1f" .Current.ApparentTemp}}° · {{.Sunrise}} ↗ {{.Sunset}}</div>
@@ -539,11 +545,12 @@
 </div>
 
 <div class="foot">
-  <span>HOMEDASH BY KASTOR · MÓDULOS: {{if .ShowFootball}}FÚTBOL {{end}}{{if .ShowF1}}/ F1 {{end}}{{if .ShowUFC}}/ UFC {{end}}{{if .ShowFinance}}/ FINANZAS{{end}}</span>
-  <span>clima cada 60s · datos del panel vía /api/v1</span>
-</div>
+      <span>HOMEDASH BY KASTOR · MÓDULOS: {{if .ShowFootball}}FÚTBOL {{end}}{{if .ShowF1}}/ F1 {{end}}{{if .ShowUFC}}/ UFC {{end}}{{if .ShowFinance}}/ FINANZAS{{end}}</span>
+      <span>refresco 60s · datos del panel vía /api/v1</span>
+    </div>
+</div><!-- /#live -->
 
-{{template "test2_modales" .}}
+    {{template "test2_modales" .}}
 
 
 </body>

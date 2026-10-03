@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"homedash/internal/common"
 	"homedash/internal/network"
+	"log"
+	"net/http"
 	"net/url"
 	"strings"
-	"time"
 )
 
 // headshotSize es el lado en px que se le pide a ESPN. Los headshots se muestran
@@ -114,20 +115,39 @@ func searchFighterID(ctx context.Context, name string) string {
 	return ""
 }
 
-func fetchLiveUFC(ctx context.Context) UFCMatch {
-	now := time.Now()
-	startDate := now.AddDate(0, 0, -2).Format("20060102")
-	endDate := now.AddDate(0, 0, 30).Format("20060102")
-	url := fmt.Sprintf("https://site.web.api.espn.com/apis/site/v2/sports/mma/ufc/scoreboard?dates=%s-%s", startDate, endDate)
+// ufcScoreboardURL es la URL del scoreboard de UFC.
+//
+// OJO con el parametro `dates`: ESPN NO acepta un rango "AAAAMMDD-AAAAMMDD" en este
+// endpoint. Con rango responde HTTP 500 {"code":1008,"detail":"script error"} y, como
+// el error no se logueaba, el panel caia en "Sin eventos" sin dar ninguna pista (paso con
+// UFC 332: el evento estaba en el feed, con sus 14 peleas, y no se veia nada).
+// El scoreboard SIN `dates` ya devuelve lo que hay de vigente, que es lo que queremos:
+// filtrar por ventana despues, en Go, donde es barato. Un dia suelto ("20261003") SI
+// funciona; el rango es lo unico roto.
+func ufcScoreboardURL() string {
+	return "https://site.web.api.espn.com/apis/site/v2/sports/mma/ufc/scoreboard"
+}
 
-	resp, err := network.FetchSecureWithContext(ctx, url)
+func fetchLiveUFC(ctx context.Context) UFCMatch {
+	resp, err := network.FetchSecureWithContext(ctx, ufcScoreboardURL())
 	if err != nil {
+		log.Printf("[UFC] no pude pedir el scoreboard: %v", err)
 		return UFCMatch{EventName: "Sin eventos"}
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("[UFC] el scoreboard respondio HTTP %d", resp.StatusCode)
+		return UFCMatch{EventName: "Sin eventos"}
+	}
+
 	var sb ESPNScoreboard
-	if err := json.NewDecoder(resp.Body).Decode(&sb); err != nil || len(sb.Events) == 0 {
+	if err := json.NewDecoder(resp.Body).Decode(&sb); err != nil {
+		log.Printf("[UFC] no pude decodificar el scoreboard: %v", err)
+		return UFCMatch{EventName: "Sin eventos"}
+	}
+	if len(sb.Events) == 0 {
+		log.Printf("[UFC] el scoreboard vino sin eventos (0)")
 		return UFCMatch{EventName: "Sin eventos"}
 	}
 
