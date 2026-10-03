@@ -20,6 +20,25 @@ function toggleF1Modal() {
     }
 }
 
+// Los modales se ABREN antes de pedir los datos, no despues.
+//
+// Sintoma: el endpoint respondia 200 con los 9 partidos, htmx lo recibia bien
+// (afterRequest ok=true) y '#partidos-content' quedaba con 0 bytes. La razon: el
+// onclick corria en el mismo click pero htmx resolvia el target cuando el modal
+// todavia estaba cerrado, y un contenedor oculto mide 0x0 -> el swap no tenia donde
+// escribir. En htmx 1.9.10 eso no tira error: falla en silencio y el modal queda
+// mostrando el placeholder ("Buscando partidos...") para siempre.
+//
+// Con el modal ya visible el target tiene tamano real y el swap funciona. El
+// hx-trigger de los botones lleva "click delay:10ms" para que el onclick abra el
+// modal en el mismo evento y la peticion salga despues.
+function abrirModalPartidos() {
+    togglePartidosModal();
+}
+function abrirModalF1() {
+    toggleF1Modal();
+}
+
 function updateClock() {
     const now = new Date();
     const options = { weekday: 'long', day: 'numeric', month: 'long' };

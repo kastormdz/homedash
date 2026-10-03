@@ -296,12 +296,18 @@
 </head>
 <body>
 
-<!-- Todo lo que se refresca vive dentro de #live. htmx pide "/" y con hx-select="#live"
-     trae SOLO este fragmento (antes la pagina entera: 33 KB cada 60s) y lo reescribe.
-     Los modales quedan FUERA a proposito: refrescarlos cerraria el que este abierto. -->
-<div id="live"
-     hx-get="/" hx-trigger="every 60s, refreshWeather from:body"
-     hx-select="#live" hx-swap="outerHTML">
+<!-- Todo lo que se refresca vive dentro de #live.
+
+     El trigger NO lleva hx-select: lo pide en un elemento hermano (ver #tick abajo) para
+     que no sea ancestro de los botones. Motivo: con hx-select en un ancestro, htmx lo
+     hereda al pedir y busca "#live" DENTRO de la respuesta del endpoint — que no lo tiene —
+     y el swap queda vacio. Asi los botones "Partidos del dia" y "Posiciones" cargaban
+     200 con los datos y no escribian nada (0 bytes, sin error en consola).
+
+     Se usa hx-swap-oob: la pagina entera llega, y el fragmento #live se reescribe solo.
+     hx-swap-oob le dice a htmx que este fragmento, cuando aparezca en una respuesta, debe
+     reemplazar el #live existente en vez de insertarse en el body. -->
+<div id="live" hx-swap-oob="true">
 
 <div class="bar{{if .Holiday}} holiday-glow{{end}}">
   <div class="clock">{{.Now.Format "15:04"}}<span>{{fechaEs .Now}}</span></div>
@@ -373,7 +379,7 @@
     <div class="section">
       <div class="stitle"><span class="lbl">Deportes</span><span class="hr"></span>
         <button class="mini-btn" hx-get="/partidos-del-dia" hx-target="#partidos-content" hx-swap="innerHTML"
-                onclick="togglePartidosModal()">Partidos del día</button>
+                hx-trigger="click delay:10ms" onclick="abrirModalPartidos()">Partidos del día</button>
         <span class="count">fútbol · F1 · UFC</span></div>
       {{if .ShowFootball}}
       {{if .NextMatch.Match.Team}}
@@ -407,7 +413,7 @@
             {{if .NextMatch.F1.FlagURL}}<img src="{{.NextMatch.F1.FlagURL}}" alt="" style="width:26px;border-radius:2px;flex:none" loading="lazy">{{end}}
             {{.NextMatch.F1.GrandPrix}}
             <button class="mini-btn" hx-get="/f1-standings" hx-target="#f1-content" hx-swap="innerHTML"
-                    onclick="toggleF1Modal()" style="margin-left:auto">Posiciones</button>
+                    hx-trigger="click delay:10ms" onclick="abrirModalF1()" style="margin-left:auto">Posiciones</button>
             {{if .NextMatch.F1.PosterURL}}<img src="{{.NextMatch.F1.PosterURL}}" class="circuit" alt="{{.NextMatch.F1.Circuit}}" loading="lazy">{{end}}
           </div>
           <div class="f1grid">
@@ -551,6 +557,11 @@
 </div><!-- /#live -->
 
     {{template "test2_modales" .}}
+
+    <!-- El reloj del refresco. Vive FUERA de #live y es hermano suyo, no ancestro: por eso
+         los botones que hay dentro no heredan su configuracion. Pide "/" entero y deja que
+         el hx-swap-oob de #live haga el trabajo. Invisible: no pinta nada. -->
+    <div id="tick" hx-get="/" hx-trigger="every 60s, refreshWeather from:body" hx-swap="none"></div>
 
 
 </body>

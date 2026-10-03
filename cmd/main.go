@@ -1159,8 +1159,11 @@ func handlePartidosDelDia(w http.ResponseWriter, r *http.Request) {
 	var partidos []sports.MatchData
 	for _, m := range sports.GetSportsData().AllMatches {
 		if strings.Contains(m.Date, todayStr) {
-			m.TeamCrest = sports.GetCrestURL(m.Team)
-			m.OpponentCrest = sports.GetCrestURL(m.Opponent)
+			// crestConFallback y no GetCrestURL: la lista completa incluye equipos de
+			// Primera Nacional que no estan en el TeamMapping y caian en afa.png (6 de 9
+			// partidos). El logo de ESPN ya viene en HomeLogo/AwayLogo.
+			m.TeamCrest = sports.CrestWithFallback(m.Team, m.NormalizedTeam, m.HomeLogo)
+			m.OpponentCrest = sports.CrestWithFallback(m.Opponent, m.NormalizedOpponent, m.AwayLogo)
 			partidos = append(partidos, m)
 		}
 	}

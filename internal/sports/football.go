@@ -29,6 +29,9 @@ func GetTeams() []string {
 	return []string{"Boca Juniors", "River Plate", "Racing Club", "Independiente", "San Lorenzo", "Talleres", "Godoy Cruz", "Vélez Sarsfield", "Rosario Central", "Newell's Old Boys", "Estudiantes", "Gimnasia", "Huracán", "Lanús"}
 }
 
+// crestaGenerica es el escudo que cae GetCrestURL cuando no conoce el equipo.
+const crestaGenerica = "/static/assets/crests/afa.png"
+
 func GetCrestURL(teamName string) string {
 	name := common.NormalizeName(teamName)
 
@@ -53,7 +56,7 @@ func GetCrestURL(teamName string) string {
 		}
 	}
 
-	return "/static/assets/crests/afa.png"
+	return crestaGenerica
 }
 
 func guessBroadcaster(tournament string) string {
@@ -257,18 +260,25 @@ func GetSportsDataForUser(teamName string) UserSportsData {
 			Tournament: "Sin partidos agendados", Team: teamName, Opponent: "N/A", Date: "--/--", Time: "--:--", Stadium: "A confirmar", Status: "SCHEDULED",
 		}
 	} else {
-		// 1. Obtener escudos locales si existen
-		bestMatch.TeamCrest = GetCrestURL(bestMatch.Team)
-		bestMatch.OpponentCrest = GetCrestURL(bestMatch.Opponent)
-
-		// 2. Si es el escudo genérico (AFA) y tenemos el logo de ESPN, usar el de ESPN vía proxy
-		if bestMatch.TeamCrest == "/static/assets/crests/afa.png" && bestMatch.HomeLogo != "" {
-			bestMatch.TeamCrest = "/crest?url=" + url.QueryEscape(bestMatch.HomeLogo) + "&name=" + url.QueryEscape(bestMatch.NormalizedTeam)
-		}
-		if bestMatch.OpponentCrest == "/static/assets/crests/afa.png" && bestMatch.AwayLogo != "" {
-			bestMatch.OpponentCrest = "/crest?url=" + url.QueryEscape(bestMatch.AwayLogo) + "&name=" + url.QueryEscape(bestMatch.NormalizedOpponent)
-		}
+		// 1. Obtener escudos locales si existen, con el fallback a ESPN si no hay.
+		bestMatch.TeamCrest = CrestWithFallback(bestMatch.Team, bestMatch.NormalizedTeam, bestMatch.HomeLogo)
+		bestMatch.OpponentCrest = CrestWithFallback(bestMatch.Opponent, bestMatch.NormalizedOpponent, bestMatch.AwayLogo)
 	}
 
 	return UserSportsData{Match: bestMatch, F1: all.F1, UFC: all.UFC}
+}
+
+// CrestWithFallback devuelve el escudo local del equipo y, si cae en el genérico AFA,
+// el logo que ESPN ya trajo en el partido (HomeLogo/AwayLogo) vía el proxy /crest.
+//
+// Antes esto solo se aplicaba al partido destacado: el modal "Partidos del día"
+// recorre la lista completa veía afa.png en los equipos de Primera Nacional que no están en el
+// TeamMapping (Acassuso, Colón, Temperley, Morón, San Miguel, Tristán Suárez...). Con 9
+// partidos, 6 quedaban con el escudo de la AFA.
+func CrestWithFallback(teamName, normalized, espnLogo string) string {
+	crest := GetCrestURL(teamName)
+	if crest == crestaGenerica && espnLogo != "" {
+		return "/crest?url=" + url.QueryEscape(espnLogo) + "&name=" + url.QueryEscape(normalized)
+	}
+	return crest
 }

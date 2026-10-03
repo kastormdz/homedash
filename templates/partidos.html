@@ -11,7 +11,11 @@
     </div>
     {{else}}
     <div class="flex-1 flex flex-col overflow-y-auto custom-scrollbar">
-        <div class="my-auto w-full space-y-2 pr-1">
+        <!-- Sin my-auto: centraba verticalmente la lista y, al combinarse con el flex-1 del
+             padre, la hacia crecer para ocupar el centro en vez de dejar que el contenedor
+             scrollea. Con 9 partidos se veian 5 y el resto quedaba cortado sin scroll.
+             La lista arranca arriba y el que scrollea es el padre (overflow-y:auto). -->
+        <div class="w-full space-y-2 pr-1">
             {{range .Partidos}}
             <div class="bg-white/5 rounded-xl p-3 border border-white/5 flex flex-col items-center justify-center text-center gap-2">
                 {{if .TeamCrest}}<img src="{{.TeamCrest}}" class="w-8 h-8 object-contain team-crest" alt="Escudo Local" loading="lazy">{{end}}
