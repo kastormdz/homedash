@@ -431,8 +431,18 @@ func securityHeaders(next http.Handler) http.Handler {
 		w.Header().Set("X-Frame-Options", "DENY")
 		w.Header().Set("X-XSS-Protection", "1; mode=block")
 		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
-		// CSP permisivo para CDNs conocidos pero bloqueando inline scripts maliciosos (parcialmente, requiere unsafe-inline para htmx y modales)
-		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://stats.cronix.com.ar; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://openweathermap.org https://upload.wikimedia.org https://cdn.register.f1.com https://a.espncdn.com https://static.promiedos.com.ar https://img.icons8.com; connect-src 'self' https://stats.cronix.com.ar;")
+		// HSTS: 2 años (el default recomendado de hstspreload.org). No estaba y es la
+		// unica defensa que sirve si alguien MITM la primera visita.
+		// max-age=31536000 es el minimo; con preload hay que subirlo a >= 2 anos.
+		w.Header().Set("Strict-Transport-Security", "max-age=63072000; includeSubDomains")
+		// CSP: solo los hosts que la pagina REAL pide. Medido con Playwright sobre la
+		// home y los 3 modales: el unico externo es unpkg.com (htmx + lucide).
+		// Se sacaron upload.wikimedia.org, cdn.register.f1.com, static.promiedos.com.ar e
+		// img.icons8.com: quedaban de fuentes que ya no se usan y cada host permitido es
+		// superficie de ataque que el navegador no bloquea.
+		// openweathermap.org se mantiene: la home clasica (/clasico y /weather) todavia
+		// arma PNGs de clima con esa URL.
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://openweathermap.org https://a.espncdn.com; connect-src 'self';")
 		next.ServeHTTP(w, r)
 	})
 }

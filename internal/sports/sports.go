@@ -194,10 +194,24 @@ func detectReschedules(newData *SportsData, oldData SportsData) {
 	}
 }
 
+// GetSportsData devuelve una COPIA de los datos cacheados.
+//
+// Ojo: copiar el struct copia el puntero del slice, no los datos. Varios handlers
+// modifican lo que reciben (los escudos de /partidos-del-dia, TeamCrest del partido
+// destacado) y eso escribía sobre el array compartido: mutaba el estado global desde un
+// handler y podía pisar el slice mientras el updater en background lo reescribía.
+// Con la copia, un cambio en m.TeamCrest se queda en la copia del handler y no en el cache.
 func GetSportsData() SportsData {
 	cacheMutex.RLock()
 	defer cacheMutex.RUnlock()
-	return cachedData
+	if cachedData.AllMatches == nil {
+		return cachedData
+	}
+	// F1Race y UFCMatch son structs por valor: alcanza con clonar el slice de partidos.
+	copia := cachedData
+	copia.AllMatches = make([]MatchData, len(cachedData.AllMatches))
+	copy(copia.AllMatches, cachedData.AllMatches)
+	return copia
 }
 
 func fetchFreshSportsData(ctx context.Context) SportsData {
