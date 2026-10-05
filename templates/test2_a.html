@@ -115,12 +115,12 @@
 
 {{if eq .Alert.Text "Sin alertas actuales"}}
 <div class="alert ok">
-  {{if .DACC}}{{with index .DACC 0}}<span class="a-dacc">Oficial DACC <b class="mono" style="color:var(--text)">{{.Maxima}}°/{{.Minima}}°</b> · {{.Pronostico}}</span>{{end}}{{end}}
+  {{if .AEM}}{{with index .AEM 0}}<span class="a-dacc" title="Pronóstico oficial AEM — {{.FechaFormada}}: {{.Situacion}}{{if .Cordillera}} · Cordillera: {{.Cordillera}}{{end}}">Oficial AEM <b class="mono" style="color:var(--text)">{{.Maxima}}°/{{.Minima}}°</b> · {{.Situacion}}</span>{{end}}{{end}}
   <span class="a-info"><span class="dot"></span><span class="a-title">Sin alertas</span></span>
 </div>
 {{else}}
 <div class="alert">
-  {{if .DACC}}{{with index .DACC 0}}<span class="a-dacc">Oficial DACC <b class="mono" style="color:var(--text)">{{.Maxima}}°/{{.Minima}}°</b> · {{.Pronostico}}</span>{{end}}{{end}}
+  {{if .AEM}}{{with index .AEM 0}}<span class="a-dacc" title="Pronóstico oficial AEM — {{.FechaFormada}}: {{.Situacion}}{{if .Cordillera}} · Cordillera: {{.Cordillera}}{{end}}">Oficial AEM <b class="mono" style="color:var(--text)">{{.Maxima}}°/{{.Minima}}°</b> · {{.Situacion}}</span>{{end}}{{end}}
   <span class="a-info"><span class="dot"></span><span class="a-title">{{.Alert.Text}}</span><span class="a-meta">{{.Alert.Detail}}</span></span>
 </div>
 {{end}}

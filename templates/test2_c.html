@@ -141,9 +141,9 @@
       </div>
 
       <div class="card">
-        <div class="chead"><span class="lbl">Oficial DACC · 7 días</span>
-          {{range $i, $d := .DACC}}{{if eq $i 0}}<span class="chip g">{{$d.Maxima}}° / {{$d.Minima}}°</span>{{end}}{{end}}</div>
-        {{range $i, $d := .DACC}}{{if eq $i 0}}<div class="dim" style="margin-bottom:11px">{{$d.Pronostico}}</div>{{end}}{{end}}
+        <div class="chead"><span class="lbl">Oficial AEM</span>
+          {{range $i, $d := .AEM}}{{if eq $i 0}}<span class="chip g">{{$d.Maxima}}° / {{$d.Minima}}°</span>{{end}}{{end}}</div>
+        {{range $i, $d := .AEM}}{{if eq $i 0}}<div class="dim" style="margin-bottom:11px">{{$d.Situacion}}</div>{{end}}{{end}}
         <div class="days">
           {{range .Forecast}}
           <div class="d">

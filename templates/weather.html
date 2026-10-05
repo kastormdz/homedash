@@ -207,12 +207,12 @@
             </div>
         </div>
 
-        <!-- Pronóstico oficial del DACC (provincial, en prosa) -->
-        {{if .DACC}}
+        <!-- Pronóstico oficial de la AEM (3 días, por oasis) -->
+        {{if .AEM}}
         <div class="mt-1.5 relative z-10 text-[9px] leading-tight uppercase tracking-widest text-base-content/40 flex flex-wrap items-baseline gap-x-1.5">
-            <span class="text-primary font-black">OFICIAL DACC</span>
-            {{if gt (index .DACC 0).Maxima 0}}<span class="text-base-content/60 font-bold tabular-nums">{{(index .DACC 0).Maxima}}°/{{(index .DACC 0).Minima}}°</span>{{end}}
-            <span class="normal-case text-base-content/50">{{(index .DACC 0).Pronostico}}</span>
+            <span class="text-primary font-black">OFICIAL AEM</span>
+            {{if gt (index .AEM 0).Maxima 0}}<span class="text-base-content/60 font-bold tabular-nums">{{(index .AEM 0).Maxima}}°/{{(index .AEM 0).Minima}}°</span>{{end}}
+            <span class="normal-case text-base-content/50">{{(index .AEM 0).Situacion}}</span>
         </div>
         {{end}}
 
@@ -452,12 +452,12 @@
             </div>
         </div>
 
-    <!-- Pronóstico oficial del DACC (provincial, en prosa) -->
-    {{if .DACC}}
+    <!-- Pronóstico oficial de la AEM (3 días, por oasis) -->
+    {{if .AEM}}
     <div class="mt-1.5 relative z-10 text-[9px] leading-tight uppercase tracking-widest text-base-content/40 flex flex-wrap items-baseline gap-x-1.5">
-        <span class="text-primary font-black">OFICIAL DACC</span>
-        {{if gt (index .DACC 0).Maxima 0}}<span class="text-base-content/60 font-bold tabular-nums">{{(index .DACC 0).Maxima}}°/{{(index .DACC 0).Minima}}°</span>{{end}}
-        <span class="normal-case text-base-content/50">{{(index .DACC 0).Pronostico}}</span>
+        <span class="text-primary font-black">OFICIAL AEM</span>
+        {{if gt (index .AEM 0).Maxima 0}}<span class="text-base-content/60 font-bold tabular-nums">{{(index .AEM 0).Maxima}}°/{{(index .AEM 0).Minima}}°</span>{{end}}
+        <span class="normal-case text-base-content/50">{{(index .AEM 0).Situacion}}</span>
     </div>
     {{end}}
 

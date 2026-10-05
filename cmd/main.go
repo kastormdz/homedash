@@ -771,7 +771,7 @@ type WeatherViewModel struct {
 	MoonIcon      string
 	MoonPhaseName string
 	IsAvailable   bool
-	DACC          []weather.DACCForecast // pronóstico oficial de la provincia
+	AEM           []weather.AEMDay        // pronóstico oficial de la AEM (3 días, por oasis)
 }
 
 // buildWeatherViewModel arma el view model completo del panel. Lo comparten
@@ -856,7 +856,7 @@ func buildWeatherViewModel(r *http.Request) WeatherViewModel {
 		MoonIcon:      moonIcon,
 		MoonPhaseName: moonPhase,
 		IsAvailable:   isAvailable,
-		DACC:          weather.GetDACCForecast(r.Context()),
+		AEM:           weather.GetAEMForecast(r.Context()),
 	}
 
 	return viewModel

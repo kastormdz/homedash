@@ -357,7 +357,11 @@
           {{end}}
         </div>
       </div>
-      {{if .DACC}}{{with index .DACC 0}}<div class="wx-dacc" title="Pronóstico oficial DACC: {{.Pronostico}}">Oficial DACC {{.Maxima}}°/{{.Minima}}°</div>{{end}}{{end}}
+      {{if .AEM}}{{with index .AEM 0}}
+              <div class="wx-dacc" title="Pronóstico oficial AEM — {{.FechaFormada}}: {{.Situacion}}{{range .Oasis}} · Oasis {{.Nombre}}: {{.Texto}} máx {{.Maxima}}° / mín {{.Minima}}°{{end}}{{if .Cordillera}} · Cordillera: {{.Cordillera}}{{end}}">
+                Oficial AEM {{.Maxima}}°/{{.Minima}}° <span class="dim">{{len $.AEM}} días</span>
+              </div>
+            {{end}}{{end}}
   </div>
   <div class="tblock">
     <div class="stitle"><span class="lbl">Alertas del clima</span><span class="hr"></span>{{if ne .Alert.Text "Sin alertas actuales"}}<span class="count">activa</span>{{end}}</div>
