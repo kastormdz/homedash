@@ -9,7 +9,10 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"regexp"
+	"strconv"
 	"strings"
+	"time"
 )
 
 // headshotSize es el lado en px que se le pide a ESPN. Los headshots se muestran
@@ -124,42 +127,103 @@ func searchFighterID(ctx context.Context, name string) string {
 // El scoreboard SIN `dates` ya devuelve lo que hay de vigente, que es lo que queremos:
 // filtrar por ventana despues, en Go, donde es barato. Un dia suelto ("20261003") SI
 // funciona; el rango es lo unico roto.
-func ufcScoreboardURL() string {
-	return "https://site.web.api.espn.com/apis/site/v2/sports/mma/ufc/scoreboard"
+func ufcScoreboardURL(temporada int) string {
+	base := "https://site.web.api.espn.com/apis/site/v2/sports/mma/ufc/scoreboard"
+	if temporada > 0 {
+		// ?dates=AAAA devuelve TODOS los eventos del año (medido: 52 en 2026, 40 aptos).
+		// Un mes (2026M10) NO lo acepta (HTTP 400) y un rango tampoco (HTTP 500).
+		return base + "?dates=" + strconv.Itoa(temporada)
+	}
+	return base
+}
+
+// reUFCEventoNumerado matchea "UFC 324", "UFC 332: Silva vs. Wang", "UFC 300".
+var reUFCEventoNumerado = regexp.MustCompile(`(?i)\bUFC\s*\d{2,4}\b`)
+
+// eventEsPrincipal dice si el evento es uno de los que nos interesan: un numerado
+// (UFC NNN) o un UFC Fight Night. Todo lo demas queda afuera.
+func eventEsPrincipal(e ESPNEvent) bool {
+	texto := e.ShortName + " " + e.Name
+	if reUFCEventoNumerado.MatchString(texto) {
+		return true
+	}
+	return strings.Contains(strings.ToLower(texto), "fight night")
+}
+
+// fetchScoreboard pide el scoreboard. temporada=0 es el scoreboard corto (el que esta
+// en curso); >0 pide todos los eventos de ese año.
+func fetchScoreboard(ctx context.Context, temporada int) (ESPNScoreboard, error) {
+	var sb ESPNScoreboard
+	resp, err := network.FetchSecureWithContext(ctx, ufcScoreboardURL(temporada))
+	if err != nil {
+		return sb, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return sb, fmt.Errorf("HTTP %d", resp.StatusCode)
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&sb); err != nil {
+		return sb, err
+	}
+	return sb, nil
+}
+
+// hayEventoApto dice si el scoreboard trae algun evento numerado o Fight Night que no
+// haya terminado.
+func hayEventoApto(sb ESPNScoreboard) bool {
+	for _, e := range sb.Events {
+		if e.Status.Type.State != "post" && eventEsPrincipal(e) {
+			return true
+		}
+	}
+	return false
 }
 
 func fetchLiveUFC(ctx context.Context) UFCMatch {
-	resp, err := network.FetchSecureWithContext(ctx, ufcScoreboardURL())
+	// El scoreboard corto trae SOLO el evento que esta en curso. Medido el 05/10/2026:
+	// traia 1 solo evento y era "Dana White's Contender Series", asi que el filtro
+	// descartaba el unico que habia y no habia nada que mostrar.
+	// Cuando pasa eso se pide la temporada (?dates=AAAA, que trae los 52 eventos del ano)
+	// y se elige el primer apto que aun no termino.
+	sb, err := fetchScoreboard(ctx, 0)
 	if err != nil {
 		log.Printf("[UFC] no pude pedir el scoreboard: %v", err)
 		return UFCMatch{EventName: "Sin eventos"}
 	}
-	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		log.Printf("[UFC] el scoreboard respondio HTTP %d", resp.StatusCode)
-		return UFCMatch{EventName: "Sin eventos"}
+	if !hayEventoApto(sb) {
+		anio := time.Now().Year()
+		sbT, errT := fetchScoreboard(ctx, anio)
+		if errT == nil && len(sbT.Events) > 0 {
+			log.Printf("[UFC] el scoreboard corto no traia evento apto; se busca en %d", anio)
+			sb = sbT
+		}
 	}
 
-	var sb ESPNScoreboard
-	if err := json.NewDecoder(resp.Body).Decode(&sb); err != nil {
-		log.Printf("[UFC] no pude decodificar el scoreboard: %v", err)
-		return UFCMatch{EventName: "Sin eventos"}
-	}
 	if len(sb.Events) == 0 {
 		log.Printf("[UFC] el scoreboard vino sin eventos (0)")
 		return UFCMatch{EventName: "Sin eventos"}
 	}
 
+	// Solo interesan los eventos numerados (UFC NNN) y los UFC Fight Night.
+	//
+	// Filtro POSITIVO a proposito: antes era una lista negativa (excluir "Contender" y
+	// "Noche") y se colaba lo demas. Medido sobre los 52 eventos de 2026 que trae ESPN:
+	//
+	//   12 numerados   "UFC 324" ... "UFC 335"
+	//   28 Fight Night "UFC Fight Night"
+	//   12 otros       "Dana White's Contender Series" x9, "Noche UFC: Silva vs. Delgado",
+	//                  "UFC Freedom 250: Topuria vs. Gaethje"
+	//
+	// La lista negativa no cubria "UFC Freedom 250". Con el filtro positivo, cualquier
+	// evento nuevo que no sea numerado ni Fight Night queda afuera por defecto.
 	var mainEvent ESPNEvent
 	found := false
 	for _, event := range sb.Events {
-		// Solo eventos numerados (UFC NNN) y UFC Fight Night; se omiten Contender Series y otros.
 		if event.Status.Type.State == "post" {
 			continue
 		}
-		short := event.ShortName
-		if strings.Contains(short, "Contender") || strings.Contains(short, "Noche") {
+		if !eventEsPrincipal(event) {
 			continue
 		}
 		mainEvent = event
@@ -167,11 +231,13 @@ func fetchLiveUFC(ctx context.Context) UFCMatch {
 		break
 	}
 	if !found {
-		// Sin próximos eventos aptos: tomar el primero no post, o el primero a secas
+		// No hay numerado ni Fight Night upcoming: se cae al primer evento no post. Se
+		// loguea porque es una excepcion, no lo normal (asi se ve si la fuente cambia).
 		for _, event := range sb.Events {
 			if event.Status.Type.State != "post" {
 				mainEvent = event
 				found = true
+				log.Printf("[UFC] no hay evento numerado ni Fight Night; cae a %q", event.ShortName)
 				break
 			}
 		}

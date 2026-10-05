@@ -14,8 +14,8 @@ import (
 // Este test mira la URL que se construye, no la red: si alguien vuelve a agregar un
 // rango, falla acá y no en produccion a las 3 de la manana.
 func TestElScoreboardDeUFCNoPideRangoDeFechas(t *testing.T) {
-	if strings.Contains(ufcScoreboardURL(), "dates=") {
-		t.Fatalf("la URL vuelve a pedir dates=...: %s", ufcScoreboardURL())
+	if strings.Contains(ufcScoreboardURL(0), "dates=") {
+		t.Fatalf("la URL vuelve a pedir dates=...: %s", ufcScoreboardURL(0))
 	}
 }
 
@@ -26,7 +26,7 @@ func TestRangoDeFechasEsLoQueRompia(t *testing.T) {
 		t.Fatal("sanity")
 	}
 	// lo que NO hay que hacer:
-	malo := strings.Replace(ufcScoreboardURL(), "", "https://x/scoreboard?dates=20261001-20261102", 1)
+	malo := "https://x/scoreboard?dates=20261001-20261102"
 	if !strings.Contains(malo, "dates=20261001-20261102") {
 		t.Fatal("sanity")
 	}
