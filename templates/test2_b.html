@@ -310,6 +310,7 @@
 <div id="live" hx-swap-oob="true">
 
 <div class="bar{{if .Holiday}} holiday-glow{{end}}">
+  {{if .Holiday}}<span class="confetti-wrapper barra">{{template "test2_confeti" .}}</span>{{end}}
   <div class="clock">{{.Now.Format "15:04"}}<span>{{fechaEs .Now}}</span></div>
   {{template "test2_feriado" .}}
   <div class="kpis">

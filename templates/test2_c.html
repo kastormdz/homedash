@@ -97,6 +97,7 @@
 <body>
 
 <header{{if .Holiday}} class="holiday-glow"{{end}}>
+  {{if .Holiday}}<span class="confetti-wrapper barra">{{template "test2_confeti" .}}</span>{{end}}
   <div class="clock mono">{{.Now.Format "15:04"}}<span>{{fechaEs .Now}}</span></div>
   {{template "test2_feriado" .}}
   {{if eq .Alert.Text "Sin alertas actuales"}}

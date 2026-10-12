@@ -90,7 +90,10 @@
 
 {{define "test2_feriado"}}
 {{- if .Holiday}}
-<span class="ferbadge"><span class="confetti-wrapper">{{template "test2_confeti" .}}</span>
+<!-- El confeti ya no va aca adentro: el ferbadge es inline-flex con overflow:hidden,
+  asi que las particulas quedaban encerradas en la pildora. Ahora cae en toda la barra:
+  ver el .confetti-wrapper.barra en cada variante. -->
+<span class="ferbadge">
   <i data-lucide="party-popper" style="width:12px;height:12px"></i>{{.Holiday.Name}}
   <i data-lucide="party-popper" style="width:12px;height:12px"></i></span>
 {{- else if .Upcoming}}
