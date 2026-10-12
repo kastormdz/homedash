@@ -26,7 +26,14 @@ func TestFeriadoEnLaBarra(t *testing.T) {
 	}
 
 	feriadoHoy := &holidays.Holiday{Name: "Día del Respeto a la Diversidad Cultural", Date: "2026-10-12"}
-	upcoming := holidays.GetUpcomingHolidays(time.Now())
+
+	// OJO: aca NO va holidays.GetUpcomingHolidays(time.Now()). Esa funcion filtra a 30
+	// dias, asi que segun el dia del año devuelve vacio y el test falla solo, sin que
+	// nada se haya roto: el 12/10 el proximo feriado es el 20/11, a 39 dias. El dato se
+	// inyecta fijo y el test deja de depender del calendario.
+	upcoming := []holidays.UpcomingHoliday{
+		{Name: "Soberanía Nacional", DayName: "vie", DateStr: "20/11", IsNear: false},
+	}
 
 	for _, v := range []string{"a", "b", "c"} {
 		// ---- caso 1: HOY es feriado ----
