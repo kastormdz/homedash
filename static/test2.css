@@ -9,43 +9,43 @@
   .custom-scrollbar::-webkit-scrollbar{width:6px}
   .custom-scrollbar::-webkit-scrollbar-thumb{background:#243040;border-radius:3px}
   .custom-scrollbar::-webkit-scrollbar-track{background:transparent}
-  .modal-card{background:oklch(var(--b1));border:1px solid oklch(var(--b3));border-radius:14px;width:100%;
+  .modal-card{background:var(--fb-b1, oklch(var(--b1)));border:1px solid var(--fb-b3, oklch(var(--b3)));border-radius:14px;width:100%;
     max-width:540px;padding:26px 28px 22px;position:relative;max-height:92vh;overflow-y:auto;
-    color:oklch(var(--bc))}
-  .modal-full{background:oklch(var(--b1));border:1px solid oklch(var(--b3));border-radius:14px;width:96vw;
-    height:92vh;padding:24px 28px;display:flex;flex-direction:column;position:relative;color:oklch(var(--bc))}
+    color:var(--fb-bc, oklch(var(--bc)))}
+  .modal-full{background:var(--fb-b1, oklch(var(--b1)));border:1px solid var(--fb-b3, oklch(var(--b3)));border-radius:14px;width:96vw;
+    height:92vh;padding:24px 28px;display:flex;flex-direction:column;position:relative;color:var(--fb-bc, oklch(var(--bc)))}
   .modal-head{display:flex;align-items:center;justify-content:space-between;gap:14px;
-    border-bottom:1px solid oklch(var(--b3) / .6);padding-bottom:14px;margin-bottom:20px;flex:none}
+    border-bottom:1px solid var(--fb-b3-06, oklch(var(--b3)/.6));padding-bottom:14px;margin-bottom:20px;flex:none}
   .modal-head h2{font-size:15px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;
     font-family:'JetBrains Mono',monospace}
-  .modal-close{background:none;border:1px solid oklch(var(--b3));color:oklch(var(--bc) / .7);border-radius:7px;
+  .modal-close{background:none;border:1px solid var(--fb-b3, oklch(var(--b3)));color:var(--fb-bc-07, oklch(var(--bc)/.7));border-radius:7px;
     padding:6px 10px;cursor:pointer;font-size:15px;line-height:1}
-  .modal-close:hover{border-color:oklch(var(--p));color:oklch(var(--p));background:oklch(var(--p) / .14)}
-  .field{display:flex;align-items:center;justify-content:space-between;gap:12px;background:oklch(var(--b2));
-    border:1px solid oklch(var(--b3) / .7);border-radius:9px;padding:12px 14px;margin-bottom:8px;cursor:pointer}
-  .field:hover{border-color:oklch(var(--p) / .5)}
+  .modal-close:hover{border-color:var(--fb-p, oklch(var(--p)));color:var(--fb-p, oklch(var(--p)));background:var(--fb-p-014, oklch(var(--p)/.14))}
+  .field{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--fb-b2, oklch(var(--b2)));
+    border:1px solid var(--fb-b3-07, oklch(var(--b3)/.7));border-radius:9px;padding:12px 14px;margin-bottom:8px;cursor:pointer}
+  .field:hover{border-color:var(--fb-p-05, oklch(var(--p)/.5))}
   .field span{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
-    color:oklch(var(--bc) / .7);font-family:'JetBrains Mono',monospace}
+    color:var(--fb-bc-07, oklch(var(--bc)/.7));font-family:'JetBrains Mono',monospace}
   .field input[type=checkbox]{appearance:none;width:36px;height:19px;border-radius:10px;
-    background:oklch(var(--b3));border:1px solid oklch(var(--bc) / .18);position:relative;cursor:pointer;
+    background:var(--fb-b3, oklch(var(--b3)));border:1px solid var(--fb-bc-018, oklch(var(--bc)/.18));position:relative;cursor:pointer;
     transition:.15s;flex:none}
-  .field input[type=checkbox]:checked{background:oklch(var(--p));border-color:oklch(var(--p))}
+  .field input[type=checkbox]:checked{background:var(--fb-p, oklch(var(--p)));border-color:var(--fb-p, oklch(var(--p)))}
   .field input[type=checkbox]::after{content:'';position:absolute;top:2px;left:2px;width:13px;height:13px;
-    border-radius:50%;background:oklch(var(--b1));transition:.15s}
+    border-radius:50%;background:var(--fb-b1, oklch(var(--b1)));transition:.15s}
   .field input[type=checkbox]:checked::after{left:19px}
-  .inp{width:100%;background:oklch(var(--b2));border:1px solid oklch(var(--b3) / .7);border-radius:9px;
-    padding:11px 13px;color:oklch(var(--bc));font-family:'JetBrains Mono',monospace;font-size:12px;margin-bottom:16px}
-  .inp:focus{outline:none;border-color:oklch(var(--p))}
-  .btn-save{width:100%;background:oklch(var(--p));color:oklch(var(--pc));border:0;border-radius:9px;padding:14px;
+  .inp{width:100%;background:var(--fb-b2, oklch(var(--b2)));border:1px solid var(--fb-b3-07, oklch(var(--b3)/.7));border-radius:9px;
+    padding:11px 13px;color:var(--fb-bc, oklch(var(--bc)));font-family:'JetBrains Mono',monospace;font-size:12px;margin-bottom:16px}
+  .inp:focus{outline:none;border-color:var(--fb-p, oklch(var(--p)))}
+  .btn-save{width:100%;background:var(--fb-p, oklch(var(--p)));color:var(--fb-pc, oklch(var(--pc)));border:0;border-radius:9px;padding:14px;
     cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;letter-spacing:.16em;
     text-transform:uppercase}
   .btn-save:hover{opacity:.86}
-  .mini-btn{background:oklch(var(--in)/.10);border:1px solid oklch(var(--in)/.38);color:var(--info);
+  .mini-btn{background:var(--fb-in-01, oklch(var(--in)/.10));border:1px solid var(--fb-in-038, oklch(var(--in)/.38));color:var(--info);
     border-radius:7px;padding:6px 11px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:9.5px;
     font-weight:700;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;transition:background .15s,
     border-color .15s, box-shadow .15s, color .15s}
-  .mini-btn:hover{background:oklch(var(--in)/.22);border-color:var(--info);color:oklch(var(--bc));
-    box-shadow:0 0 0 3px oklch(var(--in)/.12)}
+  .mini-btn:hover{background:var(--fb-in-022, oklch(var(--in)/.22));border-color:var(--info);color:var(--fb-bc, oklch(var(--bc)));
+    box-shadow:0 0 0 3px var(--fb-in-012, oklch(var(--in)/.12))}
   .mini-btn:active{transform:translateY(1px)}
   .foot{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
     padding:12px 24px 0;margin-top:6px;border-top:1px solid var(--line);color:var(--dim);font-size:10px;
@@ -60,7 +60,7 @@
     font-size:9.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
   .livechip .dot{width:6px;height:6px;border-radius:50%;background:var(--crit);animation:pulselive 1.5s infinite}
   @keyframes pulselive{0%,100%{opacity:1}50%{opacity:.3}}
-  .chip.live{background:oklch(var(--er)/.16);color:var(--crit);border:1px solid oklch(var(--er)/.35)}
+  .chip.live{background:var(--fb-er-016, oklch(var(--er)/.16));color:var(--crit);border:1px solid var(--fb-er-035, oklch(var(--er)/.35))}
   .chip.fin{background:#1A212B;color:var(--muted);border:1px solid var(--line)}
   .f1s.pasada{opacity:.42}
   .fight .win{color:var(--ok)}
@@ -72,10 +72,10 @@
 /* ---------- feriados: mismos efectos que la home ---------- */
 @keyframes confetti-fall{0%{transform:translateY(-20px) rotate(0deg);opacity:1}
   100%{transform:translateY(500px) rotate(720deg);opacity:0}}
-@keyframes subtle-pulse{0%{background:oklch(var(--wa)/.05)}50%{background:oklch(var(--wa)/.15)}
-  100%{background:oklch(var(--wa)/.05)}}
-.holiday-glow{background:linear-gradient(135deg,oklch(var(--wa)/.15) 0%,oklch(var(--wa)/.05) 100%);
-  border-color:oklch(var(--wa)/.6) !important;position:relative}
+@keyframes subtle-pulse{0%{background:var(--fb-wa-005, oklch(var(--wa)/.05))}50%{background:var(--fb-wa-015, oklch(var(--wa)/.15))}
+  100%{background:var(--fb-wa-005, oklch(var(--wa)/.05))}}
+.holiday-glow{background:linear-gradient(135deg,var(--fb-wa-015, oklch(var(--wa)/.15)) 0%,var(--fb-wa-005, oklch(var(--wa)/.05)) 100%);
+  border-color:var(--fb-wa-06, oklch(var(--wa)/.6)) !important;position:relative}
 .confetti-wrapper{position:absolute;top:0;left:0;width:100%;height:100%;overflow:hidden;
   pointer-events:none;z-index:1;border-radius:inherit}
 .confetti{position:absolute;width:4px;height:6px;border-radius:1px;animation:confetti-fall linear infinite}
@@ -90,8 +90,8 @@
   15%{opacity:1}
   100%{transform:translateY(70px) rotate(540deg);opacity:0}}
 .confetti-wrapper.barra .confetti{animation:confetti-bar linear infinite}
-.ferbadge{display:inline-flex;flex:none;margin-left:14px;align-items:center;gap:6px;background:oklch(var(--wa)/.18);
-  border:1px solid oklch(var(--wa)/.5);color:var(--warn);border-radius:6px;padding:4px 10px;
+.ferbadge{display:inline-flex;flex:none;margin-left:14px;align-items:center;gap:6px;background:var(--fb-wa-018, oklch(var(--wa)/.18));
+  border:1px solid var(--fb-wa-05, oklch(var(--wa)/.5));color:var(--warn);border-radius:6px;padding:4px 10px;
   font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:800;letter-spacing:.1em;
   text-transform:uppercase;white-space:nowrap;position:relative;overflow:hidden}
 .nextfer{display:inline-flex;flex:none;margin-left:16px;align-items:center;gap:11px;background:#10151C;
@@ -101,8 +101,73 @@
   font-family:'JetBrains Mono',monospace}
 .nextfer b{color:var(--warn);font-weight:700;font-family:'JetBrains Mono',monospace;font-size:12px}
 .nextfer .nom{overflow:hidden;text-overflow:ellipsis;max-width:210px;color:#C7D2DE;font-size:12px}
-.nextfer.near{border-color:oklch(var(--wa)/.45);animation:subtle-pulse 2s infinite ease-in-out}
+.nextfer.near{border-color:var(--fb-wa-045, oklch(var(--wa)/.45));animation:subtle-pulse 2s infinite ease-in-out}
 @media (prefers-reduced-motion: reduce){
   .confetti{display:none}
   .nextfer.near{animation:none}
+}
+
+
+/* ---------- Fallback para navegadores SIN oklch (WebView <= 110) ----------
+
+   El panel pinta todo con oklch(var(--b*)) del tema. Un WebView que no parsea oklch
+   (llego en Chrome 111; el ultimo WebView que corre en Android 6 es el 107) DESCARTA
+   esas declaraciones, y el panel queda sin color: texto oscuro sobre fondo oscuro,
+   ilegible. Verificado con la emulacion: contraste 1.2:1, o sea nada.
+
+   DaisyUI ya resuelve esto para SUS clases con var(--fallback-b1, oklch(var(--b1))),
+   pero sus --fallback-* son del tema default (light/dark), no del noc, y el CSS propio
+   del panel no usaba el patron.
+
+   Estos son los fallbacks del tema noc. Los tintes (los oklch con alpha) van ya
+   mezclados sobre el fondo del panel, porque un hex no puede llevar el alpha.
+
+   Solo aplican donde NO hay oklch: en un navegador moderno este bloque no se aplica y
+   todo sigue saliendo del tema, como siempre. */
+@supports not (color:oklch(0% 0 0)){
+  :root{
+    --fb-b1:#080A0E;
+    --fb-b2:#0E1218;
+    --fb-b3:#1B2431;
+    --fb-b3-06:#161D27;
+    --fb-b3-062:#161D28;
+    --fb-b3-07:#171F2A;
+    --fb-bc:#E9EEF6;
+    --fb-bc-018:#353A40;
+    --fb-bc-045:#71757C;
+    --fb-bc-055:#868B92;
+    --fb-bc-072:#ACB0B8;
+    --fb-bc-068:#A3A8AF;
+    --fb-bc-07:#A7ACB3;
+    --fb-er:#FF6157;
+    --fb-er-008:#21181D;
+    --fb-er-016:#351F22;
+    --fb-er-028:#51282A;
+    --fb-er-035:#622E2E;
+    --fb-in:#5BBCFF;
+    --fb-in-006:#131C26;
+    --fb-in-01:#16232F;
+    --fb-in-012:#172634;
+    --fb-in-022:#1F374B;
+    --fb-in-025:#213C52;
+    --fb-in-038:#2B5370;
+    --fb-in-055:#387097;
+    --fb-p:#5BBCFF;
+    --fb-p-014:#192A38;
+    --fb-p-05:#34678C;
+    --fb-pc:#06121E;
+    --fb-su:#3BD99E;
+    --fb-su-005:#101C1F;
+    --fb-su-01:#122625;
+    --fb-su-025:#19443A;
+    --fb-wa:#F2A93B;
+    --fb-wa-005:#191A1A;
+    --fb-wa-006:#1C1B1A;
+    --fb-wa-015:#30291D;
+    --fb-wa-018:#372D1E;
+    --fb-wa-028:#4E3C22;
+    --fb-wa-045:#755628;
+    --fb-wa-05:#805E2A;
+    --fb-wa-06:#976D2D;
+  }
 }

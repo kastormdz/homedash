@@ -10,10 +10,10 @@
      cambiar de tema en Ajustes repinta todo el panel, no solo los modales. Con el tema
      "noc" (el default) da exactamente los mismos colores que tenia antes. */
   :root{
-    --bg:oklch(var(--b1)); --panel:oklch(var(--b2));
-    --line:oklch(var(--b3)); --line-2:oklch(var(--b3)/.62);
-    --text:oklch(var(--bc)); --muted:oklch(var(--bc)/.68); --dim:oklch(var(--bc)/.45);
-    --ok:oklch(var(--su)); --warn:oklch(var(--wa)); --crit:oklch(var(--er)); --info:oklch(var(--in));
+    --bg:var(--fb-b1, oklch(var(--b1))); --panel:var(--fb-b2, oklch(var(--b2)));
+    --line:var(--fb-b3, oklch(var(--b3))); --line-2:var(--fb-b3-062, oklch(var(--b3)/.62));
+    --text:var(--fb-bc, oklch(var(--bc))); --muted:var(--fb-bc-068, oklch(var(--bc)/.68)); --dim:var(--fb-bc-045, oklch(var(--bc)/.45));
+    --ok:var(--fb-su, oklch(var(--su))); --warn:var(--fb-wa, oklch(var(--wa))); --crit:var(--fb-er, oklch(var(--er))); --info:var(--fb-in, oklch(var(--in)));
   }
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--bg);color:var(--text);
@@ -59,9 +59,9 @@
   .toprow .wx-days .d{justify-content:space-between}
   .toprow .wx-ico{width:23px;height:23px;color:var(--info);opacity:.95;flex:none}
   .toprow .tblock>.stitle{margin-bottom:11px}
-  .alerbox{border:1px solid oklch(var(--wa)/.28);background:oklch(var(--wa)/.06);border-radius:10px;
+  .alerbox{border:1px solid var(--fb-wa-028, oklch(var(--wa)/.28));background:var(--fb-wa-006, oklch(var(--wa)/.06));border-radius:10px;
     padding:11px 14px;display:flex;flex-direction:column;gap:9px}
-  .alerbox.ok{border-color:oklch(var(--su)/.25);background:oklch(var(--su)/.05)}
+  .alerbox.ok{border-color:var(--fb-su-025, oklch(var(--su)/.25));background:var(--fb-su-005, oklch(var(--su)/.05))}
   .alerhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
   .alerwhen{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted)}
   .wx-dacc{font-size:11.5px;color:var(--muted);line-height:1.45;margin-top:10px;padding-top:9px;
@@ -99,8 +99,8 @@
   .wx-days .dt{font-size:12px;font-family:'JetBrains Mono',monospace;font-weight:600}
   .wx-days .dt em{color:var(--dim);font-style:normal;font-weight:400;font-size:11px}
   .colbar{width:16px;height:24px;position:relative;border-radius:2px;
-    background:linear-gradient(to top,oklch(var(--in)/.55) var(--h),oklch(var(--in)/.06) var(--h))}
-  .colbar::after{content:'';position:absolute;inset:0;border-radius:2px;border:1px solid oklch(var(--in)/.22)}
+    background:linear-gradient(to top,var(--fb-in-055, oklch(var(--in)/.55)) var(--h),var(--fb-in-006, oklch(var(--in)/.06)) var(--h))}
+  .colbar::after{content:'';position:absolute;inset:0;border-radius:2px;border:1px solid var(--fb-in-022, oklch(var(--in)/.22))}
 
   .sport{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--line-2)}
   .sport:last-child{border-bottom:0}
@@ -125,8 +125,8 @@
   .vs{color:var(--dim);font-size:11px;font-weight:600;letter-spacing:.08em}
   .chip{font-size:9.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;border-radius:4px;
     font-family:'JetBrains Mono',monospace;white-space:nowrap}
-  .chip.next{background:oklch(var(--su)/.1);color:var(--ok);border:1px solid oklch(var(--su)/.25)}
-  .chip.info{background:oklch(var(--in)/.1);color:var(--info);border:1px solid oklch(var(--in)/.25)}
+  .chip.next{background:var(--fb-su-01, oklch(var(--su)/.1));color:var(--ok);border:1px solid var(--fb-su-025, oklch(var(--su)/.25))}
+  .chip.info{background:var(--fb-in-01, oklch(var(--in)/.1));color:var(--info);border:1px solid var(--fb-in-025, oklch(var(--in)/.25))}
   /* separacion clara entre el titulo del evento y la cartelera */
   .fights{display:grid;grid-template-columns:1fr 1fr;gap:0 22px;margin-top:16px;padding-top:14px;
     border-top:1px solid var(--line-2)}
@@ -152,11 +152,11 @@
   .quake .place{flex:1;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .quake .t{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--dim)}
   /* sismo recien detectado (< 90 min): late unas veces y queda resaltado */
-  @keyframes quakepulse{0%,100%{background:oklch(var(--er)/.08)}50%{background:oklch(var(--er)/.28)}}
-  .quake.nuevo{background:oklch(var(--er)/.08);border-left:2px solid var(--crit);padding-left:10px;
+  @keyframes quakepulse{0%,100%{background:var(--fb-er-008, oklch(var(--er)/.08))}50%{background:var(--fb-er-028, oklch(var(--er)/.28))}}
+  .quake.nuevo{background:var(--fb-er-008, oklch(var(--er)/.08));border-left:2px solid var(--crit);padding-left:10px;
     border-radius:0 5px 5px 0;animation:quakepulse 2.2s ease-out 3}
   .quake.nuevo .mag{color:var(--crit)}
-  .kpi.quake-new{background:oklch(var(--er)/.08);animation:quakepulse 2.2s ease-out 3}
+  .kpi.quake-new{background:var(--fb-er-008, oklch(var(--er)/.08));animation:quakepulse 2.2s ease-out 3}
   .kpi.quake-new .k{color:var(--crit);font-weight:700}
   .mag-hi{color:var(--crit)} .mag-mid{color:var(--warn)} .mag-lo{color:var(--muted)}
   .mkt{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:7px 0;border-bottom:1px solid var(--line-2)}
@@ -249,8 +249,11 @@
      aplanaba (los nombres de mercado competian con sus valores), asi
      que 55% es el punto medio. Los colores de estado no se tocan. */
   :root {
-    --dim:   oklch(94.7637% 0.012033 259.822802 / .55);
-    --muted: oklch(94.7637% 0.012033 259.822802 / .72);
+    /* Antes esto era el valor de --bc del tema noc escrito a mano: si cambiabas de tema,
+       --dim y --muted se quedaban con el color de noc, y en un navegador sin oklch se
+       caian. Ahora derivan de --bc, como el resto del panel. */
+    --dim:   var(--fb-bc-055, oklch(var(--bc)/.55));
+    --muted: var(--fb-bc-072, oklch(var(--bc)/.72));
   }
 
   /* --- 3. Menos lineas divisorias, mas aire ------------------------
