@@ -442,7 +442,7 @@ func securityHeaders(next http.Handler) http.Handler {
 		// superficie de ataque que el navegador no bloquea.
 		// openweathermap.org se mantiene: la home clasica (/clasico y /weather) todavia
 		// arma PNGs de clima con esa URL.
-		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://openweathermap.org https://a.espncdn.com; connect-src 'self';")
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://stats.cronix.com.ar; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://openweathermap.org https://a.espncdn.com; connect-src 'self' https://stats.cronix.com.ar;")
 		next.ServeHTTP(w, r)
 	})
 }

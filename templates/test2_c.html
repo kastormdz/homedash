@@ -93,6 +93,9 @@
 <script src="https://unpkg.com/htmx.org@1.9.10" integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/lucide@0.475.0/dist/umd/lucide.min.js" integrity="sha384-prOTt12iGU6/k2uoXJ3az4BWS2qoxykgxJb6pjfmRK7MYOMnMe7bWWBMPZqxwVks" crossorigin="anonymous"></script>
 <script src="/static/app.js?v={{assetv "app.js"}}"></script>
+    <!-- Estadisticas (Umami self-hosted). El CSP tiene que permitir el host en script-src
+         Y en connect-src: el script hace POST a /api/send en su propio host. -->
+    <script defer src="https://stats.cronix.com.ar/script.js" data-website-id="4d4a9986-30c0-42b0-9b37-6c0113ff6c03"></script>
 </head>
 <body>
 

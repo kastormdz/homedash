@@ -191,7 +191,32 @@ def main():
             pg.evaluate("() => { document.querySelectorAll('.custom-modal').forEach(m => m.classList.remove('active')); }")
             pg.wait_for_timeout(600)
 
-        # ---------- 4. sin oklch ----------
+        # ---------- 4. estadisticas (Umami) ----------
+        print("\n  --- estadisticas (Umami) ---")
+        # El script vive en el head de cada PAGINA COMPLETA. /weather es un fragmento htmx
+        # (arranca con <div>, sin <head>), asi que no lo lleva: el head lo pone la pagina
+        # que lo embebe.
+        for vista, ruta in (("home", "/"), ("test", "/test"),
+                            ("test2 a", "/test2?v=a"), ("test2 b", "/test2?v=b"),
+                            ("test2 c", "/test2?v=c")):
+            pgx = b.new_page()
+            viol, pedidos = [], []
+            pgx.on("console", lambda m: viol.append(m.text[:140])
+                   if ("Content Security Policy" in m.text or "Refused" in m.text) else None)
+            pgx.on("request", lambda r: pedidos.append(r.url) if "stats.cronix" in r.url else None)
+            pgx.goto(f"{base}{ruta}", wait_until="networkidle", timeout=60000)
+            pgx.wait_for_timeout(2500)
+            tiene = pgx.evaluate(
+                "() => [...document.scripts].some(s => s.src && s.src.includes('stats.cronix'))")
+            t.check(f"{vista}: el script de estadisticas esta en el head", tiene)
+            # El script hace POST a /api/send en su propio host: el CSP necesita el host
+            # en script-src Y en connect-src, o el tracking falla en silencio.
+            t.check(f"{vista}: el CSP no lo bloquea", not viol, viol[0][:70] if viol else "")
+            t.check(f"{vista}: sale el pedido a stats", len(pedidos) >= 1,
+                    f"{len(pedidos)} pedido(s)")
+            pgx.close()
+
+        # ---------- 5. sin oklch ----------
         print("\n  --- sin oklch (WebView <= 110) ---")
         if not fallbacks:
             t.check("hay fallbacks definidos para oklch", False,
