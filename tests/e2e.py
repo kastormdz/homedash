@@ -191,7 +191,25 @@ def main():
             pg.evaluate("() => { document.querySelectorAll('.custom-modal').forEach(m => m.classList.remove('active')); }")
             pg.wait_for_timeout(600)
 
-        # ---------- 4. estadisticas (Umami) ----------
+        # ---------- 4. feriados ----------
+        print("\n  --- feriados ---")
+        fer = pg.evaluate("""() => {
+          const b = document.querySelector('.ferbadge');
+          const n = document.querySelector('.nextfer');
+          return {hoy: b ? b.innerText.replace(/\\s+/g,' ').trim() : null,
+                  proximo: n ? n.innerText.replace(/\\s+/g,' ').trim() : null};
+        }""")
+        t.check("la barra muestra el feriado de hoy o el proximo",
+                bool(fer['hoy'] or fer['proximo']), (fer['hoy'] or fer['proximo'] or '')[:60])
+        texto = (fer['hoy'] or fer['proximo'] or '')
+        # Si aparece "Paso a la Inmortalidad..." es que se esta usando el nombre legal
+        # completo (no se abrevio), y si hay "..." es que se truncó: el badge es de una
+        # linea y se rompe. Los dos son sintoma de que el mapeo de nombres no corrio.
+        t.check("el nombre del feriado esta abreviado y no truncado",
+                'Paso a la Inmortalidad' not in texto and '…' not in texto,
+                texto[:60])
+
+        # ---------- 5. estadisticas (Umami) ----------
         print("\n  --- estadisticas (Umami) ---")
         # El script vive en el head de cada PAGINA COMPLETA. /weather es un fragmento htmx
         # (arranca con <div>, sin <head>), asi que no lo lleva: el head lo pone la pagina

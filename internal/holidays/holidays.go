@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"homedash/internal/common"
 	"sort"
-	"sync"
 	"time"
 )
 
@@ -20,13 +19,6 @@ type UpcomingHoliday struct {
 	DateStr string
 	IsNear  bool // Próximos 2 días
 }
-
-// 5. Cache de feriados por año para evitar recálculo en cada request
-var (
-	cachedHolidays    []Holiday
-	cachedHolidayYear int
-	holidayCacheMutex sync.RWMutex
-)
 
 // R-A. Calcular Domingo de Pascuas (algoritmo de Computus de Meeus/Jones/Butcher)
 func easterSunday(year int) time.Time {
@@ -47,6 +39,26 @@ func easterSunday(year int) time.Time {
 	return time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.Local)
 }
 
+// lunesSegunLey aplica el art. 6 de la ley 27.399 para los feriados trasladables:
+//
+//	martes y miercoles  -> lunes ANTERIOR
+//	jueves y viernes    -> lunes SIGUIENTE
+//	sabado y domingo    -> lunes siguiente (no pasa en la practica)
+//
+// Antes se usaba nextMonday para todo, y en 2026 el 17/06 (miercoles) caia el 22/06,
+// el mismo dia que Belgrano: dos feriados pisados y uno invisible en el panel.
+func lunesSegunLey(t time.Time) time.Time {
+	switch t.Weekday() {
+	case time.Monday:
+		return t
+	case time.Tuesday, time.Wednesday:
+		// retroceder al lunes anterior: martes -1, miercoles -2
+		return t.AddDate(0, 0, 1-int(t.Weekday()))
+	default:
+		return nextMonday(t)
+	}
+}
+
 // nextMonday devuelve el próximo lunes a partir de la fecha dada (inclusive)
 func nextMonday(t time.Time) time.Time {
 	if t.Weekday() == time.Monday {
@@ -59,18 +71,15 @@ func nextMonday(t time.Time) time.Time {
 	return t.AddDate(0, 0, daysUntilMonday)
 }
 
-func GetArgentinaHolidays() []Holiday {
-	year := time.Now().Year()
-
-	// 5. Cache: devolver si ya calculamos para este año
-	holidayCacheMutex.RLock()
-	if cachedHolidayYear == year && cachedHolidays != nil {
-		result := cachedHolidays
-		holidayCacheMutex.RUnlock()
-		return result
-	}
-	holidayCacheMutex.RUnlock()
-
+// calcularFeriados es el FALLBACK: el calendario calculado a mano, sin red.
+//
+// La fuente primaria es la API (ver api.go). Esto queda para cuando la API no responde:
+// el panel no puede quedarse sin feriados porque un tercero este caido.
+//
+// OJO con la ley 27.399 art. 6: los trasladables que caen MARTES o MIERCOLES van al lunes
+// ANTERIOR; los que caen jueves o viernes, al lunes siguiente. Antes esto movia todo al
+// lunes siguiente, y el 17/06/2026 (miercoles) se iba al 22/06, el mismo dia que Belgrano.
+func calcularFeriados(year int) []Holiday {
 	yStr := fmt.Sprintf("%d", year)
 
 	// Feriados inamovibles (Día/Mes)
@@ -81,6 +90,7 @@ func GetArgentinaHolidays() []Holiday {
 		{"Día del Trabajador", "05-01"},
 		{"Revolución de Mayo", "05-25"},
 		{"Día de la Independencia", "07-09"},
+		{"Gral. Belgrano", "06-20"},
 		{"Inmaculada Concepción", "12-08"},
 		{"Navidad", "12-25"},
 	}
@@ -108,36 +118,27 @@ func GetArgentinaHolidays() []Holiday {
 	// Feriados trasladables (se mueven al lunes más cercano)
 	trasladables := []struct{ Name, Date string }{
 		{"Gral. Güemes", fmt.Sprintf("%04d-06-17", year)},
-		{"Gral. Belgrano", fmt.Sprintf("%04d-06-20", year)},
 		{"Gral. San Martín", fmt.Sprintf("%04d-08-17", year)},
 		{"Diversidad Cultural", fmt.Sprintf("%04d-10-12", year)},
+		// Soberanía Nacional es TRASLADABLE (20/11): antes estaba como si fuera fijo.
+		{"Soberanía Nacional", fmt.Sprintf("%04d-11-20", year)},
 	}
 	for _, h := range trasladables {
 		t, err := time.Parse("2006-01-02", h.Date)
 		if err == nil {
-			moved := nextMonday(t)
+			moved := lunesSegunLey(t)
 			list = append(list, Holiday{Name: h.Name, Date: moved.Format("2006-01-02")})
 		}
 	}
 
 	// Feriados turísticos específicos por año (Solo los que no están en 'fixed' o son móviles)
-	turisticos := []struct{ Name, Date string }{
-		{"Soberanía Nacional", fmt.Sprintf("%04d-11-20", year)},
-	}
-	for _, h := range turisticos {
-		list = append(list, Holiday{Name: h.Name, Date: h.Date})
-	}
+	// Los feriados turisticos (art. 7, hasta 3 por año, los fija el PEN por decreto) no se
+	// pueden calcular: los trae la API. Aca no hay nada que agregar.
 
 	// Ordenamos la lista por fecha para asegurar consistencia
 	sort.Slice(list, func(i, j int) bool {
 		return list[i].Date < list[j].Date
 	})
-
-	// 5. Guardar en cache
-	holidayCacheMutex.Lock()
-	cachedHolidays = list
-	cachedHolidayYear = year
-	holidayCacheMutex.Unlock()
 
 	return list
 }
