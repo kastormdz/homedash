@@ -26,9 +26,8 @@ type AssetData struct {
 }
 
 type Billetera struct {
-	Fondo         string
-	TNA           float64 // en %
-	HasConditions bool    // true si muestra la TNA base y aplica con condiciones
+	Fondo string
+	TNA   float64 // en %
 }
 
 // Inflacion son los últimos datos del INDEC (vía argentinadatos).
@@ -230,21 +229,29 @@ func UpdateFinance(ctx context.Context) error {
 		}
 	}()
 
-	// Billeteras remuneradas: top 5 por TNA. Las tasas con fee (Brubank) se
-	// excluyen y las que tienen tiers o condiciones van al relleno marcadas.
+	// Billeteras remuneradas: top 5 por TNA. Las tasas con fee (Brubank) y las
+	// que tienen tramos o condiciones se excluyen del listado. Mercado Pago no
+	// está en fci/otros, así que se suma desde el subset ComparaTasas.
 	go func() {
 		defer wg.Done()
+		var bs []Billetera
 		respF, errF := network.FetchSecureWithContext(ctx, "https://api.argentinadatos.com/v1/finanzas/fci/otros/ultimo")
 		if errF != nil {
 			log.Printf("[FINANCE] Error billeteras: %v", errF)
-			return
+		} else {
+			func() {
+				defer respF.Body.Close()
+				var fondos []fondoFCI
+				if err := json.NewDecoder(respF.Body).Decode(&fondos); err != nil || len(fondos) == 0 {
+					return
+				}
+				bs = topBilleteras(fondos)
+			}()
 		}
-		defer respF.Body.Close()
-		var fondos []fondoFCI
-		if err := json.NewDecoder(respF.Body).Decode(&fondos); err != nil || len(fondos) == 0 {
-			return
+		if mp, ok := mercadoPagoBilletera(ctx); ok {
+			bs = recortarTop(append(bs, mp), 5)
 		}
-		if bs := topBilleteras(fondos); len(bs) > 0 {
+		if len(bs) > 0 {
 			mu.Lock()
 			newData.Billeteras = bs
 			mu.Unlock()
@@ -378,7 +385,8 @@ type fondoFCI struct {
 }
 
 // billeteraCondicionada dice si la tasa tiene tramos por monto/plazo o exige
-// clientela puntual. Esas van al relleno marcadas en vez de encabezar el top.
+// clientela puntual. Esas no entran al listado: solo se muestran TNA sin
+// condiciones.
 func billeteraCondicionada(f fondoFCI) bool {
 	if f.Tope > 0 || f.PlazoMinDias > 0 || f.PlazoMaxDias > 0 {
 		return true
@@ -401,19 +409,10 @@ func fechaRancia(fecha string, maxDias int) bool {
 	return time.Since(t) > time.Duration(maxDias)*24*time.Hour
 }
 
-// bancoDe agrupa variantes del mismo banco ("UALA PLUS 2" -> "UALA").
-func bancoDe(fondo string) string {
-	if i := strings.Index(fondo, " "); i > 0 {
-		return fondo[:i]
-	}
-	return fondo
-}
-
-// topBilleteras arma el top 5 global por TNA: limpias y, si faltan, una fila
-// por banco condicionado con su TNA base marcada con *.
+// topBilleteras arma el top 5 por TNA usando solo tasas sin condiciones: las
+// que tienen tramos por monto/plazo o exigen clientela puntual quedan afuera.
 func topBilleteras(fondos []fondoFCI) []Billetera {
 	var limpias []Billetera
-	grupos := map[string][]fondoFCI{}
 	for _, f := range fondos {
 		if f.TNA <= 0 || fechaRancia(f.Fecha, 30) {
 			continue
@@ -423,31 +422,79 @@ func topBilleteras(fondos []fondoFCI) []Billetera {
 			continue
 		}
 		if billeteraCondicionada(f) {
-			banco := bancoDe(f.Fondo)
-			grupos[banco] = append(grupos[banco], f)
 			continue
 		}
 		limpias = append(limpias, Billetera{Fondo: f.Fondo, TNA: f.TNA * 100})
 	}
-	var relleno []Billetera
-	for banco, fs := range grupos {
-		base := fs[0]
-		for _, f := range fs[1:] {
-			if len(f.Fondo) < len(base.Fondo) || (len(f.Fondo) == len(base.Fondo) && f.TNA < base.TNA) {
-				base = f
-			}
-		}
-		relleno = append(relleno, Billetera{Fondo: banco, TNA: base.TNA * 100, HasConditions: true})
+	return recortarTop(limpias, 5)
+}
+
+// recortarTop ordena por TNA descendente y deja las n mejores.
+func recortarTop(list []Billetera, n int) []Billetera {
+	sort.SliceStable(list, func(i, j int) bool { return list[i].TNA > list[j].TNA })
+	if len(list) > n {
+		list = list[:n]
 	}
-	top := append(limpias, relleno...)
-	sort.SliceStable(top, func(i, j int) bool {
-		if top[i].TNA == top[j].TNA {
-			return !top[i].HasConditions && top[j].HasConditions
+	return list
+}
+
+// fondoComparaTasas es una entrada del subset ComparaTasas de la API de
+// argentinadatos: los fondos de billeteras con su TNA estimada (7 días).
+// Mercado Pago (Mercado Fondo) solo aparece acá, no en fci/otros.
+type fondoComparaTasas struct {
+	Nombre         string  `json:"nombre"`
+	Administradora string  `json:"administradora"`
+	Moneda         string  `json:"moneda"`
+	TipoRenta      string  `json:"tipoRenta"`
+	Fecha          string  `json:"fecha"`
+	Patrimonio     float64 `json:"patrimonio"`
+	Rendimientos   struct {
+		TNAEstimada     float64 `json:"tnaEstimada"`
+		TNAEstimadaDias int     `json:"tnaEstimadaDias"`
+	} `json:"rendimientos"`
+}
+
+// mercadoPagoDe elige el fondo que paga la cuenta remunerada de Mercado Pago:
+// el money market en pesos de Mercado Pago Asset Management. Si hay varias
+// clases, toma la de mayor patrimonio.
+func mercadoPagoDe(fondos []fondoComparaTasas) (Billetera, bool) {
+	mejor := -1
+	for i, f := range fondos {
+		if !strings.Contains(strings.ToLower(f.Administradora), "mercado pago") {
+			continue
 		}
-		return top[i].TNA > top[j].TNA
-	})
-	if len(top) > 5 {
-		top = top[:5]
+		if f.TipoRenta != "Mercado de Dinero" {
+			continue
+		}
+		if !strings.Contains(strings.ToLower(f.Moneda), "peso") {
+			continue
+		}
+		if f.Rendimientos.TNAEstimada <= 0 || fechaRancia(f.Fecha, 30) {
+			continue
+		}
+		if mejor < 0 || f.Patrimonio > fondos[mejor].Patrimonio {
+			mejor = i
+		}
 	}
-	return top
+	if mejor < 0 {
+		return Billetera{}, false
+	}
+	return Billetera{Fondo: "MERCADO PAGO", TNA: fondos[mejor].Rendimientos.TNAEstimada}, true
+}
+
+// mercadoPagoBilletera trae la TNA de Mercado Pago desde el subset ComparaTasas.
+func mercadoPagoBilletera(ctx context.Context) (Billetera, bool) {
+	resp, err := network.FetchSecureWithContext(ctx, "https://api.argentinadatos.com/v1/finanzas/fci/comparatasas")
+	if err != nil {
+		log.Printf("[FINANCE] Mercado Pago: %v", err)
+		return Billetera{}, false
+	}
+	defer resp.Body.Close()
+	var data struct {
+		Fondos []fondoComparaTasas `json:"fondos"`
+	}
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 8<<20)).Decode(&data); err != nil {
+		return Billetera{}, false
+	}
+	return mercadoPagoDe(data.Fondos)
 }

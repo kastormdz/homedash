@@ -395,12 +395,11 @@
             <div class="text-[8px] font-black uppercase tracking-widest text-base-content/40 px-2 pt-0.5 leading-none">TOP TASAS BILLETERAS</div>
             {{range .Dolar.Billeteras}}
             <div class="bg-white/5 rounded px-2 py-0.5 border border-white/5 flex items-center justify-between relative overflow-hidden">
-                <span class="text-[8px] font-black uppercase tracking-widest text-base-content/40 truncate mr-2 leading-none">{{.Fondo}}{{if .HasConditions}} *{{end}}</span>
+                <span class="text-[8px] font-black uppercase tracking-widest text-base-content/40 truncate mr-2 leading-none">{{.Fondo}}</span>
                 <span class="text-[10px] font-black text-primary leading-none tabular-nums shrink-0">{{printf "%.1f" .TNA}}%</span>
             </div>
             {{end}}
         </div>
-        <div class="text-[7px] text-base-content/30 px-2 pt-0.5 leading-none">* TNA base, con condiciones</div>
         {{end}}
     </div>
     {{end}}
@@ -792,12 +791,11 @@
             <div class="text-[9px] font-black uppercase text-base-content/40 tracking-widest px-3 pt-0.5 leading-none">TOP TASAS BILLETERAS</div>
             {{range .Dolar.Billeteras}}
             <div class="bg-white/5 rounded-lg px-3 py-1 border border-white/5 flex items-center justify-between relative overflow-hidden">
-                <span class="text-[9px] font-black uppercase text-base-content/40 tracking-widest truncate mr-2 leading-none">{{.Fondo}}{{if .HasConditions}} *{{end}}</span>
+                <span class="text-[9px] font-black uppercase text-base-content/40 tracking-widest truncate mr-2 leading-none">{{.Fondo}}</span>
                 <span class="text-xs font-black text-primary leading-none tabular-nums shrink-0">{{printf "%.1f" .TNA}}%</span>
             </div>
             {{end}}
         </div>
-        <div class="text-[8px] text-base-content/30 px-3 pt-0.5 leading-none">* TNA base, con condiciones</div>
         {{end}}
     </div>
     {{end}}

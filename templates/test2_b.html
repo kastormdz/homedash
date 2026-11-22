@@ -502,13 +502,12 @@
         {{range .Dolar.Billeteras}}
         <div class="mkt" style="align-items:center;flex-direction:column;gap:0">
           <div style="display:flex;justify-content:space-between;align-items:baseline;width:100%;gap:10px">
-            <span class="k">{{.Fondo}}{{if .HasConditions}} <span class="lbl" style="color:var(--dim)">*</span>{{end}}</span>
+            <span class="k">{{.Fondo}}</span>
             <span class="v" style="color:var(--ok)">{{printf "%.1f" .TNA}}%</span>
           </div>
           <span class="ratebar" style="width:100%"><i style="width:{{tnaBar .TNA}}%"></i></span>
         </div>
         {{end}}
-        <div class="lbl" style="margin-top:9px;letter-spacing:.06em">* aplica con condiciones</div>
       {{else}}<span class="empty">Sin datos de tasas</span>{{end}}
     </div>
 
