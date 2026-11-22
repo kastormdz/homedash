@@ -13,7 +13,10 @@
 #   - chown -R 65532:65532 de la cache despues del rsync: el contenedor corre nonroot.
 set -uo pipefail
 
-REPO="${REPO:-$(cd "$(dirname "$0")/.." && pwd)}"
+# readlink -f: si el script se invoca por un symlink (p. ej. /home/kastor/tmp/
+# deploy-homedash-fix.sh -> scripts/deploy.sh), $0 es el symlink y dirname daria /tmp.
+SELF="$(readlink -f "$0")"
+REPO="${REPO:-$(cd "$(dirname "$SELF")/.." && pwd)}"
 DEST="${DEST:-/home/samba/docker/homedash}"
 CONTENEDOR="${CONTENEDOR:-homedash}"
 PUERTO="${PUERTO:-8060}"
