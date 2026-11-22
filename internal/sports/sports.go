@@ -81,9 +81,26 @@ func saveSportsCache(data SportsData) {
 	}
 }
 
-func StartUpdateLoop() {
+// intervaloDelLoop decide cuanto dormir antes del proximo update.
+//
+// El primer tick es CORTO si la carga inicial fallo. Tras un reboot de Titan la red o el
+// DNS pueden no estar listos cuando arranca Docker: los 5 reintentos del arranque duran
+// 25 s y, si igual falla, sin esto el panel se quedaba con el cache del arranque anterior
+// hasta 15 minutos, sin avisar. Cuesta un request extra a ESPN por arranque fallido.
+func intervaloDelLoop(primero, arranqueOK, hayActividad bool) time.Duration {
+	if primero && !arranqueOK {
+		return 1 * time.Minute
+	}
+	if hayActividad {
+		return 1 * time.Minute
+	}
+	return 15 * time.Minute
+}
+
+func StartUpdateLoop(arranqueOK bool) {
 	go func() {
 		// Ya hicimos ForceUpdate en main(), así que primero dormimos
+		primero := true
 		for {
 			// Determinar próximo intervalo (15 min por defecto, 1 min si hay actividad)
 			interval := 15 * time.Minute
@@ -104,9 +121,11 @@ func StartUpdateLoop() {
 			}
 			cacheMutex.RUnlock()
 
-			if needsQuickUpdate {
-				interval = 1 * time.Minute
+			interval = intervaloDelLoop(primero, arranqueOK, needsQuickUpdate)
+			if primero && !arranqueOK {
+				log.Printf("[SPORTS] la carga inicial fallo; reintento en 1 min (no en 15)")
 			}
+			primero = false
 
 			time.Sleep(interval)
 

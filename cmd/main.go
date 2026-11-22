@@ -465,10 +465,13 @@ func main() {
 	// Es seguro: cada paquete protege su estado (RLock/Lock) y los handlers lo
 	// leen con los getters.
 	go func() {
-		// 1. Deportes (con reintentos)
+		// 1. Deportes (con reintentos). arranqueOK decide si el primer tick del loop espera
+		// 15 min o 1: si esto falla, el panel queda con el cache del arranque anterior.
+		arranqueOK := false
 		for i := 0; i < maxRetries; i++ {
 			err := sports.ForceUpdate(context.Background())
 			if err == nil {
+				arranqueOK = true
 				log.Println("[INIT] Deportes cargados con éxito.")
 				break
 			}
@@ -489,7 +492,7 @@ func main() {
 		weather.ForceUpdateAlerts(context.Background())
 
 		// Bucles de actualización periódicos
-		sports.StartUpdateLoop()
+		sports.StartUpdateLoop(arranqueOK)
 		crypto.StartUpdateLoop()
 		finance.StartUpdateLoop()
 		earthquake.StartUpdateLoop()
@@ -771,7 +774,7 @@ type WeatherViewModel struct {
 	MoonIcon      string
 	MoonPhaseName string
 	IsAvailable   bool
-	AEM           []weather.AEMDay        // pronóstico oficial de la AEM (3 días, por oasis)
+	AEM           []weather.AEMDay // pronóstico oficial de la AEM (3 días, por oasis)
 }
 
 // buildWeatherViewModel arma el view model completo del panel. Lo comparten
